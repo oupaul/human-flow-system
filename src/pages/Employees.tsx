@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Table, 
@@ -95,7 +94,7 @@ const departmentOptions = [
 ];
 
 interface EmployeeFormData {
-  id?: number;
+  id: number; // 修改這裡：將 id 改為必須屬性（移除了問號）
   name: string;
   employeeId: string;
   department: string;
@@ -108,6 +107,7 @@ interface EmployeeFormData {
 }
 
 const emptyFormData: EmployeeFormData = {
+  id: 0, // 添加了默認 id 值
   name: "",
   employeeId: "",
   department: "",
