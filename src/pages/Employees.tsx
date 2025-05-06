@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Table, 
@@ -102,6 +101,7 @@ const statusOptions = [
   { value: "inactive", label: "離職" },
 ];
 
+// 修改 EmployeeFormData 接口，確保 terminationDate 和 terminationReason 的類型正確
 interface EmployeeFormData {
   id: number;
   name: string;
@@ -112,12 +112,13 @@ interface EmployeeFormData {
   phone: string;
   joinDate: string;
   active: boolean;
-  terminationDate?: string;
-  terminationReason?: string;
+  terminationDate: string;
+  terminationReason: string;
   address?: string;
   notes?: string;
 }
 
+// 修改空表單數據對象，提供所有必填字段的默認值
 const emptyFormData: EmployeeFormData = {
   id: 0,
   name: "",
@@ -128,6 +129,8 @@ const emptyFormData: EmployeeFormData = {
   phone: "",
   joinDate: "",
   active: true,
+  terminationDate: "",
+  terminationReason: "",
   address: "",
   notes: "",
 };
@@ -216,7 +219,8 @@ const Employees = () => {
     setSelectedEmployee(employee);
     setFormData({
       ...employee,
-      terminationDate: new Date().toISOString().split('T')[0],
+      terminationDate: employee.terminationDate || new Date().toISOString().split('T')[0],
+      terminationReason: employee.terminationReason || "",
     });
     setIsTerminateConfirmOpen(true);
   };
@@ -943,4 +947,3 @@ const Employees = () => {
 };
 
 export default Employees;
-
