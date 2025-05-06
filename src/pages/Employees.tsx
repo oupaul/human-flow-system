@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   Table, 
@@ -56,6 +57,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Pencil, 
@@ -69,19 +71,20 @@ import {
   Mail,
   Calendar,
   Briefcase,
-  Badge
+  Badge,
+  UserX
 } from "lucide-react";
 
 // 模擬員工資料
 const employeesData = [
-  { id: 1, name: "張小明", employeeId: "EMP001", department: "IT部門", position: "軟體工程師", email: "ming@example.com", phone: "0912-345-678", joinDate: "2020-01-15" },
-  { id: 2, name: "李小華", employeeId: "EMP002", department: "人資部門", position: "人資專員", email: "hua@example.com", phone: "0923-456-789", joinDate: "2019-05-20" },
-  { id: 3, name: "王大明", employeeId: "EMP003", department: "財務部門", position: "會計師", email: "daming@example.com", phone: "0934-567-890", joinDate: "2021-03-10" },
-  { id: 4, name: "陳小玲", employeeId: "EMP004", department: "行銷部門", position: "行銷經理", email: "ling@example.com", phone: "0945-678-901", joinDate: "2018-11-05" },
-  { id: 5, name: "林小美", employeeId: "EMP005", department: "業務部門", position: "業務代表", email: "mei@example.com", phone: "0956-789-012", joinDate: "2022-02-15" },
-  { id: 6, name: "黃大力", employeeId: "EMP006", department: "IT部門", position: "系統管理員", email: "dali@example.com", phone: "0967-890-123", joinDate: "2020-08-20" },
-  { id: 7, name: "吳小菁", employeeId: "EMP007", department: "人資部門", position: "招聘專員", email: "jing@example.com", phone: "0978-901-234", joinDate: "2021-06-25" },
-  { id: 8, name: "趙小剛", employeeId: "EMP008", department: "財務部門", position: "財務分析師", email: "gang@example.com", phone: "0989-012-345", joinDate: "2019-09-30" },
+  { id: 1, name: "張小明", employeeId: "EMP001", department: "IT部門", position: "軟體工程師", email: "ming@example.com", phone: "0912-345-678", joinDate: "2020-01-15", active: true },
+  { id: 2, name: "李小華", employeeId: "EMP002", department: "人資部門", position: "人資專員", email: "hua@example.com", phone: "0923-456-789", joinDate: "2019-05-20", active: true },
+  { id: 3, name: "王大明", employeeId: "EMP003", department: "財務部門", position: "會計師", email: "daming@example.com", phone: "0934-567-890", joinDate: "2021-03-10", active: true },
+  { id: 4, name: "陳小玲", employeeId: "EMP004", department: "行銷部門", position: "行銷經理", email: "ling@example.com", phone: "0945-678-901", joinDate: "2018-11-05", active: false, terminationDate: "2023-06-30", terminationReason: "個人因素離職" },
+  { id: 5, name: "林小美", employeeId: "EMP005", department: "業務部門", position: "業務代表", email: "mei@example.com", phone: "0956-789-012", joinDate: "2022-02-15", active: true },
+  { id: 6, name: "黃大力", employeeId: "EMP006", department: "IT部門", position: "系統管理員", email: "dali@example.com", phone: "0967-890-123", joinDate: "2020-08-20", active: true },
+  { id: 7, name: "吳小菁", employeeId: "EMP007", department: "人資部門", position: "招聘專員", email: "jing@example.com", phone: "0978-901-234", joinDate: "2021-06-25", active: true },
+  { id: 8, name: "趙小剛", employeeId: "EMP008", department: "財務部門", position: "財務分析師", email: "gang@example.com", phone: "0989-012-345", joinDate: "2019-09-30", active: false, terminationDate: "2024-01-15", terminationReason: "公司組織調整" },
 ];
 
 const departmentOptions = [
@@ -93,8 +96,14 @@ const departmentOptions = [
   { value: "業務部門", label: "業務部門" },
 ];
 
+const statusOptions = [
+  { value: "all", label: "全部" },
+  { value: "active", label: "在職" },
+  { value: "inactive", label: "離職" },
+];
+
 interface EmployeeFormData {
-  id: number; // 修改這裡：將 id 改為必須屬性（移除了問號）
+  id: number;
   name: string;
   employeeId: string;
   department: string;
@@ -102,12 +111,15 @@ interface EmployeeFormData {
   email: string;
   phone: string;
   joinDate: string;
+  active: boolean;
+  terminationDate?: string;
+  terminationReason?: string;
   address?: string;
   notes?: string;
 }
 
 const emptyFormData: EmployeeFormData = {
-  id: 0, // 添加了默認 id 值
+  id: 0,
   name: "",
   employeeId: "",
   department: "",
@@ -115,6 +127,7 @@ const emptyFormData: EmployeeFormData = {
   email: "",
   phone: "",
   joinDate: "",
+  active: true,
   address: "",
   notes: "",
 };
@@ -122,10 +135,12 @@ const emptyFormData: EmployeeFormData = {
 const Employees = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [isViewEmployeeOpen, setIsViewEmployeeOpen] = useState(false);
   const [isEditEmployeeOpen, setIsEditEmployeeOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isTerminateConfirmOpen, setIsTerminateConfirmOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeFormData | null>(null);
   const [formData, setFormData] = useState<EmployeeFormData>(emptyFormData);
   const { toast } = useToast();
@@ -141,13 +156,23 @@ const Employees = () => {
       selectedDepartment === "all" || 
       employee.department === selectedDepartment;
     
-    return matchesSearch && matchesDepartment;
+    const matchesStatus =
+      selectedStatus === "all" ||
+      (selectedStatus === "active" && employee.active) ||
+      (selectedStatus === "inactive" && !employee.active);
+    
+    return matchesSearch && matchesDepartment && matchesStatus;
   });
 
   // 處理表單輸入變更
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // 處理勾選框變更
+  const handleSwitchChange = (name: string, checked: boolean) => {
+    setFormData((prev) => ({ ...prev, [name]: checked }));
   };
 
   // 處理選擇變更
@@ -183,6 +208,28 @@ const Employees = () => {
         description: `員工 ${selectedEmployee.name} (${selectedEmployee.employeeId}) 已被刪除。`,
       });
       setIsDeleteConfirmOpen(false);
+    }
+  };
+
+  // 處理員工離職
+  const handleTerminateEmployee = (employee: typeof employeesData[0]) => {
+    setSelectedEmployee(employee);
+    setFormData({
+      ...employee,
+      terminationDate: new Date().toISOString().split('T')[0],
+    });
+    setIsTerminateConfirmOpen(true);
+  };
+  
+  // 確認員工離職
+  const confirmTerminateEmployee = () => {
+    if (selectedEmployee) {
+      // 這裡只是模擬更新，實際應用中需要呼叫API
+      toast({
+        title: "狀態更新成功",
+        description: `員工 ${selectedEmployee.name} (${selectedEmployee.employeeId}) 已標記為離職。`,
+      });
+      setIsTerminateConfirmOpen(false);
     }
   };
 
@@ -237,26 +284,48 @@ const Employees = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <Label htmlFor="department-filter" className="whitespace-nowrap">
-                部門篩選:
-              </Label>
-              <Select
-                value={selectedDepartment}
-                onValueChange={(value) => setSelectedDepartment(value)}
-              >
-                <SelectTrigger id="department-filter" className="w-[180px]">
-                  <SelectValue placeholder="選擇部門" />
-                </SelectTrigger>
-                <SelectContent>
-                  {departmentOptions.map((dept) => (
-                    <SelectItem key={dept.value} value={dept.value}>
-                      {dept.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="department-filter" className="whitespace-nowrap">
+                  部門:
+                </Label>
+                <Select
+                  value={selectedDepartment}
+                  onValueChange={(value) => setSelectedDepartment(value)}
+                >
+                  <SelectTrigger id="department-filter" className="w-[140px]">
+                    <SelectValue placeholder="選擇部門" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departmentOptions.map((dept) => (
+                      <SelectItem key={dept.value} value={dept.value}>
+                        {dept.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="status-filter" className="whitespace-nowrap">
+                  狀態:
+                </Label>
+                <Select
+                  value={selectedStatus}
+                  onValueChange={(value) => setSelectedStatus(value)}
+                >
+                  <SelectTrigger id="status-filter" className="w-[100px]">
+                    <SelectValue placeholder="選擇狀態" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </CardContent>
@@ -280,14 +349,14 @@ const Employees = () => {
                   <TableHead>部門</TableHead>
                   <TableHead>職位</TableHead>
                   <TableHead>電子郵件</TableHead>
-                  <TableHead>到職日期</TableHead>
+                  <TableHead>狀態</TableHead>
                   <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredEmployees.length > 0 ? (
                   filteredEmployees.map((employee) => (
-                    <TableRow key={employee.id}>
+                    <TableRow key={employee.id} className={!employee.active ? "bg-muted/30" : ""}>
                       <TableCell className="font-medium">{employee.employeeId}</TableCell>
                       <TableCell>
                         <HoverCard>
@@ -316,6 +385,14 @@ const Employees = () => {
                                   <Phone className="mr-2 h-4 w-4" />
                                   <span className="text-xs text-muted-foreground">{employee.phone}</span>
                                 </div>
+                                <div className="flex items-center pt-2">
+                                  <Calendar className="mr-2 h-4 w-4" />
+                                  <span className="text-xs text-muted-foreground">
+                                    {employee.active 
+                                      ? `到職日: ${employee.joinDate}` 
+                                      : `到職: ${employee.joinDate} | 離職: ${employee.terminationDate}`}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </HoverCardContent>
@@ -324,7 +401,15 @@ const Employees = () => {
                       <TableCell>{employee.department}</TableCell>
                       <TableCell>{employee.position}</TableCell>
                       <TableCell>{employee.email}</TableCell>
-                      <TableCell>{employee.joinDate}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          employee.active 
+                            ? "bg-green-50 text-green-700" 
+                            : "bg-red-50 text-red-700"
+                        }`}>
+                          {employee.active ? "在職中" : "已離職"}
+                        </span>
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button 
@@ -343,6 +428,16 @@ const Employees = () => {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          {employee.active && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => handleTerminateEmployee(employee)}
+                              title="標記為離職"
+                            >
+                              <UserX className="h-4 w-4 text-hrms-warning" />
+                            </Button>
+                          )}
                           <Button 
                             variant="ghost" 
                             size="icon"
@@ -509,7 +604,11 @@ const Employees = () => {
           {selectedEmployee && (
             <div className="space-y-6 py-6">
               <div className="flex items-center justify-center mb-6">
-                <div className="h-24 w-24 rounded-full bg-hrms-accent flex items-center justify-center">
+                <div className={`h-24 w-24 rounded-full flex items-center justify-center ${
+                  selectedEmployee.active 
+                    ? "bg-hrms-accent" 
+                    : "bg-gray-400"
+                }`}>
                   <User className="h-12 w-12 text-white" />
                 </div>
               </div>
@@ -550,6 +649,31 @@ const Employees = () => {
                 <div>
                   <h4 className="text-sm font-semibold text-muted-foreground mb-1">到職日期</h4>
                   <p>{selectedEmployee.joinDate}</p>
+                </div>
+
+                {!selectedEmployee.active && selectedEmployee.terminationDate && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-1">離職日期</h4>
+                    <p>{selectedEmployee.terminationDate}</p>
+                  </div>
+                )}
+
+                {!selectedEmployee.active && selectedEmployee.terminationReason && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-muted-foreground mb-1">離職原因</h4>
+                    <p>{selectedEmployee.terminationReason}</p>
+                  </div>
+                )}
+
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground mb-1">在職狀態</h4>
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    selectedEmployee.active 
+                      ? "bg-green-50 text-green-700" 
+                      : "bg-red-50 text-red-700"
+                  }`}>
+                    {selectedEmployee.active ? "在職中" : "已離職"}
+                  </span>
                 </div>
 
                 {selectedEmployee.address && (
@@ -690,6 +814,41 @@ const Employees = () => {
                 />
               </div>
             </div>
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="active">在職狀態</Label>
+              <Switch 
+                id="active" 
+                checked={formData.active} 
+                onCheckedChange={(checked) => handleSwitchChange("active", checked)}
+              />
+              <span className="text-sm text-muted-foreground">
+                {formData.active ? "在職中" : "已離職"}
+              </span>
+            </div>
+            {!formData.active && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="editTerminationDate">離職日期</Label>
+                  <Input 
+                    id="editTerminationDate" 
+                    name="terminationDate"
+                    type="date" 
+                    value={formData.terminationDate || ""}
+                    onChange={handleFormChange}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editTerminationReason">離職原因</Label>
+                  <Textarea 
+                    id="editTerminationReason" 
+                    name="terminationReason"
+                    placeholder="輸入離職原因" 
+                    value={formData.terminationReason || ""}
+                    onChange={handleFormChange}
+                  />
+                </div>
+              </>
+            )}
             <div className="space-y-2">
               <Label htmlFor="editNotes">備註</Label>
               <Textarea 
@@ -707,6 +866,55 @@ const Employees = () => {
             </Button>
             <Button onClick={handleUpdateEmployee}>
               更新
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 員工離職對話框 */}
+      <Dialog open={isTerminateConfirmOpen} onOpenChange={setIsTerminateConfirmOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>員工離職</DialogTitle>
+            <DialogDescription>
+              請填寫員工的離職資訊
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <div className="font-medium">{formData.name} ({formData.employeeId})</div>
+              <div className="text-sm text-muted-foreground">{formData.position}, {formData.department}</div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="terminationDate">離職日期 *</Label>
+              <Input 
+                id="terminationDate" 
+                name="terminationDate"
+                type="date" 
+                value={formData.terminationDate || ""}
+                onChange={handleFormChange}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="terminationReason">離職原因</Label>
+              <Textarea 
+                id="terminationReason" 
+                name="terminationReason"
+                placeholder="請輸入離職原因" 
+                value={formData.terminationReason || ""}
+                onChange={handleFormChange}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTerminateConfirmOpen(false)}>
+              取消
+            </Button>
+            <Button 
+              onClick={confirmTerminateEmployee} 
+              className="bg-hrms-warning"
+            >
+              確認離職
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -735,3 +943,4 @@ const Employees = () => {
 };
 
 export default Employees;
+
