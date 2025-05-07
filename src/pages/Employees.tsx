@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   Table, 
@@ -101,7 +102,7 @@ const statusOptions = [
   { value: "inactive", label: "離職" },
 ];
 
-// 修改 EmployeeFormData 接口
+// 修改 EmployeeFormData 接口，將 terminationDate 和 terminationReason 設為可選屬性
 interface EmployeeFormData {
   id: number;
   name: string;
@@ -112,10 +113,10 @@ interface EmployeeFormData {
   phone: string;
   joinDate: string;
   active: boolean;
-  terminationDate: string; 
-  terminationReason: string;
-  address: string; // 確保這個欄位被明確定義為必需
-  notes: string; // 確保這個欄位被明確定義為必需
+  terminationDate?: string; // 改為可選屬性
+  terminationReason?: string; // 改為可選屬性
+  address: string;
+  notes: string;
 }
 
 // 修改空表單數據對象，提供所有必填字段的默認值
@@ -129,8 +130,8 @@ const emptyFormData: EmployeeFormData = {
   phone: "",
   joinDate: "",
   active: true,
-  terminationDate: "", 
-  terminationReason: "", 
+  terminationDate: "", // 即使是可選的，仍然提供默認值
+  terminationReason: "", // 即使是可選的，仍然提供默認值
   address: "", // 預設值為空字符串
   notes: "", // 預設值為空字符串
 };
