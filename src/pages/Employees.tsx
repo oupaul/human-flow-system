@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Table, 
@@ -102,7 +101,7 @@ const statusOptions = [
   { value: "inactive", label: "離職" },
 ];
 
-// 修改 EmployeeFormData 接口，將 terminationDate 和 terminationReason 設為可選屬性
+// 修改 EmployeeFormData 接口，將所有屬性保持為必填
 interface EmployeeFormData {
   id: number;
   name: string;
@@ -113,8 +112,8 @@ interface EmployeeFormData {
   phone: string;
   joinDate: string;
   active: boolean;
-  terminationDate?: string; // 改為可選屬性
-  terminationReason?: string; // 改為可選屬性
+  terminationDate: string;
+  terminationReason: string;
   address: string;
   notes: string;
 }
@@ -130,10 +129,10 @@ const emptyFormData: EmployeeFormData = {
   phone: "",
   joinDate: "",
   active: true,
-  terminationDate: "", // 即使是可選的，仍然提供默認值
-  terminationReason: "", // 即使是可選的，仍然提供默認值
-  address: "", // 預設值為空字符串
-  notes: "", // 預設值為空字符串
+  terminationDate: "",
+  terminationReason: "",
+  address: "",
+  notes: "",
 };
 
 const Employees = () => {
@@ -184,22 +183,33 @@ const Employees = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // 確保從員工數據轉換到表單數據時包含所有必要的字段
+  const employeeToFormData = (employee: typeof employeesData[0]): EmployeeFormData => {
+    return {
+      ...employee,
+      terminationDate: employee.terminationDate || "",
+      terminationReason: employee.terminationReason || "",
+      address: employee.address || "",
+      notes: employee.notes || ""
+    };
+  };
+
   // 查看員工詳細資料
   const handleViewEmployee = (employee: typeof employeesData[0]) => {
-    setSelectedEmployee(employee);
+    setSelectedEmployee(employeeToFormData(employee));
     setIsViewEmployeeOpen(true);
   };
 
   // 編輯員工資料
   const handleEditEmployee = (employee: typeof employeesData[0]) => {
-    setSelectedEmployee(employee);
-    setFormData(employee);
+    setSelectedEmployee(employeeToFormData(employee));
+    setFormData(employeeToFormData(employee));
     setIsEditEmployeeOpen(true);
   };
 
   // 刪除員工
   const handleDeleteEmployee = (employee: typeof employeesData[0]) => {
-    setSelectedEmployee(employee);
+    setSelectedEmployee(employeeToFormData(employee));
     setIsDeleteConfirmOpen(true);
   };
 
@@ -219,9 +229,10 @@ const Employees = () => {
     const updatedEmployee = {
       ...employee,
       terminationDate: employee.terminationDate || new Date().toISOString().split('T')[0],
+      terminationReason: employee.terminationReason || ""
     };
-    setSelectedEmployee(updatedEmployee);
-    setFormData(updatedEmployee);
+    setSelectedEmployee(employeeToFormData(updatedEmployee));
+    setFormData(employeeToFormData(updatedEmployee));
     setIsTerminateConfirmOpen(true);
   };
   
@@ -566,7 +577,7 @@ const Employees = () => {
                   id="address" 
                   name="address"
                   placeholder="輸入地址" 
-                  value={formData.address || ""}
+                  value={formData.address}
                   onChange={handleFormChange}
                 />
               </div>
@@ -577,7 +588,7 @@ const Employees = () => {
                 id="notes" 
                 name="notes"
                 placeholder="輸入備註" 
-                value={formData.notes || ""}
+                value={formData.notes}
                 onChange={handleFormChange}
               />
             </div>
@@ -810,7 +821,7 @@ const Employees = () => {
                   id="editAddress" 
                   name="address"
                   placeholder="輸入地址" 
-                  value={formData.address || ""}
+                  value={formData.address}
                   onChange={handleFormChange}
                 />
               </div>
@@ -834,7 +845,7 @@ const Employees = () => {
                     id="editTerminationDate" 
                     name="terminationDate"
                     type="date" 
-                    value={formData.terminationDate || ""}
+                    value={formData.terminationDate}
                     onChange={handleFormChange}
                   />
                 </div>
@@ -844,12 +855,22 @@ const Employees = () => {
                     id="editTerminationReason" 
                     name="terminationReason"
                     placeholder="輸入離職原因" 
-                    value={formData.terminationReason || ""}
+                    value={formData.terminationReason}
                     onChange={handleFormChange}
                   />
                 </div>
               </>
             )}
+            <div className="space-y-2">
+              <Label htmlFor="editNotes">備註</Label>
+              <Textarea 
+                id="editNotes" 
+                name="notes"
+                placeholder="輸入備註" 
+                value={formData.notes}
+                onChange={handleFormChange}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditEmployeeOpen(false)}>
@@ -863,64 +884,3 @@ const Employees = () => {
       </Dialog>
 
       {/* 刪除員工確認對話框 */}
-      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>確定要刪除此員工嗎？</AlertDialogTitle>
-            <AlertDialogDescription>
-              此操作無法撤銷，員工 {selectedEmployee?.name} 的所有資料將被永久刪除。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteEmployee} className="bg-red-600">
-              刪除
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* 標記員工離職確認對話框 */}
-      <AlertDialog open={isTerminateConfirmOpen} onOpenChange={setIsTerminateConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>標記員工為離職狀態</AlertDialogTitle>
-            <AlertDialogDescription>
-              確定要將員工 {selectedEmployee?.name} 標記為離職嗎？
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="terminateDate">離職日期 *</Label>
-              <Input 
-                id="terminateDate"
-                name="terminationDate"
-                type="date" 
-                value={formData.terminationDate || ""}
-                onChange={handleFormChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="terminateReason">離職原因</Label>
-              <Textarea 
-                id="terminateReason"
-                name="terminationReason"
-                placeholder="輸入離職原因"
-                value={formData.terminationReason || ""}
-                onChange={handleFormChange}
-              />
-            </div>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmTerminateEmployee}>
-              確認
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-};
-
-export default Employees;
