@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Table, 
@@ -75,16 +74,16 @@ import {
   UserX
 } from "lucide-react";
 
-// 模擬員工資料
+// 模擬員工資料，增加了address和notes屬性的定義
 const employeesData = [
-  { id: 1, name: "張小明", employeeId: "EMP001", department: "IT部門", position: "軟體工程師", email: "ming@example.com", phone: "0912-345-678", joinDate: "2020-01-15", active: true },
-  { id: 2, name: "李小華", employeeId: "EMP002", department: "人資部門", position: "人資專員", email: "hua@example.com", phone: "0923-456-789", joinDate: "2019-05-20", active: true },
-  { id: 3, name: "王大明", employeeId: "EMP003", department: "財務部門", position: "會計師", email: "daming@example.com", phone: "0934-567-890", joinDate: "2021-03-10", active: true },
-  { id: 4, name: "陳小玲", employeeId: "EMP004", department: "行銷部門", position: "行銷經理", email: "ling@example.com", phone: "0945-678-901", joinDate: "2018-11-05", active: false, terminationDate: "2023-06-30", terminationReason: "個人因素離職" },
-  { id: 5, name: "林小美", employeeId: "EMP005", department: "業務部門", position: "業務代表", email: "mei@example.com", phone: "0956-789-012", joinDate: "2022-02-15", active: true },
-  { id: 6, name: "黃大力", employeeId: "EMP006", department: "IT部門", position: "系統管理員", email: "dali@example.com", phone: "0967-890-123", joinDate: "2020-08-20", active: true },
-  { id: 7, name: "吳小菁", employeeId: "EMP007", department: "人資部門", position: "招聘專員", email: "jing@example.com", phone: "0978-901-234", joinDate: "2021-06-25", active: true },
-  { id: 8, name: "趙小剛", employeeId: "EMP008", department: "財務部門", position: "財務分析師", email: "gang@example.com", phone: "0989-012-345", joinDate: "2019-09-30", active: false, terminationDate: "2024-01-15", terminationReason: "公司組織調整" },
+  { id: 1, name: "張小明", employeeId: "EMP001", department: "IT部門", position: "軟體工程師", email: "ming@example.com", phone: "0912-345-678", joinDate: "2020-01-15", active: true, address: "", notes: "" },
+  { id: 2, name: "李小華", employeeId: "EMP002", department: "人資部門", position: "人資專員", email: "hua@example.com", phone: "0923-456-789", joinDate: "2019-05-20", active: true, address: "", notes: "" },
+  { id: 3, name: "王大明", employeeId: "EMP003", department: "財務部門", position: "會計師", email: "daming@example.com", phone: "0934-567-890", joinDate: "2021-03-10", active: true, address: "", notes: "" },
+  { id: 4, name: "陳小玲", employeeId: "EMP004", department: "行銷部門", position: "行銷經理", email: "ling@example.com", phone: "0945-678-901", joinDate: "2018-11-05", active: false, terminationDate: "2023-06-30", terminationReason: "個人因素離職", address: "", notes: "" },
+  { id: 5, name: "林小美", employeeId: "EMP005", department: "業務部門", position: "業務代表", email: "mei@example.com", phone: "0956-789-012", joinDate: "2022-02-15", active: true, address: "", notes: "" },
+  { id: 6, name: "黃大力", employeeId: "EMP006", department: "IT部門", position: "系統管理員", email: "dali@example.com", phone: "0967-890-123", joinDate: "2020-08-20", active: true, address: "", notes: "" },
+  { id: 7, name: "吳小菁", employeeId: "EMP007", department: "人資部門", position: "招聘專員", email: "jing@example.com", phone: "0978-901-234", joinDate: "2021-06-25", active: true, address: "", notes: "" },
+  { id: 8, name: "趙小剛", employeeId: "EMP008", department: "財務部門", position: "財務分析師", email: "gang@example.com", phone: "0989-012-345", joinDate: "2019-09-30", active: false, terminationDate: "2024-01-15", terminationReason: "公司組織調整", address: "", notes: "" },
 ];
 
 const departmentOptions = [
@@ -113,10 +112,10 @@ interface EmployeeFormData {
   phone: string;
   joinDate: string;
   active: boolean;
-  terminationDate: string; // 仍然保持必需，但會提供默認值
-  terminationReason: string; // 仍然保持必需，但會提供默認值
-  address?: string;
-  notes?: string;
+  terminationDate: string; 
+  terminationReason: string;
+  address: string; // 確保這個欄位被明確定義為必需
+  notes: string; // 確保這個欄位被明確定義為必需
 }
 
 // 修改空表單數據對象，提供所有必填字段的默認值
@@ -130,10 +129,10 @@ const emptyFormData: EmployeeFormData = {
   phone: "",
   joinDate: "",
   active: true,
-  terminationDate: "", // 預設為空字符串
-  terminationReason: "", // 預設為空字符串
-  address: "",
-  notes: "",
+  terminationDate: "", 
+  terminationReason: "", 
+  address: "", // 預設值為空字符串
+  notes: "", // 預設值為空字符串
 };
 
 const Employees = () => {
@@ -186,51 +185,26 @@ const Employees = () => {
 
   // 查看員工詳細資料
   const handleViewEmployee = (employee: typeof employeesData[0]) => {
-    // 在設置 selectedEmployee 前，確保處理所有必要的字段
-    const completeEmployee: EmployeeFormData = {
-      ...employee,
-      terminationDate: employee.terminationDate || "",
-      terminationReason: employee.terminationReason || "",
-      address: employee.address || "",
-      notes: employee.notes || "",
-    };
-    setSelectedEmployee(completeEmployee);
+    setSelectedEmployee(employee);
     setIsViewEmployeeOpen(true);
   };
 
   // 編輯員工資料
   const handleEditEmployee = (employee: typeof employeesData[0]) => {
-    // 在設置 formData 前，確保處理所有必要的字段
-    const completeEmployee: EmployeeFormData = {
-      ...employee,
-      terminationDate: employee.terminationDate || "",
-      terminationReason: employee.terminationReason || "",
-      address: employee.address || "",
-      notes: employee.notes || "",
-    };
-    setSelectedEmployee(completeEmployee);
-    setFormData(completeEmployee);
+    setSelectedEmployee(employee);
+    setFormData(employee);
     setIsEditEmployeeOpen(true);
   };
 
   // 刪除員工
   const handleDeleteEmployee = (employee: typeof employeesData[0]) => {
-    // 在設置 selectedEmployee 前，確保處理所有必要的字段
-    const completeEmployee: EmployeeFormData = {
-      ...employee,
-      terminationDate: employee.terminationDate || "",
-      terminationReason: employee.terminationReason || "",
-      address: employee.address || "",
-      notes: employee.notes || "",
-    };
-    setSelectedEmployee(completeEmployee);
+    setSelectedEmployee(employee);
     setIsDeleteConfirmOpen(true);
   };
 
   // 確認刪除員工
   const confirmDeleteEmployee = () => {
     if (selectedEmployee) {
-      // 這裡只是模擬刪除，實際應用中需要呼叫API
       toast({
         title: "刪除成功",
         description: `員工 ${selectedEmployee.name} (${selectedEmployee.employeeId}) 已被刪除。`,
@@ -241,23 +215,18 @@ const Employees = () => {
 
   // 處理員工離職
   const handleTerminateEmployee = (employee: typeof employeesData[0]) => {
-    // 在設置 selectedEmployee 和 formData 前，確保處理所有必要的字段
-    const completeEmployee: EmployeeFormData = {
+    const updatedEmployee = {
       ...employee,
       terminationDate: employee.terminationDate || new Date().toISOString().split('T')[0],
-      terminationReason: employee.terminationReason || "",
-      address: employee.address || "",
-      notes: employee.notes || "",
     };
-    setSelectedEmployee(completeEmployee);
-    setFormData(completeEmployee);
+    setSelectedEmployee(updatedEmployee);
+    setFormData(updatedEmployee);
     setIsTerminateConfirmOpen(true);
   };
   
   // 確認員工離職
   const confirmTerminateEmployee = () => {
     if (selectedEmployee) {
-      // 這裡只是模擬更新，實際應用中需要呼叫API
       toast({
         title: "狀態更新成功",
         description: `員工 ${selectedEmployee.name} (${selectedEmployee.employeeId}) 已標記為離職。`,
@@ -268,7 +237,6 @@ const Employees = () => {
 
   // 新增員工
   const handleAddEmployee = () => {
-    // 在實際應用中，這裡會呼叫API新增員工
     toast({
       title: "新增成功",
       description: `員工 ${formData.name} (${formData.employeeId}) 已新增。`,
@@ -280,7 +248,6 @@ const Employees = () => {
   // 更新員工資料
   const handleUpdateEmployee = () => {
     if (selectedEmployee) {
-      // 在實際應用中，這裡會呼叫API更新員工資料
       toast({
         title: "更新成功",
         description: `員工 ${formData.name} (${formData.employeeId}) 的資料已更新。`,
