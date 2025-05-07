@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   Table, 
@@ -876,4 +877,82 @@ const Employees = () => {
                     name="terminationReason"
                     placeholder="輸入離職原因" 
                     value={formData.terminationReason || ""}
-                    onChange={handleFormChange
+                    onChange={handleFormChange}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditEmployeeOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleUpdateEmployee}>
+              儲存
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 刪除員工確認對話框 */}
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確定要刪除此員工嗎？</AlertDialogTitle>
+            <AlertDialogDescription>
+              此操作無法撤銷，員工 {selectedEmployee?.name} 的所有資料將被永久刪除。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteEmployee} className="bg-red-600">
+              刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 標記員工離職確認對話框 */}
+      <AlertDialog open={isTerminateConfirmOpen} onOpenChange={setIsTerminateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>標記員工為離職狀態</AlertDialogTitle>
+            <AlertDialogDescription>
+              確定要將員工 {selectedEmployee?.name} 標記為離職嗎？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="terminateDate">離職日期 *</Label>
+              <Input 
+                id="terminateDate"
+                name="terminationDate"
+                type="date" 
+                value={formData.terminationDate || ""}
+                onChange={handleFormChange}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="terminateReason">離職原因</Label>
+              <Textarea 
+                id="terminateReason"
+                name="terminationReason"
+                placeholder="輸入離職原因"
+                value={formData.terminationReason || ""}
+                onChange={handleFormChange}
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmTerminateEmployee}>
+              確認
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default Employees;
