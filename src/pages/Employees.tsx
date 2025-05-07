@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   Table, 
@@ -884,3 +885,53 @@ const Employees = () => {
       </Dialog>
 
       {/* 刪除員工確認對話框 */}
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除員工</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedEmployee && (
+                <p>
+                  您確定要刪除員工 <strong>{selectedEmployee.name} ({selectedEmployee.employeeId})</strong> 嗎？此操作無法復原。
+                </p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-600 hover:bg-red-700"
+              onClick={confirmDeleteEmployee}
+            >
+              刪除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* 標記員工離職確認對話框 */}
+      <AlertDialog open={isTerminateConfirmOpen} onOpenChange={setIsTerminateConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認標記員工為離職</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedEmployee && (
+                <p>
+                  您確定要將員工 <strong>{selectedEmployee.name} ({selectedEmployee.employeeId})</strong> 標記為已離職嗎？
+                </p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmTerminateEmployee}>
+              確認
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default Employees;
