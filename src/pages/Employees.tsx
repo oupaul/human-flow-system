@@ -101,7 +101,7 @@ const statusOptions = [
   { value: "inactive", label: "離職" },
 ];
 
-// 修改 EmployeeFormData 接口，確保 terminationDate 和 terminationReason 的類型正確
+// 修改 EmployeeFormData 接口
 interface EmployeeFormData {
   id: number;
   name: string;
@@ -112,8 +112,8 @@ interface EmployeeFormData {
   phone: string;
   joinDate: string;
   active: boolean;
-  terminationDate: string;
-  terminationReason: string;
+  terminationDate: string; // 仍然保持必需，但會提供默認值
+  terminationReason: string; // 仍然保持必需，但會提供默認值
   address?: string;
   notes?: string;
 }
@@ -129,8 +129,8 @@ const emptyFormData: EmployeeFormData = {
   phone: "",
   joinDate: "",
   active: true,
-  terminationDate: "",
-  terminationReason: "",
+  terminationDate: "", // 預設為空字符串
+  terminationReason: "", // 預設為空字符串
   address: "",
   notes: "",
 };
@@ -185,20 +185,44 @@ const Employees = () => {
 
   // 查看員工詳細資料
   const handleViewEmployee = (employee: typeof employeesData[0]) => {
-    setSelectedEmployee(employee);
+    // 在設置 selectedEmployee 前，確保處理所有必要的字段
+    const completeEmployee: EmployeeFormData = {
+      ...employee,
+      terminationDate: employee.terminationDate || "",
+      terminationReason: employee.terminationReason || "",
+      address: employee.address || "",
+      notes: employee.notes || "",
+    };
+    setSelectedEmployee(completeEmployee);
     setIsViewEmployeeOpen(true);
   };
 
   // 編輯員工資料
   const handleEditEmployee = (employee: typeof employeesData[0]) => {
-    setSelectedEmployee(employee);
-    setFormData(employee);
+    // 在設置 formData 前，確保處理所有必要的字段
+    const completeEmployee: EmployeeFormData = {
+      ...employee,
+      terminationDate: employee.terminationDate || "",
+      terminationReason: employee.terminationReason || "",
+      address: employee.address || "",
+      notes: employee.notes || "",
+    };
+    setSelectedEmployee(completeEmployee);
+    setFormData(completeEmployee);
     setIsEditEmployeeOpen(true);
   };
 
   // 刪除員工
   const handleDeleteEmployee = (employee: typeof employeesData[0]) => {
-    setSelectedEmployee(employee);
+    // 在設置 selectedEmployee 前，確保處理所有必要的字段
+    const completeEmployee: EmployeeFormData = {
+      ...employee,
+      terminationDate: employee.terminationDate || "",
+      terminationReason: employee.terminationReason || "",
+      address: employee.address || "",
+      notes: employee.notes || "",
+    };
+    setSelectedEmployee(completeEmployee);
     setIsDeleteConfirmOpen(true);
   };
 
@@ -216,12 +240,16 @@ const Employees = () => {
 
   // 處理員工離職
   const handleTerminateEmployee = (employee: typeof employeesData[0]) => {
-    setSelectedEmployee(employee);
-    setFormData({
+    // 在設置 selectedEmployee 和 formData 前，確保處理所有必要的字段
+    const completeEmployee: EmployeeFormData = {
       ...employee,
       terminationDate: employee.terminationDate || new Date().toISOString().split('T')[0],
       terminationReason: employee.terminationReason || "",
-    });
+      address: employee.address || "",
+      notes: employee.notes || "",
+    };
+    setSelectedEmployee(completeEmployee);
+    setFormData(completeEmployee);
     setIsTerminateConfirmOpen(true);
   };
   
@@ -848,102 +876,4 @@ const Employees = () => {
                     name="terminationReason"
                     placeholder="輸入離職原因" 
                     value={formData.terminationReason || ""}
-                    onChange={handleFormChange}
-                  />
-                </div>
-              </>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="editNotes">備註</Label>
-              <Textarea 
-                id="editNotes" 
-                name="notes"
-                placeholder="輸入備註" 
-                value={formData.notes || ""}
-                onChange={handleFormChange}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditEmployeeOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={handleUpdateEmployee}>
-              更新
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 員工離職對話框 */}
-      <Dialog open={isTerminateConfirmOpen} onOpenChange={setIsTerminateConfirmOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>員工離職</DialogTitle>
-            <DialogDescription>
-              請填寫員工的離職資訊
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <div className="font-medium">{formData.name} ({formData.employeeId})</div>
-              <div className="text-sm text-muted-foreground">{formData.position}, {formData.department}</div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="terminationDate">離職日期 *</Label>
-              <Input 
-                id="terminationDate" 
-                name="terminationDate"
-                type="date" 
-                value={formData.terminationDate || ""}
-                onChange={handleFormChange}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="terminationReason">離職原因</Label>
-              <Textarea 
-                id="terminationReason" 
-                name="terminationReason"
-                placeholder="請輸入離職原因" 
-                value={formData.terminationReason || ""}
-                onChange={handleFormChange}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsTerminateConfirmOpen(false)}>
-              取消
-            </Button>
-            <Button 
-              onClick={confirmTerminateEmployee} 
-              className="bg-hrms-warning"
-            >
-              確認離職
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 刪除確認對話框 */}
-      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>確認刪除員工</AlertDialogTitle>
-            <AlertDialogDescription>
-              您確定要刪除 {selectedEmployee?.name} ({selectedEmployee?.employeeId}) 嗎？
-              此操作無法復原。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteEmployee} className="bg-hrms-danger">
-              刪除
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-};
-
-export default Employees;
+                    onChange={handleFormChange
