@@ -66,7 +66,8 @@ const Employees = () => {
 
   // 查看員工詳細資料
   const handleViewEmployee = (employee: typeof employeesData[0]) => {
-    setSelectedEmployee(employeeToFormData(employee));
+    const employeeFormData = employeeToFormData(employee);
+    setSelectedEmployee(employeeFormData);
     setIsViewEmployeeOpen(true);
   };
 
@@ -80,7 +81,8 @@ const Employees = () => {
 
   // 刪除員工
   const handleDeleteEmployee = (employee: typeof employeesData[0]) => {
-    setSelectedEmployee(employeeToFormData(employee));
+    const employeeFormData = employeeToFormData(employee);
+    setSelectedEmployee(employeeFormData);
     setIsDeleteConfirmOpen(true);
   };
 
@@ -102,8 +104,9 @@ const Employees = () => {
       terminationDate: employee.terminationDate || new Date().toISOString().split('T')[0],
       terminationReason: employee.terminationReason || ""
     };
-    setSelectedEmployee(employeeToFormData(updatedEmployee));
-    setFormData(employeeToFormData(updatedEmployee));
+    const employeeFormData = employeeToFormData(updatedEmployee);
+    setSelectedEmployee(employeeFormData);
+    setFormData(employeeFormData);
     setIsTerminateConfirmOpen(true);
   };
   
