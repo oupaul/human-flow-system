@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -73,9 +72,12 @@ const Employees = () => {
 
   // 編輯員工資料
   const handleEditEmployee = (employee: typeof employeesData[0] | EmployeeFormData) => {
-    const employeeData = 'terminationDate' in employee ? employee : employeeToFormData(employee);
-    setSelectedEmployee(employeeData);
-    setFormData(employeeData);
+    // Always convert to EmployeeFormData to ensure consistent type
+    const employeeFormData = 'terminationDate' in employee && typeof employee.terminationDate === 'string' 
+      ? employee as EmployeeFormData 
+      : employeeToFormData(employee as typeof employeesData[0]);
+    setSelectedEmployee(employeeFormData);
+    setFormData(employeeFormData);
     setIsEditEmployeeOpen(true);
   };
 
@@ -152,7 +154,10 @@ const Employees = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">員工管理</h1>
-        <Button className="bg-hrms-accent" onClick={openAddEmployeeDialog}>
+        <Button className="bg-hrms-accent" onClick={() => {
+          setFormData(emptyFormData);
+          setIsAddEmployeeOpen(true);
+        }}>
           <Plus className="mr-2 h-4 w-4" /> 新增員工
         </Button>
       </div>
@@ -181,9 +186,21 @@ const Employees = () => {
         open={isAddEmployeeOpen}
         onOpenChange={setIsAddEmployeeOpen}
         formData={formData}
-        onFormChange={handleFormChange}
-        onSelectChange={handleSelectChange}
-        onSave={handleAddEmployee}
+        onFormChange={(e) => {
+          const { name, value } = e.target;
+          setFormData((prev) => ({ ...prev, [name]: value }));
+        }}
+        onSelectChange={(name, value) => {
+          setFormData((prev) => ({ ...prev, [name]: value }));
+        }}
+        onSave={() => {
+          toast({
+            title: "新增成功",
+            description: `員工 ${formData.name} (${formData.employeeId}) 已新增。`,
+          });
+          setIsAddEmployeeOpen(false);
+          setFormData(emptyFormData);
+        }}
       />
 
       {/* 查看員工詳細資料 */}
@@ -199,10 +216,25 @@ const Employees = () => {
         open={isEditEmployeeOpen}
         onOpenChange={setIsEditEmployeeOpen}
         formData={formData}
-        onFormChange={handleFormChange}
-        onSelectChange={handleSelectChange}
-        onSwitchChange={handleSwitchChange}
-        onSave={handleUpdateEmployee}
+        onFormChange={(e) => {
+          const { name, value } = e.target;
+          setFormData((prev) => ({ ...prev, [name]: value }));
+        }}
+        onSelectChange={(name, value) => {
+          setFormData((prev) => ({ ...prev, [name]: value }));
+        }}
+        onSwitchChange={(name, checked) => {
+          setFormData((prev) => ({ ...prev, [name]: checked }));
+        }}
+        onSave={() => {
+          if (selectedEmployee) {
+            toast({
+              title: "更新成功",
+              description: `員工 ${formData.name} (${formData.employeeId}) 的資料已更新。`,
+            });
+            setIsEditEmployeeOpen(false);
+          }
+        }}
       />
 
       {/* 確認對話框 */}
@@ -212,8 +244,24 @@ const Employees = () => {
         selectedEmployee={selectedEmployee}
         onDeleteDialogChange={setIsDeleteConfirmOpen}
         onTerminateDialogChange={setIsTerminateConfirmOpen}
-        onConfirmDelete={confirmDeleteEmployee}
-        onConfirmTerminate={confirmTerminateEmployee}
+        onConfirmDelete={() => {
+          if (selectedEmployee) {
+            toast({
+              title: "刪除成功",
+              description: `員工 ${selectedEmployee.name} (${selectedEmployee.employeeId}) 已被刪除。`,
+            });
+            setIsDeleteConfirmOpen(false);
+          }
+        }}
+        onConfirmTerminate={() => {
+          if (selectedEmployee) {
+            toast({
+              title: "狀態更新成功",
+              description: `員工 ${selectedEmployee.name} (${selectedEmployee.employeeId}) 已標記為離職。`,
+            });
+            setIsTerminateConfirmOpen(false);
+          }
+        }}
       />
     </div>
   );
