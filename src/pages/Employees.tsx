@@ -1,13 +1,14 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
 import { 
   EmployeeFormData, 
   emptyFormData, 
-  employeesData, 
   employeeToFormData 
 } from "@/types/employee";
+import { useEmployees } from "@/hooks/useEmployees";
+import { useEmployeeFilters } from "@/hooks/useEmployeeFilters";
 import EmployeeFilters from "@/components/employees/EmployeeFilters";
 import EmployeeTable from "@/components/employees/EmployeeTable";
 import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
@@ -16,9 +17,17 @@ import EmployeeDetailSheet from "@/components/employees/EmployeeDetailSheet";
 import EmployeeConfirmDialogs from "@/components/employees/EmployeeConfirmDialogs";
 
 const Employees = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDepartment, setSelectedDepartment] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
+  const { employees, addEmployee, updateEmployee, deleteEmployee, terminateEmployee } = useEmployees();
+  const {
+    searchTerm,
+    setSearchTerm,
+    selectedDepartment,
+    setSelectedDepartment,
+    selectedStatus,
+    setSelectedStatus,
+    filteredEmployees,
+  } = useEmployeeFilters(employees);
+
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [isViewEmployeeOpen, setIsViewEmployeeOpen] = useState(false);
   const [isEditEmployeeOpen, setIsEditEmployeeOpen] = useState(false);
@@ -26,30 +35,15 @@ const Employees = () => {
   const [isTerminateConfirmOpen, setIsTerminateConfirmOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeFormData | null>(null);
   const [formData, setFormData] = useState<EmployeeFormData>(emptyFormData);
-  const { toast } = useToast();
-  
-  // 篩選員工資料
-  const filteredEmployees = employeesData.filter((employee) => {
-    const matchesSearch = 
-      employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesDepartment = 
-      selectedDepartment === "all" || 
-      employee.department === selectedDepartment;
-    
-    const matchesStatus =
-      selectedStatus === "all" ||
-      (selectedStatus === "active" && employee.active) ||
-      (selectedStatus === "inactive" && !employee.active);
-    
-    return matchesSearch && matchesDepartment && matchesStatus;
-  });
 
   // 處理表單輸入變更
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // 處理選擇變更
+  const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -58,31 +52,25 @@ const Employees = () => {
     setFormData((prev) => ({ ...prev, [name]: checked }));
   };
 
-  // 處理選擇變更
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
   // 查看員工詳細資料
-  const handleViewEmployee = (employee: typeof employeesData[0]) => {
+  const handleViewEmployee = (employee: typeof employees[0]) => {
     const employeeFormData = employeeToFormData(employee);
     setSelectedEmployee(employeeFormData);
     setIsViewEmployeeOpen(true);
   };
 
   // 編輯員工資料
-  const handleEditEmployee = (employee: typeof employeesData[0] | EmployeeFormData) => {
-    // Always convert to EmployeeFormData to ensure consistent type
+  const handleEditEmployee = (employee: typeof employees[0] | EmployeeFormData) => {
     const employeeFormData = 'terminationDate' in employee && typeof employee.terminationDate === 'string' 
       ? employee as EmployeeFormData 
-      : employeeToFormData(employee as typeof employeesData[0]);
+      : employeeToFormData(employee as typeof employees[0]);
     setSelectedEmployee(employeeFormData);
     setFormData(employeeFormData);
     setIsEditEmployeeOpen(true);
   };
 
   // 刪除員工
-  const handleDeleteEmployee = (employee: typeof employeesData[0]) => {
+  const handleDeleteEmployee = (employee: typeof employees[0]) => {
     const employeeFormData = employeeToFormData(employee);
     setSelectedEmployee(employeeFormData);
     setIsDeleteConfirmOpen(true);
@@ -91,16 +79,13 @@ const Employees = () => {
   // 確認刪除員工
   const confirmDeleteEmployee = () => {
     if (selectedEmployee) {
-      toast({
-        title: "刪除成功",
-        description: `員工 ${selectedEmployee.name} (${selectedEmployee.employeeId}) 已被刪除。`,
-      });
+      deleteEmployee(selectedEmployee.id);
       setIsDeleteConfirmOpen(false);
     }
   };
 
   // 處理員工離職
-  const handleTerminateEmployee = (employee: typeof employeesData[0]) => {
+  const handleTerminateEmployee = (employee: typeof employees[0]) => {
     const updatedEmployee = {
       ...employee,
       terminationDate: employee.terminationDate || new Date().toISOString().split('T')[0],
@@ -114,10 +99,10 @@ const Employees = () => {
   
   // 確認員工離職
   const confirmTerminateEmployee = () => {
-    if (selectedEmployee) {
-      toast({
-        title: "狀態更新成功",
-        description: `員工 ${selectedEmployee.name} (${selectedEmployee.employeeId}) 已標記為離職。`,
+    if (selectedEmployee && formData.terminationDate) {
+      terminateEmployee(selectedEmployee.id, {
+        terminationDate: formData.terminationDate,
+        terminationReason: formData.terminationReason
       });
       setIsTerminateConfirmOpen(false);
     }
@@ -125,10 +110,7 @@ const Employees = () => {
 
   // 新增員工
   const handleAddEmployee = () => {
-    toast({
-      title: "新增成功",
-      description: `員工 ${formData.name} (${formData.employeeId}) 已新增。`,
-    });
+    addEmployee(formData);
     setIsAddEmployeeOpen(false);
     setFormData(emptyFormData);
   };
@@ -136,18 +118,9 @@ const Employees = () => {
   // 更新員工資料
   const handleUpdateEmployee = () => {
     if (selectedEmployee) {
-      toast({
-        title: "更新成功",
-        description: `員工 ${formData.name} (${formData.employeeId}) 的資料已更新。`,
-      });
+      updateEmployee(formData);
       setIsEditEmployeeOpen(false);
     }
-  };
-
-  // 開啟新增員工對話框
-  const openAddEmployeeDialog = () => {
-    setFormData(emptyFormData);
-    setIsAddEmployeeOpen(true);
   };
 
   return (
@@ -186,21 +159,9 @@ const Employees = () => {
         open={isAddEmployeeOpen}
         onOpenChange={setIsAddEmployeeOpen}
         formData={formData}
-        onFormChange={(e) => {
-          const { name, value } = e.target;
-          setFormData((prev) => ({ ...prev, [name]: value }));
-        }}
-        onSelectChange={(name, value) => {
-          setFormData((prev) => ({ ...prev, [name]: value }));
-        }}
-        onSave={() => {
-          toast({
-            title: "新增成功",
-            description: `員工 ${formData.name} (${formData.employeeId}) 已新增。`,
-          });
-          setIsAddEmployeeOpen(false);
-          setFormData(emptyFormData);
-        }}
+        onFormChange={handleFormChange}
+        onSelectChange={handleSelectChange}
+        onSave={handleAddEmployee}
       />
 
       {/* 查看員工詳細資料 */}
@@ -216,25 +177,10 @@ const Employees = () => {
         open={isEditEmployeeOpen}
         onOpenChange={setIsEditEmployeeOpen}
         formData={formData}
-        onFormChange={(e) => {
-          const { name, value } = e.target;
-          setFormData((prev) => ({ ...prev, [name]: value }));
-        }}
-        onSelectChange={(name, value) => {
-          setFormData((prev) => ({ ...prev, [name]: value }));
-        }}
-        onSwitchChange={(name, checked) => {
-          setFormData((prev) => ({ ...prev, [name]: checked }));
-        }}
-        onSave={() => {
-          if (selectedEmployee) {
-            toast({
-              title: "更新成功",
-              description: `員工 ${formData.name} (${formData.employeeId}) 的資料已更新。`,
-            });
-            setIsEditEmployeeOpen(false);
-          }
-        }}
+        onFormChange={handleFormChange}
+        onSelectChange={handleSelectChange}
+        onSwitchChange={handleSwitchChange}
+        onSave={handleUpdateEmployee}
       />
 
       {/* 確認對話框 */}
@@ -244,24 +190,8 @@ const Employees = () => {
         selectedEmployee={selectedEmployee}
         onDeleteDialogChange={setIsDeleteConfirmOpen}
         onTerminateDialogChange={setIsTerminateConfirmOpen}
-        onConfirmDelete={() => {
-          if (selectedEmployee) {
-            toast({
-              title: "刪除成功",
-              description: `員工 ${selectedEmployee.name} (${selectedEmployee.employeeId}) 已被刪除。`,
-            });
-            setIsDeleteConfirmOpen(false);
-          }
-        }}
-        onConfirmTerminate={() => {
-          if (selectedEmployee) {
-            toast({
-              title: "狀態更新成功",
-              description: `員工 ${selectedEmployee.name} (${selectedEmployee.employeeId}) 已標記為離職。`,
-            });
-            setIsTerminateConfirmOpen(false);
-          }
-        }}
+        onConfirmDelete={confirmDeleteEmployee}
+        onConfirmTerminate={confirmTerminateEmployee}
       />
     </div>
   );
