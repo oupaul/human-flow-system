@@ -103,6 +103,7 @@ const Departments = () => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   
+  // 修正 addForm 的類型定義
   const addForm = useForm<DepartmentFormData>({
     resolver: zodResolver(departmentFormSchema),
     defaultValues: {
@@ -113,6 +114,7 @@ const Departments = () => {
     },
   });
   
+  // 修正 editForm 的類型定義  
   const editForm = useForm<DepartmentFormData>({
     resolver: zodResolver(departmentFormSchema),
     defaultValues: {
