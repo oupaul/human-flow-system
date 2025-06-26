@@ -90,7 +90,7 @@ const initialDepartmentsData: Department[] = [
     leadName: "劉小華",
     parentId: 1,
     employeeCount: 7,
-    description: "負責系統維護和技術支持。",
+    description: "負責系統維護和技術支援。",
   },
 ];
 
@@ -103,7 +103,7 @@ const Departments = () => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   
-  // 修正 addForm 的類型定義 - 確保必需字段有默認值
+  // 修正 addForm 的類型定義 - 使用明確的類型約束
   const addForm = useForm<DepartmentFormData>({
     resolver: zodResolver(departmentFormSchema),
     defaultValues: {
@@ -111,10 +111,11 @@ const Departments = () => {
       leadName: "",
       parentId: undefined,
       description: "",
-    } satisfies Partial<DepartmentFormData>,
+    },
+    mode: "onChange",
   });
   
-  // 修正 editForm 的類型定義 - 確保必需字段有默認值
+  // 修正 editForm 的類型定義 - 使用明確的類型約束
   const editForm = useForm<DepartmentFormData>({
     resolver: zodResolver(departmentFormSchema),
     defaultValues: {
@@ -122,7 +123,8 @@ const Departments = () => {
       leadName: "",
       parentId: undefined,
       description: "",
-    } satisfies Partial<DepartmentFormData>,
+    },
+    mode: "onChange",
   });
 
   // 取得主管部門清單（不包括自己）
