@@ -41,39 +41,74 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Plus, FileText, CheckCircle2, XCircle } from "lucide-react";
-
-// Mock leave types
-const leaveTypes = [
-  { id: 1, name: "特休", code: "AL", unit: "天", needProof: false, affectAttendance: false, isPaid: true, maxDays: "依年資", advanceApply: "3天", canSplit: true },
-  { id: 2, name: "事假", code: "PL", unit: "小時", needProof: false, affectAttendance: true, isPaid: false, maxDays: "14天", advanceApply: "3天", canSplit: true },
-  { id: 3, name: "病假", code: "SL", unit: "天", needProof: true, affectAttendance: false, isPaid: false, maxDays: "30天", advanceApply: "當天", canSplit: true },
-  { id: 4, name: "婚假", code: "ML", unit: "天", needProof: true, affectAttendance: false, isPaid: true, maxDays: "8天", advanceApply: "7天", canSplit: false },
-  { id: 5, name: "公假", code: "OL", unit: "天", needProof: true, affectAttendance: false, isPaid: true, maxDays: "依需求", advanceApply: "3天", canSplit: true },
-  { id: 6, name: "喪假", code: "BL", unit: "天", needProof: true, affectAttendance: false, isPaid: true, maxDays: "依親屬關係", advanceApply: "當天", canSplit: true },
-];
-
-// Mock leave applications
-const leaveApplications = [
-  { id: 1, employee: "張小明", employeeId: "EMP001", type: "特休", startDate: "2023-05-10", endDate: "2023-05-12", days: 3, reason: "家庭旅遊", status: "已核准", approver: "李主管" },
-  { id: 2, employee: "李小華", employeeId: "EMP002", type: "病假", startDate: "2023-05-15", endDate: "2023-05-15", days: 1, reason: "感冒就醫", status: "已核准", approver: "王主管" },
-  { id: 3, employee: "王大明", employeeId: "EMP003", type: "事假", startDate: "2023-05-18", endDate: "2023-05-18", days: 0.5, reason: "個人事務", status: "待審核", approver: "" },
-  { id: 4, employee: "陳小玲", employeeId: "EMP004", type: "婚假", startDate: "2023-06-01", endDate: "2023-06-08", days: 8, reason: "結婚", status: "待審核", approver: "" },
-  { id: 5, employee: "林小美", employeeId: "EMP005", type: "喪假", startDate: "2023-05-20", endDate: "2023-05-23", days: 4, reason: "祖父過世", status: "待審核", approver: "" },
-];
-
-// Mock leave balance
-const leaveBalance = [
-  { id: 1, employee: "張小明", employeeId: "EMP001", annualLeave: 10, annualLeaveUsed: 3, sickLeave: 30, sickLeaveUsed: 0, compensatoryLeave: 2, compensatoryLeaveUsed: 0 },
-  { id: 2, employee: "李小華", employeeId: "EMP002", annualLeave: 7, annualLeaveUsed: 0, sickLeave: 30, sickLeaveUsed: 1, compensatoryLeave: 0, compensatoryLeaveUsed: 0 },
-  { id: 3, employee: "王大明", employeeId: "EMP003", annualLeave: 14, annualLeaveUsed: 5, sickLeave: 30, sickLeaveUsed: 2, compensatoryLeave: 1, compensatoryLeaveUsed: 0 },
-  { id: 4, employee: "陳小玲", employeeId: "EMP004", annualLeave: 21, annualLeaveUsed: 10, sickLeave: 30, sickLeaveUsed: 4, compensatoryLeave: 3, compensatoryLeaveUsed: 2 },
-  { id: 5, employee: "林小美", employeeId: "EMP005", annualLeave: 3, annualLeaveUsed: 0, sickLeave: 30, sickLeaveUsed: 0, compensatoryLeave: 0, compensatoryLeaveUsed: 0 },
-];
+import { Calendar, Plus, FileText, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { useLeaveManagement } from "@/hooks/useLeaveManagement";
+import { LeaveApplicationFormData } from "@/types/leave";
 
 const LeaveManagement = () => {
+  const { 
+    leaveTypes, 
+    leaveApplications, 
+    leaveBalances, 
+    loading, 
+    createLeaveApplication,
+    updateApplicationStatus 
+  } = useLeaveManagement();
+  
   const [isAddLeaveOpen, setIsAddLeaveOpen] = useState(false);
   const [selectedLeaveType, setSelectedLeaveType] = useState("");
+  const [formData, setFormData] = useState<Partial<LeaveApplicationFormData>>({
+    unit: 'day'
+  });
+
+  const handleSubmitApplication = async () => {
+    if (!formData.employeeId || !formData.leaveTypeId || !formData.startDate || !formData.endDate || !formData.reason) {
+      return;
+    }
+
+    await createLeaveApplication(formData as LeaveApplicationFormData);
+    setIsAddLeaveOpen(false);
+    setFormData({ unit: 'day' });
+    setSelectedLeaveType("");
+  };
+
+  const handleApprove = async (applicationId: number) => {
+    await updateApplicationStatus(applicationId, 'approved', '系統管理員');
+  };
+
+  const handleReject = async (applicationId: number) => {
+    await updateApplicationStatus(applicationId, 'rejected', '系統管理員');
+  };
+
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return (
+          <>
+            <CheckCircle2 className="mr-1 h-4 w-4 text-green-500" />
+            <span className="text-green-500">已核准</span>
+          </>
+        );
+      case 'rejected':
+        return (
+          <>
+            <XCircle className="mr-1 h-4 w-4 text-red-500" />
+            <span className="text-red-500">已拒絕</span>
+          </>
+        );
+      default:
+        return <span className="text-yellow-500">待審核</span>;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">載入中...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -95,8 +130,23 @@ const LeaveManagement = () => {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label htmlFor="employeeId">員工編號</Label>
+                  <Input
+                    id="employeeId"
+                    value={formData.employeeId || ''}
+                    onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
+                    placeholder="請輸入員工編號"
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="leaveType">假別</Label>
-                  <Select value={selectedLeaveType} onValueChange={setSelectedLeaveType}>
+                  <Select 
+                    value={selectedLeaveType} 
+                    onValueChange={(value) => {
+                      setSelectedLeaveType(value);
+                      setFormData({...formData, leaveTypeId: parseInt(value)});
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="選擇假別" />
                     </SelectTrigger>
@@ -109,42 +159,41 @@ const LeaveManagement = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="unit">請假單位</Label>
-                  <Select defaultValue="day">
-                    <SelectTrigger>
-                      <SelectValue placeholder="選擇單位" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="day">天</SelectItem>
-                      <SelectItem value="halfDay">半天</SelectItem>
-                      <SelectItem value="hour">小時</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="unit">請假單位</Label>
+                <Select 
+                  value={formData.unit} 
+                  onValueChange={(value: 'day' | 'halfDay' | 'hour') => setFormData({...formData, unit: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇單位" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">天</SelectItem>
+                    <SelectItem value="halfDay">半天</SelectItem>
+                    <SelectItem value="hour">小時</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="startDate">開始日期</Label>
-                  <div className="flex items-center">
-                    <Input id="startDate" type="date" />
-                  </div>
+                  <Input 
+                    id="startDate" 
+                    type="date" 
+                    value={formData.startDate || ''}
+                    onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="endDate">結束日期</Label>
-                  <div className="flex items-center">
-                    <Input id="endDate" type="date" />
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startTime">開始時間</Label>
-                  <Input id="startTime" type="time" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="endTime">結束時間</Label>
-                  <Input id="endTime" type="time" />
+                  <Input 
+                    id="endDate" 
+                    type="date" 
+                    value={formData.endDate || ''}
+                    onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
@@ -153,33 +202,25 @@ const LeaveManagement = () => {
                   id="reason"
                   placeholder="請簡要說明請假原因"
                   rows={3}
+                  value={formData.reason || ''}
+                  onChange={(e) => setFormData({...formData, reason: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="deputy">職務代理人</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇職務代理人" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="emp001">張小明</SelectItem>
-                    <SelectItem value="emp002">李小華</SelectItem>
-                    <SelectItem value="emp003">王大明</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="deputy"
+                  placeholder="請輸入職務代理人"
+                  value={formData.deputy || ''}
+                  onChange={(e) => setFormData({...formData, deputy: e.target.value})}
+                />
               </div>
-              {selectedLeaveType === "3" && (
-                <div className="space-y-2">
-                  <Label htmlFor="attachment">上傳證明文件</Label>
-                  <Input id="attachment" type="file" />
-                </div>
-              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddLeaveOpen(false)}>
                 取消
               </Button>
-              <Button onClick={() => setIsAddLeaveOpen(false)}>
+              <Button onClick={handleSubmitApplication}>
                 提交申請
               </Button>
             </DialogFooter>
@@ -194,7 +235,6 @@ const LeaveManagement = () => {
           <TabsTrigger value="types">假別設定</TabsTrigger>
         </TabsList>
         
-        {/* 請假申請 Tab */}
         <TabsContent value="applications">
           <Card>
             <CardHeader>
@@ -229,25 +269,35 @@ const LeaveManagement = () => {
                         <TableCell>{application.days}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
-                            {application.status === "已核准" ? (
-                              <>
-                                <CheckCircle2 className="mr-1 h-4 w-4 text-green-500" />
-                                <span className="text-green-500">{application.status}</span>
-                              </>
-                            ) : application.status === "已拒絕" ? (
-                              <>
-                                <XCircle className="mr-1 h-4 w-4 text-red-500" />
-                                <span className="text-red-500">{application.status}</span>
-                              </>
-                            ) : (
-                              <span className="text-yellow-500">{application.status}</span>
-                            )}
+                            {getStatusDisplay(application.status)}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="icon">
-                            <FileText className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2 justify-end">
+                            {application.status === 'pending' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-green-600 hover:bg-green-50"
+                                  onClick={() => handleApprove(application.id)}
+                                >
+                                  核准
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-600 hover:bg-red-50"
+                                  onClick={() => handleReject(application.id)}
+                                >
+                                  拒絕
+                                </Button>
+                              </>
+                            )}
+                            <Button variant="ghost" size="icon">
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -258,7 +308,6 @@ const LeaveManagement = () => {
           </Card>
         </TabsContent>
         
-        {/* 假別餘額 Tab */}
         <TabsContent value="balance">
           <Card>
             <CardHeader>
@@ -283,7 +332,7 @@ const LeaveManagement = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {leaveBalance.map((balance) => (
+                    {leaveBalances.map((balance) => (
                       <TableRow key={balance.id}>
                         <TableCell>{balance.employeeId}</TableCell>
                         <TableCell>{balance.employee}</TableCell>
@@ -302,7 +351,6 @@ const LeaveManagement = () => {
           </Card>
         </TabsContent>
         
-        {/* 假別設定 Tab */}
         <TabsContent value="types">
           <Card>
             <CardHeader>

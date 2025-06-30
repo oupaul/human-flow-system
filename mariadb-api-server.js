@@ -1,4 +1,3 @@
-
 // 這是一個範例 Node.js API 伺服器檔案
 // 您需要在您的 MariaDB 伺服器上執行此檔案
 
@@ -206,6 +205,175 @@ app.put('/api/employees/:id/terminate', async (req, res) => {
   }
 });
 
+// 假別類型 API 路由
+
+// 獲取所有假別類型
+app.get('/api/leave-types', async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT * FROM leave_types ORDER BY id
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching leave types:', error);
+    res.status(500).json({ error: '獲取假別類型失敗' });
+  }
+});
+
+// 新增假別類型
+app.post('/api/leave-types', async (req, res) => {
+  try {
+    const { name, code, unit, needProof, affectAttendance, isPaid, maxDays, advanceApply, canSplit } = req.body;
+    
+    const [result] = await pool.execute(
+      'INSERT INTO leave_types (name, code, unit, needProof, affectAttendance, isPaid, maxDays, advanceApply, canSplit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, code, unit, needProof, affectAttendance, isPaid, maxDays, advanceApply, canSplit]
+    );
+    
+    const [newLeaveType] = await pool.execute(
+      'SELECT * FROM leave_types WHERE id = ?',
+      [result.insertId]
+    );
+    
+    res.json(newLeaveType[0]);
+  } catch (error) {
+    console.error('Error creating leave type:', error);
+    res.status(500).json({ error: '新增假別類型失敗' });
+  }
+});
+
+// 請假申請 API 路由
+
+// 獲取所有請假申請
+app.get('/api/leave-applications', async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT 
+        la.*,
+        e.name as employee,
+        lt.name as type
+      FROM leave_applications la
+      LEFT JOIN employees e ON la.employeeId = e.employeeId
+      LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
+      ORDER BY la.created_at DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching leave applications:', error);
+    res.status(500).json({ error: '獲取請假申請失敗' });
+  }
+});
+
+// 新增請假申請
+app.post('/api/leave-applications', async (req, res) => {
+  try {
+    const { employeeId, leaveTypeId, startDate, endDate, startTime, endTime, unit, reason, deputy } = req.body;
+    
+    // 計算請假天數（簡化版）
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const timeDiff = end.getTime() - start.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+    
+    const [result] = await pool.execute(
+      'INSERT INTO leave_applications (employeeId, leaveTypeId, startDate, endDate, startTime, endTime, days, reason, deputy, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [employeeId, leaveTypeId, startDate, endDate, startTime || null, endTime || null, daysDiff, reason, deputy || null, 'pending']
+    );
+    
+    const [newApplication] = await pool.execute(`
+      SELECT 
+        la.*,
+        e.name as employee,
+        lt.name as type
+      FROM leave_applications la
+      LEFT JOIN employees e ON la.employeeId = e.employeeId
+      LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
+      WHERE la.id = ?
+    `, [result.insertId]);
+    
+    res.json(newApplication[0]);
+  } catch (error) {
+    console.error('Error creating leave application:', error);
+    res.status(500).json({ error: '新增請假申請失敗' });
+  }
+});
+
+// 更新請假申請狀態
+app.put('/api/leave-applications/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, approver } = req.body;
+    
+    await pool.execute(
+      'UPDATE leave_applications SET status = ?, approver = ? WHERE id = ?',
+      [status, approver, id]
+    );
+    
+    const [updatedApplication] = await pool.execute(`
+      SELECT 
+        la.*,
+        e.name as employee,
+        lt.name as type
+      FROM leave_applications la
+      LEFT JOIN employees e ON la.employeeId = e.employeeId
+      LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
+      WHERE la.id = ?
+    `, [id]);
+    
+    res.json(updatedApplication[0]);
+  } catch (error) {
+    console.error('Error updating leave application status:', error);
+    res.status(500).json({ error: '更新請假申請狀態失敗' });
+  }
+});
+
+// 假別餘額 API 路由
+
+// 獲取所有假別餘額
+app.get('/api/leave-balances', async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT 
+        lb.*,
+        e.name as employee
+      FROM leave_balances lb
+      LEFT JOIN employees e ON lb.employeeId = e.employeeId
+      ORDER BY lb.employeeId
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching leave balances:', error);
+    res.status(500).json({ error: '獲取假別餘額失敗' });
+  }
+});
+
+// 更新假別餘額
+app.put('/api/leave-balances/:employeeId', async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const { annualLeave, annualLeaveUsed, sickLeave, sickLeaveUsed, compensatoryLeave, compensatoryLeaveUsed } = req.body;
+    
+    await pool.execute(
+      'UPDATE leave_balances SET annualLeave = ?, annualLeaveUsed = ?, sickLeave = ?, sickLeaveUsed = ?, compensatoryLeave = ?, compensatoryLeaveUsed = ? WHERE employeeId = ?',
+      [annualLeave, annualLeaveUsed, sickLeave, sickLeaveUsed, compensatoryLeave, compensatoryLeaveUsed, employeeId]
+    );
+    
+    const [updatedBalance] = await pool.execute(`
+      SELECT 
+        lb.*,
+        e.name as employee
+      FROM leave_balances lb
+      LEFT JOIN employees e ON lb.employeeId = e.employeeId
+      WHERE lb.employeeId = ?
+    `, [employeeId]);
+    
+    res.json(updatedBalance[0]);
+  } catch (error) {
+    console.error('Error updating leave balance:', error);
+    res.status(500).json({ error: '更新假別餘額失敗' });
+  }
+});
+
 // Dashboard API 路由
 
 // 獲取統計資料
@@ -310,4 +478,83 @@ CREATE TABLE IF NOT EXISTS departments (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (parentId) REFERENCES departments(id) ON DELETE SET NULL
 );
+*/
+
+// 建立假別管理相關資料表的 SQL（如果需要的話）
+/*
+-- 假別類型表
+CREATE TABLE IF NOT EXISTS leave_types (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  code VARCHAR(10) NOT NULL UNIQUE,
+  unit VARCHAR(50) NOT NULL,
+  needProof BOOLEAN DEFAULT FALSE,
+  affectAttendance BOOLEAN DEFAULT FALSE,
+  isPaid BOOLEAN DEFAULT TRUE,
+  maxDays VARCHAR(100),
+  advanceApply VARCHAR(100),
+  canSplit BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 請假申請表
+CREATE TABLE IF NOT EXISTS leave_applications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL,
+  leaveTypeId INT NOT NULL,
+  startDate DATE NOT NULL,
+  endDate DATE NOT NULL,
+  startTime TIME NULL,
+  endTime TIME NULL,
+  days DECIMAL(3,1) NOT NULL,
+  reason TEXT NOT NULL,
+  deputy VARCHAR(255) NULL,
+  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  approver VARCHAR(255) NULL,
+  attachment VARCHAR(500) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (leaveTypeId) REFERENCES leave_types(id),
+  FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
+);
+
+-- 假別餘額表
+CREATE TABLE IF NOT EXISTS leave_balances (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL UNIQUE,
+  annualLeave INT DEFAULT 0,
+  annualLeaveUsed INT DEFAULT 0,
+  sickLeave INT DEFAULT 30,
+  sickLeaveUsed INT DEFAULT 0,
+  compensatoryLeave INT DEFAULT 0,
+  compensatoryLeaveUsed INT DEFAULT 0,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
+);
+
+-- 插入範例假別類型
+INSERT INTO leave_types (name, code, unit, needProof, affectAttendance, isPaid, maxDays, advanceApply, canSplit) VALUES
+('特休', 'AL', '天', FALSE, FALSE, TRUE, '依年資', '3天', TRUE),
+('事假', 'PL', '小時', FALSE, TRUE, FALSE, '14天', '3天', TRUE),
+('病假', 'SL', '天', TRUE, FALSE, FALSE, '30天', '當天', TRUE),
+('婚假', 'ML', '天', TRUE, FALSE, TRUE, '8天', '7天', FALSE),
+('公假', 'OL', '天', TRUE, FALSE, TRUE, '依需求', '3天', TRUE),
+('喪假', 'BL', '天', TRUE, FALSE, TRUE, '依親屬關係', '當天', TRUE);
+
+-- 插入範例請假申請
+INSERT INTO leave_applications (employeeId, leaveTypeId, startDate, endDate, days, reason, status, approver) VALUES
+('EMP001', 1, '2023-05-10', '2023-05-12', 3, '家庭旅遊', 'approved', '李主管'),
+('EMP002', 3, '2023-05-15', '2023-05-15', 1, '感冒就醫', 'approved', '王主管'),
+('EMP003', 2, '2023-05-18', '2023-05-18', 0.5, '個人事務', 'pending', ''),
+('EMP004', 4, '2023-06-01', '2023-06-08', 8, '結婚', 'pending', ''),
+('EMP005', 6, '2023-05-20', '2023-05-23', 4, '祖父過世', 'pending', '');
+
+-- 插入範例假別餘額
+INSERT INTO leave_balances (employeeId, annualLeave, annualLeaveUsed, sickLeave, sickLeaveUsed, compensatoryLeave, compensatoryLeaveUsed) VALUES
+('EMP001', 10, 3, 30, 0, 2, 0),
+('EMP002', 7, 0, 30, 1, 0, 0),
+('EMP003', 14, 5, 30, 2, 1, 0),
+('EMP004', 21, 10, 30, 4, 3, 2),
+('EMP005', 3, 0, 30, 0, 0, 0);
 */
