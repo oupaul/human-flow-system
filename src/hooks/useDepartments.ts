@@ -1,12 +1,14 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Department, DepartmentFormData, departmentFormSchema, ParentDepartmentOption } from "@/types/department";
-import { initialDepartmentsData } from "@/data/departmentData";
+import { departmentApi } from "@/services/departmentApi";
 
 export const useDepartments = () => {
-  const [departments, setDepartments] = useState<Department[]>(initialDepartmentsData);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -36,6 +38,26 @@ export const useDepartments = () => {
     mode: "onChange",
   }) as UseFormReturn<DepartmentFormData>;
 
+  // 初始載入部門資料
+  useEffect(() => {
+    loadDepartments();
+  }, []);
+
+  const loadDepartments = async () => {
+    try {
+      setLoading(true);
+      const data = await departmentApi.getDepartments();
+      setDepartments(data);
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+      toast.error("載入部門資料失敗", {
+        description: "請檢查網路連線或聯繫系統管理員",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 取得主管部門清單（不包括自己）
   const getParentDepartmentOptions = (currentId?: number): ParentDepartmentOption[] => {
     return departments
@@ -53,64 +75,47 @@ export const useDepartments = () => {
   );
   
   // 處理部門新增
-  const handleAddDepartment = (data: DepartmentFormData) => {
-    const newDepartment: Department = {
-      id: Math.max(0, ...departments.map(d => d.id)) + 1,
-      name: data.name,
-      leadName: data.leadName,
-      parentId: data.parentId,
-      employeeCount: 0,
-      description: data.description || "",
-    };
-    
-    if (data.parentId) {
-      const parentDept = departments.find(d => d.id === data.parentId);
-      if (parentDept) {
-        newDepartment.parentName = parentDept.name;
-      }
+  const handleAddDepartment = async (data: DepartmentFormData) => {
+    try {
+      await departmentApi.createDepartment(data);
+      await loadDepartments(); // 重新載入資料
+      setIsAddDialogOpen(false);
+      addForm.reset();
+      
+      toast.success("部門新增成功", {
+        description: `已成功新增「${data.name}」部門`,
+      });
+    } catch (error) {
+      console.error('Failed to create department:', error);
+      toast.error("部門新增失敗", {
+        description: "請檢查網路連線或聯繫系統管理員",
+      });
     }
-    
-    setDepartments([...departments, newDepartment]);
-    setIsAddDialogOpen(false);
-    addForm.reset();
-    
-    toast.success("部門新增成功", {
-      description: `已成功新增「${data.name}」部門`,
-    });
   };
   
   // 處理部門編輯
-  const handleEditDepartment = (data: DepartmentFormData) => {
+  const handleEditDepartment = async (data: DepartmentFormData) => {
     if (!selectedDepartment) return;
     
-    const updatedDepartments = departments.map((dept) => {
-      if (dept.id === selectedDepartment.id) {
-        const parentDept = data.parentId ? 
-          departments.find(d => d.id === data.parentId) : undefined;
-          
-        return {
-          ...dept,
-          name: data.name,
-          leadName: data.leadName,
-          parentId: data.parentId,
-          description: data.description || "",
-          parentName: parentDept ? parentDept.name : undefined,
-        };
-      }
-      return dept;
-    });
-    
-    setDepartments(updatedDepartments);
-    setIsEditDialogOpen(false);
-    setSelectedDepartment(null);
-    
-    toast.success("部門更新成功", {
-      description: `已成功更新「${data.name}」部門的資料`,
-    });
+    try {
+      await departmentApi.updateDepartment(selectedDepartment.id, data);
+      await loadDepartments(); // 重新載入資料
+      setIsEditDialogOpen(false);
+      setSelectedDepartment(null);
+      
+      toast.success("部門更新成功", {
+        description: `已成功更新「${data.name}」部門的資料`,
+      });
+    } catch (error) {
+      console.error('Failed to update department:', error);
+      toast.error("部門更新失敗", {
+        description: "請檢查網路連線或聯繫系統管理員",
+      });
+    }
   };
   
   // 處理部門刪除
-  const handleDeleteDepartment = () => {
+  const handleDeleteDepartment = async () => {
     if (!selectedDepartment) return;
     
     // 檢查是否有子部門
@@ -135,17 +140,21 @@ export const useDepartments = () => {
       return;
     }
     
-    const updatedDepartments = departments.filter(
-      (dept) => dept.id !== selectedDepartment.id
-    );
-    
-    setDepartments(updatedDepartments);
-    setIsDeleteDialogOpen(false);
-    setSelectedDepartment(null);
-    
-    toast.success("部門刪除成功", {
-      description: `已成功刪除「${selectedDepartment.name}」部門`,
-    });
+    try {
+      await departmentApi.deleteDepartment(selectedDepartment.id);
+      await loadDepartments(); // 重新載入資料
+      setIsDeleteDialogOpen(false);
+      setSelectedDepartment(null);
+      
+      toast.success("部門刪除成功", {
+        description: `已成功刪除「${selectedDepartment.name}」部門`,
+      });
+    } catch (error) {
+      console.error('Failed to delete department:', error);
+      toast.error("部門刪除失敗", {
+        description: "請檢查網路連線或聯繫系統管理員",
+      });
+    }
   };
   
   // 開啟編輯對話框
@@ -204,6 +213,7 @@ export const useDepartments = () => {
 
   return {
     departments,
+    loading,
     searchTerm,
     setSearchTerm,
     filteredDepartments,
@@ -226,5 +236,6 @@ export const useDepartments = () => {
     openViewDialog,
     openDeleteDialog,
     getDepartmentHierarchy,
+    loadDepartments,
   };
 };

@@ -19,6 +19,7 @@ const Departments = () => {
     searchTerm,
     setSearchTerm,
     filteredDepartments,
+    loading,
     isAddDialogOpen,
     setIsAddDialogOpen,
     isEditDialogOpen,
@@ -41,6 +42,22 @@ const Departments = () => {
   } = useDepartments();
   
   const departmentHierarchy = getDepartmentHierarchy();
+  
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">部門管理</h1>
+        </div>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-hrms-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">載入部門資料中...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -66,48 +83,63 @@ const Departments = () => {
         {searchTerm ? (
           // 搜尋結果顯示平鋪列表
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredDepartments.map((department) => (
-              <DepartmentCard
-                key={department.id}
-                department={department}
-                onView={openViewDialog}
-                onEdit={openEditDialog}
-                onDelete={openDeleteDialog}
-              />
-            ))}
-          </div>
-        ) : (
-          // 常規顯示（層次結構）
-          departmentHierarchy.map((hierarchy) => (
-            <div key={hierarchy.main.id} className="space-y-4">
-              <div className="flex items-center">
-                <h2 className="text-lg font-semibold">{hierarchy.main.name}</h2>
-                <span className="ml-2 rounded-full bg-hrms-primary px-2.5 py-0.5 text-xs text-white">
-                  {hierarchy.main.employeeCount} 位員工
-                </span>
+            {filteredDepartments.length === 0 ? (
+              <div className="col-span-full text-center py-8">
+                <p className="text-gray-500">找不到符合條件的部門</p>
               </div>
-              
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            ) : (
+              filteredDepartments.map((department) => (
                 <DepartmentCard
-                  department={hierarchy.main}
+                  key={department.id}
+                  department={department}
                   onView={openViewDialog}
                   onEdit={openEditDialog}
                   onDelete={openDeleteDialog}
                 />
+              ))
+            )}
+          </div>
+        ) : (
+          // 常規顯示（層次結構）
+          departmentHierarchy.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">尚無部門資料</p>
+              <Button onClick={() => setIsAddDialogOpen(true)} className="bg-hrms-accent">
+                <Plus className="mr-2 h-4 w-4" /> 新增第一個部門
+              </Button>
+            </div>
+          ) : (
+            departmentHierarchy.map((hierarchy) => (
+              <div key={hierarchy.main.id} className="space-y-4">
+                <div className="flex items-center">
+                  <h2 className="text-lg font-semibold">{hierarchy.main.name}</h2>
+                  <span className="ml-2 rounded-full bg-hrms-primary px-2.5 py-0.5 text-xs text-white">
+                    {hierarchy.main.employeeCount} 位員工
+                  </span>
+                </div>
                 
-                {hierarchy.sub.map((subDept) => (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   <DepartmentCard
-                    key={subDept.id}
-                    department={subDept}
-                    isSubDepartment={true}
+                    department={hierarchy.main}
                     onView={openViewDialog}
                     onEdit={openEditDialog}
                     onDelete={openDeleteDialog}
                   />
-                ))}
+                  
+                  {hierarchy.sub.map((subDept) => (
+                    <DepartmentCard
+                      key={subDept.id}
+                      department={subDept}
+                      isSubDepartment={true}
+                      onView={openViewDialog}
+                      onEdit={openEditDialog}
+                      onDelete={openDeleteDialog}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))
+            ))
+          )
         )}
       </div>
       
