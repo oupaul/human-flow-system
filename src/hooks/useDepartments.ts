@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { useForm, UseFormReturn } from "react-hook-form";
@@ -151,14 +150,26 @@ export const useDepartments = () => {
   
   // 開啟編輯對話框
   const openEditDialog = (department: Department) => {
+    console.log("Opening edit dialog for department:", department);
     setSelectedDepartment(department);
+    
+    // 重置表單並設置新值
     editForm.reset({
+      id: department.id,
+      name: department.name,
+      leadName: department.leadName,
+      parentId: department.parentId || undefined,
+      description: department.description || "",
+    });
+    
+    console.log("Form reset with values:", {
       id: department.id,
       name: department.name,
       leadName: department.leadName,
       parentId: department.parentId,
       description: department.description,
     });
+    
     setIsEditDialogOpen(true);
   };
   

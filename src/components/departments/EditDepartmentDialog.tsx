@@ -43,6 +43,8 @@ const EditDepartmentDialog = ({
   parentOptions,
   onSubmit,
 }: EditDepartmentDialogProps) => {
+  console.log("EditDepartmentDialog rendered", { open, formValues: form.getValues() });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
@@ -90,8 +92,11 @@ const EditDepartmentDialog = ({
                 <FormItem>
                   <FormLabel>上級部門</FormLabel>
                   <Select
-                    onValueChange={(value) => field.onChange(value ? Number(value) : undefined)}
-                    value={field.value?.toString()}
+                    onValueChange={(value) => {
+                      console.log("Parent department changed:", value);
+                      field.onChange(value ? Number(value) : undefined);
+                    }}
+                    value={field.value ? field.value.toString() : ""}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -119,7 +124,11 @@ const EditDepartmentDialog = ({
                 <FormItem>
                   <FormLabel>部門描述</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="簡要描述部門職責" {...field} />
+                    <Textarea 
+                      placeholder="簡要描述部門職責" 
+                      {...field}
+                      value={field.value || ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
