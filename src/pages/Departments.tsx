@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import {
@@ -43,6 +42,19 @@ const Departments = () => {
   
   const departmentHierarchy = getDepartmentHierarchy();
   
+  // 處理新增部門按鈕點擊
+  const handleAddClick = () => {
+    console.log('Add department button clicked');
+    // 確保表單完全重置
+    addForm.reset({
+      name: "",
+      leadName: "",
+      parentId: undefined,
+      description: "",
+    });
+    setIsAddDialogOpen(true);
+  };
+  
   if (loading) {
     return (
       <div className="space-y-6">
@@ -63,13 +75,9 @@ const Departments = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">部門管理</h1>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-hrms-accent">
-              <Plus className="mr-2 h-4 w-4" /> 新增部門
-            </Button>
-          </DialogTrigger>
-        </Dialog>
+        <Button onClick={handleAddClick} className="bg-hrms-accent">
+          <Plus className="mr-2 h-4 w-4" /> 新增部門
+        </Button>
       </div>
       
       {/* 搜尋欄位 */}

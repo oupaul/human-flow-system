@@ -14,6 +14,7 @@ export const departmentApi = {
   // 獲取所有部門
   async getDepartments(): Promise<Department[]> {
     try {
+      console.log('Fetching departments from:', `${API_BASE_URL}/departments`);
       const response = await fetch(`${API_BASE_URL}/departments`, {
         method: 'GET',
         headers: {
@@ -21,11 +22,13 @@ export const departmentApi = {
         },
       });
 
+      console.log('Response status:', response.status);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Received departments data:', data);
       return data;
     } catch (error) {
       console.error('Error fetching departments:', error);
@@ -36,6 +39,9 @@ export const departmentApi = {
   // 新增部門
   async createDepartment(departmentData: DepartmentFormData): Promise<Department> {
     try {
+      console.log('Creating department with data:', departmentData);
+      console.log('Sending to:', `${API_BASE_URL}/departments`);
+      
       const response = await fetch(`${API_BASE_URL}/departments`, {
         method: 'POST',
         headers: {
@@ -44,11 +50,16 @@ export const departmentApi = {
         body: JSON.stringify(departmentData),
       });
 
+      console.log('Create response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const result = await response.json();
+      console.log('Department created:', result);
       return result;
     } catch (error) {
       console.error('Error creating department:', error);

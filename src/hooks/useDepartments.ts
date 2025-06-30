@@ -46,7 +46,9 @@ export const useDepartments = () => {
   const loadDepartments = async () => {
     try {
       setLoading(true);
+      console.log('Loading departments...');
       const data = await departmentApi.getDepartments();
+      console.log('Departments loaded:', data);
       setDepartments(data);
     } catch (error) {
       console.error('Failed to load departments:', error);
@@ -77,10 +79,28 @@ export const useDepartments = () => {
   // 處理部門新增
   const handleAddDepartment = async (data: DepartmentFormData) => {
     try {
-      await departmentApi.createDepartment(data);
+      console.log('Adding department with data:', data);
+      
+      // 檢查必填欄位
+      if (!data.name || !data.leadName) {
+        toast.error("新增失敗", {
+          description: "請填寫所有必填欄位（部門名稱、部門主管）",
+        });
+        return;
+      }
+
+      const result = await departmentApi.createDepartment(data);
+      console.log('Department created successfully:', result);
       await loadDepartments(); // 重新載入資料
       setIsAddDialogOpen(false);
-      addForm.reset();
+      
+      // 完全重置表單
+      addForm.reset({
+        name: "",
+        leadName: "",
+        parentId: undefined,
+        description: "",
+      });
       
       toast.success("部門新增成功", {
         description: `已成功新增「${data.name}」部門`,
@@ -98,6 +118,7 @@ export const useDepartments = () => {
     if (!selectedDepartment) return;
     
     try {
+      console.log('Updating department with data:', data);
       await departmentApi.updateDepartment(selectedDepartment.id, data);
       await loadDepartments(); // 重新載入資料
       setIsEditDialogOpen(false);
