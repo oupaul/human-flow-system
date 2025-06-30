@@ -7,16 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
-interface Department {
-  id: number;
-  name: string;
-  leadName: string;
-  parentId?: number;
-  employeeCount: number;
-  description: string;
-  parentName?: string;
-}
+import { Department } from "@/types/department";
 
 interface DepartmentViewDialogProps {
   open: boolean;

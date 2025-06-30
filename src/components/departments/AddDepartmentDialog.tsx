@@ -26,19 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UseFormReturn } from "react-hook-form";
-
-interface DepartmentFormData {
-  id?: number;
-  name: string;
-  leadName: string;
-  parentId?: number;
-  description?: string;
-}
-
-interface ParentDepartmentOption {
-  id: number;
-  name: string;
-}
+import { DepartmentFormData, ParentDepartmentOption } from "@/types/department";
 
 interface AddDepartmentDialogProps {
   open: boolean;

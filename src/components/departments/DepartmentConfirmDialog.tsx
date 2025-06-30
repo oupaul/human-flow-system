@@ -9,16 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-interface Department {
-  id: number;
-  name: string;
-  leadName: string;
-  parentId?: number;
-  employeeCount: number;
-  description: string;
-  parentName?: string;
-}
+import { Department } from "@/types/department";
 
 interface DepartmentConfirmDialogProps {
   open: boolean;

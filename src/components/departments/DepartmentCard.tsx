@@ -9,16 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-interface Department {
-  id: number;
-  name: string;
-  leadName: string;
-  parentId?: number;
-  employeeCount: number;
-  description: string;
-  parentName?: string;
-}
+import { Department } from "@/types/department";
 
 interface DepartmentCardProps {
   department: Department;
