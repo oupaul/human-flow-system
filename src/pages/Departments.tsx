@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -103,7 +104,7 @@ const Departments = () => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   
-  // 修正 addForm 的類型定義 - 使用明確的類型約束
+  // 修正 addForm 的類型定義 - 使用完整的預設值結構
   const addForm = useForm<DepartmentFormData>({
     resolver: zodResolver(departmentFormSchema),
     defaultValues: {
@@ -111,11 +112,11 @@ const Departments = () => {
       leadName: "",
       parentId: undefined,
       description: "",
-    },
+    } as DepartmentFormData,
     mode: "onChange",
   });
   
-  // 修正 editForm 的類型定義 - 使用明確的類型約束
+  // 修正 editForm 的類型定義 - 使用完整的預設值結構
   const editForm = useForm<DepartmentFormData>({
     resolver: zodResolver(departmentFormSchema),
     defaultValues: {
@@ -123,7 +124,7 @@ const Departments = () => {
       leadName: "",
       parentId: undefined,
       description: "",
-    },
+    } as DepartmentFormData,
     mode: "onChange",
   });
 
