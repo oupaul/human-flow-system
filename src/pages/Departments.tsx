@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -104,29 +103,29 @@ const Departments = () => {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   
-  // 修正 addForm 的類型定義 - 使用完整的預設值結構
-  const addForm = useForm<DepartmentFormData>({
+  // 修正 addForm 的類型定義 - 使用強制類型轉換
+  const addForm = useForm({
     resolver: zodResolver(departmentFormSchema),
     defaultValues: {
       name: "",
       leadName: "",
       parentId: undefined,
       description: "",
-    } as DepartmentFormData,
+    },
     mode: "onChange",
-  });
+  }) as UseFormReturn<DepartmentFormData>;
   
-  // 修正 editForm 的類型定義 - 使用完整的預設值結構
-  const editForm = useForm<DepartmentFormData>({
+  // 修正 editForm 的類型定義 - 使用強制類型轉換
+  const editForm = useForm({
     resolver: zodResolver(departmentFormSchema),
     defaultValues: {
       name: "",
       leadName: "",
       parentId: undefined,
       description: "",
-    } as DepartmentFormData,
+    },
     mode: "onChange",
-  });
+  }) as UseFormReturn<DepartmentFormData>;
 
   // 取得主管部門清單（不包括自己）
   const getParentDepartmentOptions = (currentId?: number) => {
