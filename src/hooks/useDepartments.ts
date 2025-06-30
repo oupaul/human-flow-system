@@ -153,24 +153,26 @@ export const useDepartments = () => {
     console.log("Opening edit dialog for department:", department);
     setSelectedDepartment(department);
     
-    // 重置表單並設置新值
-    editForm.reset({
+    // 確保表單完全重置
+    editForm.reset();
+    
+    // 設置表單值
+    const formValues = {
       id: department.id,
       name: department.name,
       leadName: department.leadName,
       parentId: department.parentId || undefined,
       description: department.description || "",
-    });
+    };
     
-    console.log("Form reset with values:", {
-      id: department.id,
-      name: department.name,
-      leadName: department.leadName,
-      parentId: department.parentId,
-      description: department.description,
-    });
+    console.log("Setting form values:", formValues);
+    editForm.reset(formValues);
     
-    setIsEditDialogOpen(true);
+    // 確保所有值都正確設置
+    setTimeout(() => {
+      console.log("Form values after reset:", editForm.getValues());
+      setIsEditDialogOpen(true);
+    }, 0);
   };
   
   // 開啟查看對話框

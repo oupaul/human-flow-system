@@ -43,7 +43,11 @@ const EditDepartmentDialog = ({
   parentOptions,
   onSubmit,
 }: EditDepartmentDialogProps) => {
-  console.log("EditDepartmentDialog rendered", { open, formValues: form.getValues() });
+  console.log("EditDepartmentDialog rendered", { 
+    open, 
+    formValues: form.getValues(),
+    parentOptions 
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,9 +98,13 @@ const EditDepartmentDialog = ({
                   <Select
                     onValueChange={(value) => {
                       console.log("Parent department changed:", value);
-                      field.onChange(value ? Number(value) : undefined);
+                      if (value === "none") {
+                        field.onChange(undefined);
+                      } else {
+                        field.onChange(Number(value));
+                      }
                     }}
-                    value={field.value ? field.value.toString() : ""}
+                    value={field.value ? field.value.toString() : "none"}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -104,7 +112,7 @@ const EditDepartmentDialog = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">無上級部門</SelectItem>
+                      <SelectItem value="none">無上級部門</SelectItem>
                       {parentOptions.map((dept) => (
                         <SelectItem key={dept.id} value={dept.id.toString()}>
                           {dept.name}
