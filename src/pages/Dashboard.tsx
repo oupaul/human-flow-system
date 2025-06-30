@@ -13,25 +13,76 @@ import {
   Cell
 } from "recharts";
 import { Users, Calendar, Clock, Briefcase } from "lucide-react";
+import { useState, useEffect } from "react";
+import { dashboardApi } from "@/services/dashboardApi";
+import { toast } from "sonner";
 
-// Mock data
-const leaveDistributionData = [
-  { name: "特休", value: 35, color: "#3b82f6" },
-  { name: "事假", value: 15, color: "#f59e0b" },
-  { name: "病假", value: 10, color: "#ef4444" },
-  { name: "婚假", value: 5, color: "#10b981" },
-  { name: "公假", value: 5, color: "#8b5cf6" },
-];
+interface DashboardStats {
+  totalEmployees: number;
+  monthlyLeaves: number;
+  averageAttendance: number;
+  pendingRequests: number;
+}
 
-const departmentAttendanceData = [
-  { name: "IT部門", attendance: 95 },
-  { name: "行銷部門", attendance: 88 },
-  { name: "人資部門", attendance: 92 },
-  { name: "財務部門", attendance: 90 },
-  { name: "業務部門", attendance: 85 },
-];
+interface DepartmentAttendance {
+  name: string;
+  attendance: number;
+}
+
+interface LeaveDistribution {
+  name: string;
+  value: number;
+  color: string;
+}
 
 const Dashboard = () => {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [departmentAttendance, setDepartmentAttendance] = useState<DepartmentAttendance[]>([]);
+  const [leaveDistribution, setLeaveDistribution] = useState<LeaveDistribution[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      const [statsData, attendanceData, leaveData] = await Promise.all([
+        dashboardApi.getDashboardStats(),
+        dashboardApi.getDepartmentAttendance(),
+        dashboardApi.getLeaveDistribution()
+      ]);
+      
+      setStats(statsData);
+      setDepartmentAttendance(attendanceData);
+      setLeaveDistribution(leaveData);
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+      toast.error("載入 Dashboard 資料失敗", {
+        description: "請檢查網路連線或聯繫系統管理員",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-hrms-accent mx-auto"></div>
+            <p className="mt-2 text-muted-foreground">載入中...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -50,7 +101,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-muted-foreground">總員工數</p>
-              <h3 className="text-2xl font-bold">152</h3>
+              <h3 className="text-2xl font-bold">{stats?.totalEmployees || 0}</h3>
             </div>
           </CardContent>
         </Card>
@@ -62,7 +113,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-muted-foreground">本月請假數</p>
-              <h3 className="text-2xl font-bold">28</h3>
+              <h3 className="text-2xl font-bold">{stats?.monthlyLeaves || 0}</h3>
             </div>
           </CardContent>
         </Card>
@@ -74,7 +125,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-muted-foreground">平均出勤率</p>
-              <h3 className="text-2xl font-bold">92%</h3>
+              <h3 className="text-2xl font-bold">{stats?.averageAttendance || 0}%</h3>
             </div>
           </CardContent>
         </Card>
@@ -86,7 +137,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-muted-foreground">待審核申請</p>
-              <h3 className="text-2xl font-bold">7</h3>
+              <h3 className="text-2xl font-bold">{stats?.pendingRequests || 0}</h3>
             </div>
           </CardContent>
         </Card>
@@ -103,7 +154,7 @@ const Dashboard = () => {
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={departmentAttendanceData}
+                  data={departmentAttendance}
                   margin={{
                     top: 20,
                     right: 30,
@@ -132,7 +183,7 @@ const Dashboard = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={leaveDistributionData}
+                    data={leaveDistribution}
                     cx="50%"
                     cy="50%"
                     labelLine={true}
@@ -141,7 +192,7 @@ const Dashboard = () => {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {leaveDistributionData.map((entry, index) => (
+                    {leaveDistribution.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>

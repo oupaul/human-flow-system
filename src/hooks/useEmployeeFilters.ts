@@ -1,8 +1,8 @@
 
 import { useState, useMemo } from "react";
-import { employeesData } from "@/types/employee";
+import { Employee } from "@/types/employee";
 
-export const useEmployeeFilters = (employees: typeof employeesData) => {
+export const useEmployeeFilters = (employees: Employee[]) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");

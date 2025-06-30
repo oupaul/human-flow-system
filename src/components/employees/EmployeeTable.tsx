@@ -32,14 +32,14 @@ import {
   Calendar,
   Briefcase
 } from "lucide-react";
-import { employeesData, EmployeeFormData } from "@/types/employee";
+import { Employee, EmployeeFormData } from "@/types/employee";
 
 interface EmployeeTableProps {
-  filteredEmployees: typeof employeesData;
-  onViewEmployee: (employee: typeof employeesData[0]) => void;
-  onEditEmployee: (employee: typeof employeesData[0]) => void;
-  onDeleteEmployee: (employee: typeof employeesData[0]) => void;
-  onTerminateEmployee: (employee: typeof employeesData[0]) => void;
+  filteredEmployees: Employee[];
+  onViewEmployee: (employee: Employee) => void;
+  onEditEmployee: (employee: Employee) => void;
+  onDeleteEmployee: (employee: Employee) => void;
+  onTerminateEmployee: (employee: Employee) => void;
 }
 
 const EmployeeTable = ({

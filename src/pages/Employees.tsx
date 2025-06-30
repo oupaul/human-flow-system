@@ -1,11 +1,11 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { 
   EmployeeFormData, 
   emptyFormData, 
-  employeeToFormData 
+  employeeToFormData,
+  Employee
 } from "@/types/employee";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useEmployeeFilters } from "@/hooks/useEmployeeFilters";
@@ -17,7 +17,7 @@ import EmployeeDetailSheet from "@/components/employees/EmployeeDetailSheet";
 import EmployeeConfirmDialogs from "@/components/employees/EmployeeConfirmDialogs";
 
 const Employees = () => {
-  const { employees, addEmployee, updateEmployee, deleteEmployee, terminateEmployee } = useEmployees();
+  const { employees, loading, addEmployee, updateEmployee, deleteEmployee, terminateEmployee } = useEmployees();
   const {
     searchTerm,
     setSearchTerm,
@@ -53,24 +53,24 @@ const Employees = () => {
   };
 
   // 查看員工詳細資料
-  const handleViewEmployee = (employee: typeof employees[0]) => {
+  const handleViewEmployee = (employee: Employee) => {
     const employeeFormData = employeeToFormData(employee);
     setSelectedEmployee(employeeFormData);
     setIsViewEmployeeOpen(true);
   };
 
   // 編輯員工資料
-  const handleEditEmployee = (employee: typeof employees[0] | EmployeeFormData) => {
+  const handleEditEmployee = (employee: Employee | EmployeeFormData) => {
     const employeeFormData = 'terminationDate' in employee && typeof employee.terminationDate === 'string' 
       ? employee as EmployeeFormData 
-      : employeeToFormData(employee as typeof employees[0]);
+      : employeeToFormData(employee as Employee);
     setSelectedEmployee(employeeFormData);
     setFormData(employeeFormData);
     setIsEditEmployeeOpen(true);
   };
 
   // 刪除員工
-  const handleDeleteEmployee = (employee: typeof employees[0]) => {
+  const handleDeleteEmployee = (employee: Employee) => {
     const employeeFormData = employeeToFormData(employee);
     setSelectedEmployee(employeeFormData);
     setIsDeleteConfirmOpen(true);
@@ -85,7 +85,7 @@ const Employees = () => {
   };
 
   // 處理員工離職
-  const handleTerminateEmployee = (employee: typeof employees[0]) => {
+  const handleTerminateEmployee = (employee: Employee) => {
     const updatedEmployee = {
       ...employee,
       terminationDate: employee.terminationDate || new Date().toISOString().split('T')[0],
@@ -122,6 +122,22 @@ const Employees = () => {
       setIsEditEmployeeOpen(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">員工管理</h1>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-hrms-accent mx-auto"></div>
+            <p className="mt-2 text-muted-foreground">載入中...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
