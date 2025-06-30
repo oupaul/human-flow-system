@@ -14,6 +14,7 @@ export const employeeApi = {
   // 獲取所有員工
   async getEmployees(): Promise<Employee[]> {
     try {
+      console.log('Fetching employees from:', `${API_BASE_URL}/employees`);
       const response = await fetch(`${API_BASE_URL}/employees`, {
         method: 'GET',
         headers: {
@@ -21,11 +22,13 @@ export const employeeApi = {
         },
       });
 
+      console.log('Response status:', response.status);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Received data:', data);
       return data;
     } catch (error) {
       console.error('Error fetching employees:', error);
@@ -36,6 +39,9 @@ export const employeeApi = {
   // 新增員工
   async createEmployee(employeeData: EmployeeFormData): Promise<Employee> {
     try {
+      console.log('Creating employee with data:', employeeData);
+      console.log('Sending to:', `${API_BASE_URL}/employees`);
+      
       const response = await fetch(`${API_BASE_URL}/employees`, {
         method: 'POST',
         headers: {
@@ -44,11 +50,16 @@ export const employeeApi = {
         body: JSON.stringify(employeeData),
       });
 
+      console.log('Create response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const result = await response.json();
+      console.log('Employee created:', result);
       return result;
     } catch (error) {
       console.error('Error creating employee:', error);

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -39,16 +40,19 @@ const Employees = () => {
   // 處理表單輸入變更
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    console.log('Form field changed:', name, value);
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // 處理選擇變更
   const handleSelectChange = (name: string, value: string) => {
+    console.log('Select field changed:', name, value);
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // 處理勾選框變更
   const handleSwitchChange = (name: string, checked: boolean) => {
+    console.log('Switch field changed:', name, checked);
     setFormData((prev) => ({ ...prev, [name]: checked }));
   };
 
@@ -110,6 +114,7 @@ const Employees = () => {
 
   // 新增員工
   const handleAddEmployee = () => {
+    console.log('Attempting to add employee with form data:', formData);
     addEmployee(formData);
     setIsAddEmployeeOpen(false);
     setFormData(emptyFormData);
@@ -118,6 +123,7 @@ const Employees = () => {
   // 更新員工資料
   const handleUpdateEmployee = () => {
     if (selectedEmployee) {
+      console.log('Updating employee with form data:', formData);
       updateEmployee(formData);
       setIsEditEmployeeOpen(false);
     }

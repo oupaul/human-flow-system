@@ -16,7 +16,9 @@ export const useEmployees = () => {
   const loadEmployees = async () => {
     try {
       setLoading(true);
+      console.log('Loading employees...');
       const data = await employeeApi.getEmployees();
+      console.log('Employees loaded:', data);
       setEmployees(data);
     } catch (error) {
       console.error('Failed to load employees:', error);
@@ -30,7 +32,19 @@ export const useEmployees = () => {
 
   const addEmployee = async (employeeData: EmployeeFormData) => {
     try {
-      await employeeApi.createEmployee(employeeData);
+      console.log('Adding employee with data:', employeeData);
+      
+      // 檢查必填欄位
+      if (!employeeData.name || !employeeData.employeeId || !employeeData.department || 
+          !employeeData.position || !employeeData.email || !employeeData.joinDate) {
+        toast.error("新增失敗", {
+          description: "請填寫所有必填欄位（姓名、員工編號、部門、職位、電子郵件、到職日期）",
+        });
+        return;
+      }
+
+      const result = await employeeApi.createEmployee(employeeData);
+      console.log('Employee created successfully:', result);
       await loadEmployees(); // 重新載入資料
       toast.success("新增成功", {
         description: `員工 ${employeeData.name} (${employeeData.employeeId}) 已新增。`,
