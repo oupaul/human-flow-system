@@ -379,21 +379,26 @@ app.get('/api/dashboard/stats', async (req, res) => {
   try {
     // 總員工數
     const [totalEmployees] = await pool.execute('SELECT COUNT(*) as count FROM employees WHERE active = true');
-    
-    // 本月請假數 (模擬資料，您需要根據實際的請假表結構調整)
-    const monthlyLeaves = 28; // 暫時使用固定值
-    
-    // 平均出勤率 (模擬資料)
-    const averageAttendance = 92; // 暫時使用固定值
-    
-    // 待審核申請 (模擬資料)
-    const pendingRequests = 7; // 暫時使用固定值
-    
+    // 本月請假數
+    const [monthlyLeaves] = await pool.execute(`
+      SELECT COUNT(*) as count FROM leave_applications 
+      WHERE MONTH(startDate) = MONTH(CURRENT_DATE()) AND YEAR(startDate) = YEAR(CURRENT_DATE())
+    `);
+    // 平均出勤率（假設 attendance 表有出勤率欄位）
+    let averageAttendance = null;
+    try {
+      const [attendanceRows] = await pool.execute(`SELECT AVG(attendance) as avgAttendance FROM attendance WHERE MONTH(date) = MONTH(CURRENT_DATE()) AND YEAR(date) = YEAR(CURRENT_DATE())`);
+      averageAttendance = attendanceRows[0]?.avgAttendance ? Math.round(attendanceRows[0].avgAttendance) : null;
+    } catch (e) {
+      averageAttendance = null;
+    }
+    // 待審核申請
+    const [pendingRequests] = await pool.execute(`SELECT COUNT(*) as count FROM leave_applications WHERE status = 'pending'`);
     res.json({
       totalEmployees: totalEmployees[0].count,
-      monthlyLeaves,
-      averageAttendance,
-      pendingRequests
+      monthlyLeaves: monthlyLeaves[0].count,
+      averageAttendance: averageAttendance,
+      pendingRequests: pendingRequests[0].count
     });
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
@@ -436,15 +441,17 @@ app.get('/api/dashboard/attendance', async (req, res) => {
 // 獲取請假分布
 app.get('/api/dashboard/leaves', async (req, res) => {
   try {
-    // 這裡使用模擬資料，您需要根據實際的請假表結構調整
-    const leaveData = [
-      { name: "特休", value: 35, color: "#3b82f6" },
-      { name: "事假", value: 15, color: "#f59e0b" },
-      { name: "病假", value: 10, color: "#ef4444" },
-      { name: "婚假", value: 5, color: "#10b981" },
-      { name: "公假", value: 5, color: "#8b5cf6" },
-    ];
-    
+    // 依假別類型統計本月請假天數
+    const [rows] = await pool.execute(`
+      SELECT lt.name as name, SUM(la.days) as value
+      FROM leave_applications la
+      LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
+      WHERE MONTH(la.startDate) = MONTH(CURRENT_DATE()) AND YEAR(la.startDate) = YEAR(CURRENT_DATE())
+      GROUP BY la.leaveTypeId
+    `);
+    // 可選：加上顏色
+    const colorList = ["#3b82f6", "#f59e0b", "#ef4444", "#10b981", "#8b5cf6", "#06b6d4", "#6b7280"];
+    const leaveData = rows.map((row, idx) => ({ ...row, color: colorList[idx % colorList.length] }));
     res.json(leaveData);
   } catch (error) {
     console.error('Error fetching leave distribution:', error);
