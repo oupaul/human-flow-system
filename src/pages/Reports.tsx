@@ -73,12 +73,13 @@ const Reports = () => {
   const [endDate, setEndDate] = useState("");
   const [departmentComparison, setDepartmentComparison] = useState([]);
   const [loadingDepartment, setLoadingDepartment] = useState(false);
+  const [leaveDistribution, setLeaveDistribution] = useState([]);
+  const [loadingLeave, setLoadingLeave] = useState(false);
 
   useEffect(() => {
     const fetchDepartmentComparison = async () => {
       setLoadingDepartment(true);
       try {
-        // TODO: 改為正確 API
         const data = await dashboardApi.getDepartmentAttendance();
         setDepartmentComparison(data);
       } catch (e) {
@@ -88,6 +89,21 @@ const Reports = () => {
       }
     };
     fetchDepartmentComparison();
+  }, []);
+
+  useEffect(() => {
+    const fetchLeaveDistribution = async () => {
+      setLoadingLeave(true);
+      try {
+        const data = await dashboardApi.getLeaveDistribution();
+        setLeaveDistribution(data);
+      } catch (e) {
+        setLeaveDistribution([]);
+      } finally {
+        setLoadingLeave(false);
+      }
+    };
+    fetchLeaveDistribution();
   }, []);
 
   return (
@@ -220,7 +236,7 @@ const Reports = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={leaveDistributionData}
+                        data={leaveDistribution}
                         cx="50%"
                         cy="50%"
                         labelLine={true}
@@ -229,7 +245,7 @@ const Reports = () => {
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {leaveDistributionData.map((entry, index) => (
+                        {leaveDistribution.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
@@ -241,7 +257,7 @@ const Reports = () => {
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={leaveDistributionData}
+                      data={leaveDistribution}
                       layout="vertical"
                       margin={{
                         top: 5,
@@ -260,7 +276,7 @@ const Reports = () => {
                         fill="#3b82f6" 
                         radius={[0, 4, 4, 0]}
                       >
-                        {leaveDistributionData.map((entry, index) => (
+                        {leaveDistribution.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Bar>
@@ -268,6 +284,9 @@ const Reports = () => {
                   </ResponsiveContainer>
                 </div>
               </div>
+              {!loadingLeave && leaveDistribution.length === 0 && (
+                <div className="text-center text-muted-foreground mt-4">無請假分布資料</div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
