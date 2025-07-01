@@ -48,22 +48,21 @@ app.get('/api/departments', async (req, res) => {
 app.post('/api/departments', async (req, res) => {
   try {
     const { name, leadName, parentId, description } = req.body;
-    
+    if (!name || !leadName) {
+      return res.status(400).json({ error: '部門名稱與主管名稱為必填' });
+    }
     const [result] = await pool.execute(
       'INSERT INTO departments (name, leadName, parentId, description, employeeCount) VALUES (?, ?, ?, ?, 0)',
-      [name, leadName, parentId || null, description || '']
+      [name, leadName, parentId ? parentId : null, description ? description : null]
     );
-    
-    // 獲取新建立的部門資料
     const [newDept] = await pool.execute(
       'SELECT * FROM departments WHERE id = ?',
       [result.insertId]
     );
-    
     res.json(newDept[0]);
   } catch (error) {
-    console.error('Error creating department:', error);
-    res.status(500).json({ error: '新增部門失敗' });
+    console.error('Error creating department:', error.message, error);
+    res.status(500).json({ error: '新增部門失敗', detail: error.message });
   }
 });
 
@@ -124,22 +123,21 @@ app.get('/api/employees', async (req, res) => {
 app.post('/api/employees', async (req, res) => {
   try {
     const { name, employeeId, department, position, email, phone, joinDate, active, address, notes } = req.body;
-    
+    if (!name || !employeeId || !department || !position || !email || !joinDate) {
+      return res.status(400).json({ error: '所有必填欄位皆需填寫' });
+    }
     const [result] = await pool.execute(
       'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '']
+      [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null]
     );
-    
-    // 獲取新建立的員工資料
     const [newEmployee] = await pool.execute(
       'SELECT * FROM employees WHERE id = ?',
       [result.insertId]
     );
-    
     res.json(newEmployee[0]);
   } catch (error) {
-    console.error('Error creating employee:', error);
-    res.status(500).json({ error: '新增員工失敗' });
+    console.error('Error creating employee:', error.message, error);
+    res.status(500).json({ error: '新增員工失敗', detail: error.message });
   }
 });
 
