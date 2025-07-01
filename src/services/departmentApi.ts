@@ -1,4 +1,3 @@
-
 import { Department, DepartmentFormData } from "@/types/department";
 
 const API_BASE_URL = "http://localhost:3001/api";
@@ -39,27 +38,25 @@ export const departmentApi = {
   // 新增部門
   async createDepartment(departmentData: DepartmentFormData): Promise<Department> {
     try {
-      console.log('Creating department with data:', departmentData);
-      console.log('Sending to:', `${API_BASE_URL}/departments`);
-      
+      // 轉換欄位名稱為 snake_case
+      const payload = {
+        name: departmentData.name,
+        lead_name: departmentData.leadName,
+        parent_id: departmentData.parentId || null,
+        description: departmentData.description || null,
+      };
       const response = await fetch(`${API_BASE_URL}/departments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(departmentData),
+        body: JSON.stringify(payload),
       });
-
-      console.log('Create response status:', response.status);
-      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
-
       const result = await response.json();
-      console.log('Department created:', result);
       return result;
     } catch (error) {
       console.error('Error creating department:', error);
