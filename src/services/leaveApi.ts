@@ -1,7 +1,6 @@
-
 import { LeaveType, LeaveApplication, LeaveBalance, LeaveApplicationFormData } from "@/types/leave";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = "/api";
 
 export const leaveApi = {
   // 假別類型管理

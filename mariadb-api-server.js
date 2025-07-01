@@ -404,16 +404,29 @@ app.get('/api/dashboard/stats', async (req, res) => {
 // 獲取部門出勤率
 app.get('/api/dashboard/attendance', async (req, res) => {
   try {
-    // 這裡使用模擬資料，您需要根據實際的出勤表結構調整
-    const attendanceData = [
-      { name: "IT部門", attendance: 95 },
-      { name: "行銷部門", attendance: 88 },
-      { name: "人資部門", attendance: 92 },
-      { name: "財務部門", attendance: 90 },
-      { name: "業務部門", attendance: 85 },
-    ];
-    
-    res.json(attendanceData);
+    // 改為查詢資料庫取得部門出勤、請假、加班資料
+    const [rows] = await pool.execute(`
+      SELECT 
+        d.name as name,
+        IFNULL(AVG(a.attendance), 0) as attendance,
+        IFNULL(AVG(l.leave_rate), 0) as leave,
+        0 as overtime -- 若有加班資料表可替換
+      FROM departments d
+      LEFT JOIN attendance a ON a.department = d.name
+      LEFT JOIN (
+        SELECT department, AVG(leave_days/working_days)*100 as leave_rate
+        FROM (
+          SELECT e.department, COUNT(la.id) as leave_days, COUNT(DISTINCT a2.date) as working_days
+          FROM employees e
+          LEFT JOIN leave_applications la ON la.employeeId = e.employeeId
+          LEFT JOIN attendance a2 ON a2.employeeId = e.employeeId
+          GROUP BY e.department, e.employeeId
+        ) t
+        GROUP BY department
+      ) l ON l.department = d.name
+      GROUP BY d.name
+    `);
+    res.json(rows);
   } catch (error) {
     console.error('Error fetching department attendance:', error);
     res.status(500).json({ error: '獲取部門出勤率失敗' });

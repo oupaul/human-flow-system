@@ -1,7 +1,6 @@
-
 import { Employee, EmployeeFormData } from "@/types/employee";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = "/api";
 
 // API 響應類型
 interface ApiResponse<T> {

@@ -1,4 +1,3 @@
-
 interface DashboardStats {
   totalEmployees: number;
   monthlyLeaves: number;
@@ -17,7 +16,7 @@ interface LeaveDistribution {
   color: string;
 }
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = "/api";
 
 export const dashboardApi = {
   // 獲取統計資料

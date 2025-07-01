@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -39,6 +38,7 @@ import {
   Cell,
 } from "recharts";
 import { Download, Calendar, RefreshCcw } from "lucide-react";
+import { dashboardApi } from "@/services/dashboardApi";
 
 // Mock attendance data by month
 const attendanceByMonth = [
@@ -67,19 +67,28 @@ const leaveDistributionData = [
   { name: "其他", value: 5, color: "#6b7280" },
 ];
 
-// Mock department comparison data
-const departmentComparisonData = [
-  { name: "IT部門", attendance: 94.5, leave: 3.2, overtime: 8.5 },
-  { name: "人資部門", attendance: 96.8, leave: 2.1, overtime: 3.2 },
-  { name: "財務部門", attendance: 95.2, leave: 2.8, overtime: 5.7 },
-  { name: "行銷部門", attendance: 93.7, leave: 4.5, overtime: 7.2 },
-  { name: "業務部門", attendance: 91.5, leave: 5.3, overtime: 12.5 },
-];
-
 const Reports = () => {
   const [selectedYear, setSelectedYear] = useState("2023");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [departmentComparison, setDepartmentComparison] = useState([]);
+  const [loadingDepartment, setLoadingDepartment] = useState(false);
+
+  useEffect(() => {
+    const fetchDepartmentComparison = async () => {
+      setLoadingDepartment(true);
+      try {
+        // TODO: 改為正確 API
+        const data = await dashboardApi.getDepartmentAttendance();
+        setDepartmentComparison(data);
+      } catch (e) {
+        setDepartmentComparison([]);
+      } finally {
+        setLoadingDepartment(false);
+      }
+    };
+    fetchDepartmentComparison();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -296,7 +305,7 @@ const Reports = () => {
               <div className="h-96 mt-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={departmentComparisonData}
+                    data={departmentComparison}
                     margin={{
                       top: 20,
                       right: 30,
@@ -316,6 +325,9 @@ const Reports = () => {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              {!loadingDepartment && departmentComparison.length === 0 && (
+                <div className="text-center text-muted-foreground mt-4">無部門比較資料</div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

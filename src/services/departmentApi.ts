@@ -1,6 +1,6 @@
 import { Department, DepartmentFormData } from "@/types/department";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = "/api";
 
 // API 響應類型
 interface ApiResponse<T> {
