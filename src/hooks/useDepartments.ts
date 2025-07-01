@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useForm, UseFormReturn } from "react-hook-form";
@@ -80,7 +79,6 @@ export const useDepartments = () => {
   const handleAddDepartment = async (data: DepartmentFormData) => {
     try {
       console.log('Adding department with data:', data);
-      
       // 檢查必填欄位
       if (!data.name || !data.leadName) {
         toast.error("新增失敗", {
@@ -88,12 +86,10 @@ export const useDepartments = () => {
         });
         return;
       }
-
       const result = await departmentApi.createDepartment(data);
       console.log('Department created successfully:', result);
       await loadDepartments(); // 重新載入資料
       setIsAddDialogOpen(false);
-      
       // 完全重置表單
       addForm.reset({
         name: "",
@@ -101,14 +97,15 @@ export const useDepartments = () => {
         parentId: undefined,
         description: "",
       });
-      
       toast.success("部門新增成功", {
         description: `已成功新增「${data.name}」部門`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create department:', error);
-      toast.error("部門新增失敗", {
-        description: "請檢查網路連線或聯繫系統管理員",
+      let msg = "部門新增失敗";
+      if (error?.message) msg += `：${error.message}`;
+      toast.error(msg, {
+        description: error?.response?.data?.error || error?.toString() || "請檢查網路連線或聯繫系統管理員",
       });
     }
   };
