@@ -1,4 +1,3 @@
-
 import { 
   Dialog,
   DialogContent,
@@ -18,7 +17,9 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { EmployeeFormData, departmentOptions } from "@/types/employee";
+import { EmployeeFormData } from "@/types/employee";
+import { useEffect, useState } from "react";
+import { departmentApi } from "@/services/departmentApi";
 
 interface AddEmployeeDialogProps {
   open: boolean;
@@ -37,6 +38,13 @@ const AddEmployeeDialog = ({
   onSelectChange,
   onSave
 }: AddEmployeeDialogProps) => {
+  const [departments, setDepartments] = useState([]);
+  useEffect(() => {
+    if (open) {
+      departmentApi.getDepartments().then(setDepartments).catch(() => setDepartments([]));
+    }
+  }, [open]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px]">
@@ -80,11 +88,13 @@ const AddEmployeeDialog = ({
                   <SelectValue placeholder="選擇部門" />
                 </SelectTrigger>
                 <SelectContent>
-                  {departmentOptions.slice(1).map((dept) => (
-                    <SelectItem key={dept.value} value={dept.value}>
-                      {dept.label}
-                    </SelectItem>
-                  ))}
+                  {departments.length === 0 ? (
+                    <SelectItem value="" disabled>尚無部門</SelectItem>
+                  ) : (
+                    departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
