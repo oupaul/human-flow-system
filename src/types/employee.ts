@@ -1,4 +1,3 @@
-
 export interface Employee {
   id: number;
   name: string;
@@ -32,15 +31,6 @@ export interface EmployeeFormData {
   address: string;
   notes: string;
 }
-
-export const departmentOptions = [
-  { value: "all", label: "所有部門" },
-  { value: "IT部門", label: "IT部門" },
-  { value: "人資部門", label: "人資部門" },
-  { value: "財務部門", label: "財務部門" },
-  { value: "行銷部門", label: "行銷部門" },
-  { value: "業務部門", label: "業務部門" },
-];
 
 export const statusOptions = [
   { value: "all", label: "全部" },

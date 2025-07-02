@@ -1,4 +1,3 @@
-
 import { 
   Card, 
   CardContent 
@@ -13,7 +12,6 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Search, Filter } from "lucide-react";
-import { departmentOptions, statusOptions } from "@/types/employee";
 
 interface EmployeeFiltersProps {
   searchTerm: string;
@@ -59,11 +57,11 @@ const EmployeeFilters = ({
                   <SelectValue placeholder="選擇部門" />
                 </SelectTrigger>
                 <SelectContent>
-                  {departmentOptions.map((dept) => (
+                  {/* {departmentOptions.map((dept) => (
                     <SelectItem key={dept.value} value={dept.value}>
                       {dept.label}
                     </SelectItem>
-                  ))}
+                  ))} */}
                 </SelectContent>
               </Select>
             </div>
@@ -79,11 +77,11 @@ const EmployeeFilters = ({
                   <SelectValue placeholder="選擇狀態" />
                 </SelectTrigger>
                 <SelectContent>
-                  {statusOptions.map((status) => (
+                  {/* {statusOptions.map((status) => (
                     <SelectItem key={status.value} value={status.value}>
                       {status.label}
                     </SelectItem>
-                  ))}
+                  ))} */}
                 </SelectContent>
               </Select>
             </div>

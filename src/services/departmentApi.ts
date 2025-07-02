@@ -28,7 +28,7 @@ export const departmentApi = {
 
       const data = await response.json();
       console.log('Received departments data:', data);
-      return data;
+      return Array.isArray(data) ? data : data.data;
     } catch (error) {
       console.error('Error fetching departments:', error);
       throw error;
