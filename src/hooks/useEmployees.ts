@@ -47,7 +47,7 @@ export const useEmployees = () => {
       console.log('Employee created successfully:', result);
       await loadEmployees(); // 重新載入資料
       toast.success("新增成功，已自動建立登入帳號", {
-        description: `員工 ${employeeData.name} (${employeeData.employeeId}) 已新增。登入帳號：${employeeData.employeeId}，預設密碼：${employeeData.employeeId}，請提醒員工登入後自行修改密碼。`,
+        description: `員工 ${employeeData.name} (${employeeData.employeeId}) 已新增。登入帳號：${employeeData.email}，預設密碼：${employeeData.employeeId}，請提醒員工登入後自行修改密碼。`,
         duration: 15000,
       });
     } catch (error) {

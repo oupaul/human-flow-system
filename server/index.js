@@ -59,6 +59,31 @@ function calculateAnnualLeaveDays(joinDate, asOfDate = new Date()) {
   return Math.min(15 + (fullYears - 10), 30);
 }
 
+// 建立或同步員工的登入帳號：登入帳號使用員工的 email，employee_id 綁定員工編號，
+// 密碼預設為員工編號。resetPassword=true 時會將既有帳號的密碼重設為預設值
+async function syncEmployeeAccount(employeeId, email, { resetPassword = false } = {}) {
+  const [existingRows] = await pool.execute('SELECT id FROM users WHERE employee_id = ?', [employeeId]);
+
+  if (existingRows.length === 0) {
+    const passwordHash = await bcrypt.hash(employeeId, 10);
+    await pool.execute(
+      `INSERT INTO users (username, password_hash, role, employee_id, active) VALUES (?, ?, 'employee', ?, TRUE)`,
+      [email, passwordHash, employeeId]
+    );
+    return;
+  }
+
+  if (resetPassword) {
+    const passwordHash = await bcrypt.hash(employeeId, 10);
+    await pool.execute(
+      'UPDATE users SET username = ?, password_hash = ?, active = TRUE WHERE employee_id = ?',
+      [email, passwordHash, employeeId]
+    );
+  } else {
+    await pool.execute('UPDATE users SET username = ? WHERE employee_id = ?', [email, employeeId]);
+  }
+}
+
 // 解析政府行政機關辦公日曆表（人事行政總處開放資料）CSV，格式彈性辨識欄位
 function parseHolidayCsv(csvText) {
   const lines = csvText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -313,13 +338,8 @@ api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
       [employeeId, annualLeave]
     );
 
-    // 自動建立員工登入帳號：帳號＝員工編號，預設密碼＝員工編號，登入後請自行修改密碼
-    const defaultPasswordHash = await bcrypt.hash(employeeId, 10);
-    await pool.execute(
-      `INSERT INTO users (username, password_hash, role, employee_id, active) VALUES (?, ?, 'employee', ?, TRUE)
-       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = 'employee', employee_id = VALUES(employee_id), active = TRUE`,
-      [employeeId, defaultPasswordHash, employeeId]
-    );
+    // 自動建立員工登入帳號：帳號＝員工 email，預設密碼＝員工編號，登入後請自行修改密碼
+    await syncEmployeeAccount(employeeId, email);
 
     const [newEmployee] = await pool.execute('SELECT * FROM employees WHERE id = ?', [result.insertId]);
     res.json(newEmployee[0]);
@@ -334,10 +354,21 @@ api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     const { id } = req.params;
     const { name, employeeId, department, position, email, phone, joinDate, active, address, notes } = req.body;
 
+    const [beforeRows] = await pool.execute('SELECT employeeId FROM employees WHERE id = ?', [id]);
+    const previousEmployeeId = beforeRows[0]?.employeeId;
+
     await pool.execute(
       'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ? WHERE id = ?',
       [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', id]
     );
+
+    // 同步登入帳號：email 異動時登入帳號一併更新
+    if (previousEmployeeId) {
+      await pool.execute(
+        'UPDATE users SET username = ?, employee_id = ? WHERE employee_id = ?',
+        [email, employeeId, previousEmployeeId]
+      );
+    }
 
     const [updatedEmployee] = await pool.execute('SELECT * FROM employees WHERE id = ?', [id]);
     res.json(updatedEmployee[0]);
@@ -386,20 +417,15 @@ api.put('/employees/:id/terminate', requireRole(...STAFF_ROLES), async (req, res
 api.post('/employees/:id/reset-password', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const [employeeRows] = await pool.execute('SELECT employeeId FROM employees WHERE id = ?', [id]);
+    const [employeeRows] = await pool.execute('SELECT employeeId, email FROM employees WHERE id = ?', [id]);
     const employee = employeeRows[0];
     if (!employee) {
       return res.status(404).json({ error: '找不到員工資料' });
     }
 
-    const defaultPasswordHash = await bcrypt.hash(employee.employeeId, 10);
-    await pool.execute(
-      `INSERT INTO users (username, password_hash, role, employee_id, active) VALUES (?, ?, 'employee', ?, TRUE)
-       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), employee_id = VALUES(employee_id), active = TRUE`,
-      [employee.employeeId, defaultPasswordHash, employee.employeeId]
-    );
+    await syncEmployeeAccount(employee.employeeId, employee.email, { resetPassword: true });
 
-    res.json({ message: '密碼已重設', username: employee.employeeId, defaultPassword: employee.employeeId });
+    res.json({ message: '密碼已重設', username: employee.email, defaultPassword: employee.employeeId });
   } catch (error) {
     console.error('Error resetting employee password:', error);
     res.status(500).json({ error: '重設密碼失敗', detail: error.message });
