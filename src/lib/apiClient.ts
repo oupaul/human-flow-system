@@ -34,7 +34,9 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     },
   });
 
-  if (response.status === 401) {
+  // 登入本身失敗（帳號或密碼錯誤）不算「登入已過期」，讓下方一般錯誤處理
+  // 把後端實際的錯誤訊息（如「帳號或密碼錯誤」）顯示出來，不要覆蓋掉
+  if (response.status === 401 && path !== "/auth/login") {
     clearToken();
     if (window.location.pathname !== "/login") {
       window.location.href = "/login";
