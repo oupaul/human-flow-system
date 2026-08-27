@@ -734,7 +734,7 @@ api.get('/dashboard/attendance', async (req, res) => {
       SELECT
         d.name as name,
         0 as attendance,
-        IFNULL(leave_stats.leave_count, 0) as leave,
+        IFNULL(leave_stats.leave_count, 0) as \`leave\`,
         IFNULL(overtime_stats.avg_hours, 0) as overtime
       FROM departments d
       LEFT JOIN (
