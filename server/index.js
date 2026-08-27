@@ -721,27 +721,31 @@ api.get('/dashboard/stats', async (req, res) => {
   }
 });
 
+// 注意：系統目前沒有出勤打卡資料表，attendance 固定回傳 0；
+// leave（本月請假件數）與 overtime（本月平均加班時數）則查詢真實資料
 api.get('/dashboard/attendance', async (req, res) => {
   try {
     const [rows] = await pool.execute(`
       SELECT
         d.name as name,
-        IFNULL(AVG(a.attendance), 0) as attendance,
-        IFNULL(AVG(l.leave_rate), 0) as leave,
-        0 as overtime
+        0 as attendance,
+        IFNULL(leave_stats.leave_count, 0) as leave,
+        IFNULL(overtime_stats.avg_hours, 0) as overtime
       FROM departments d
-      LEFT JOIN attendance a ON a.department = d.name
       LEFT JOIN (
-        SELECT department, AVG(leave_days/working_days)*100 as leave_rate
-        FROM (
-          SELECT e.department, COUNT(la.id) as leave_days, COUNT(DISTINCT a2.date) as working_days
-          FROM employees e
-          LEFT JOIN leave_applications la ON la.employeeId = e.employeeId
-          LEFT JOIN attendance a2 ON a2.employeeId = e.employeeId
-          GROUP BY e.department, e.employeeId
-        ) t
-        GROUP BY department
-      ) l ON l.department = d.name
+        SELECT e.department, COUNT(la.id) as leave_count
+        FROM employees e
+        LEFT JOIN leave_applications la ON la.employeeId = e.employeeId
+          AND MONTH(la.startDate) = MONTH(CURRENT_DATE()) AND YEAR(la.startDate) = YEAR(CURRENT_DATE())
+        GROUP BY e.department
+      ) leave_stats ON leave_stats.department = d.name
+      LEFT JOIN (
+        SELECT e.department, AVG(o.hours) as avg_hours
+        FROM employees e
+        LEFT JOIN overtime_applications o ON o.employeeId = e.employeeId
+          AND MONTH(o.date) = MONTH(CURRENT_DATE()) AND YEAR(o.date) = YEAR(CURRENT_DATE())
+        GROUP BY e.department
+      ) overtime_stats ON overtime_stats.department = d.name
       GROUP BY d.name
     `);
     res.json(rows);
