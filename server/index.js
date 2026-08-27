@@ -196,12 +196,17 @@ api.get('/auth/me', async (req, res) => {
 
 api.get('/departments', async (req, res) => {
   try {
+    // employeeCount 即時從 employees 表計算在職人數，不使用 departments 表裡從未被維護過的靜態欄位
     const [rows] = await pool.execute(`
       SELECT
-        d.*,
-        parent.name as parentName
+        d.id, d.name, d.leadName, d.parentId, d.description, d.created_at, d.updated_at,
+        parent.name as parentName,
+        IFNULL(emp_counts.count, 0) as employeeCount
       FROM departments d
       LEFT JOIN departments parent ON d.parentId = parent.id
+      LEFT JOIN (
+        SELECT department, COUNT(*) as count FROM employees WHERE active = TRUE GROUP BY department
+      ) emp_counts ON emp_counts.department = d.name
       ORDER BY d.parentId IS NULL DESC, d.id
     `);
     res.json(rows);
