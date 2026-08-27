@@ -35,10 +35,15 @@ const pool = mysql.createPool({
   // DATE/DATETIME 欄位回傳為 'YYYY-MM-DD' 字串，避免被序列化成帶時區的完整 ISO 時間，
   // 導致前端 <input type="date"> 無法正確顯示
   dateStrings: true,
-  // TINYINT(1) 欄位（如 active、isPaid…）自動轉為 JS boolean，避免前端收到 0/1 數字
+  // TINYINT(1) 欄位（如 active、isPaid…）自動轉為 JS boolean，避免前端收到 0/1 數字；
+  // DECIMAL 欄位（天數、金額）自動轉為 JS number，避免前端收到字串
   typeCast: (field, next) => {
     if (field.type === 'TINY' && field.length === 1) {
       return field.string() === '1';
+    }
+    if (field.type === 'NEWDECIMAL' || field.type === 'DECIMAL') {
+      const value = field.string();
+      return value === null ? null : parseFloat(value);
     }
     return next();
   },
@@ -82,6 +87,50 @@ async function syncEmployeeAccount(employeeId, email, { resetPassword = false } 
   } else {
     await pool.execute('UPDATE users SET username = ? WHERE employee_id = ?', [email, employeeId]);
   }
+}
+
+function addOneYear(dateStr) {
+  const d = new Date(dateStr);
+  d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+// 計算某個特休週年期間應發放的天數：以該期間結束前一刻的年資判定，
+// 這樣第一年到職滿 6 個月時自然會對應到 3 天、滿 1 年對應到 7 天…以此類推
+function computePeriodGrant(joinDate, periodEnd) {
+  const justBeforeEnd = new Date(new Date(periodEnd).getTime() - 24 * 60 * 60 * 1000);
+  return calculateAnnualLeaveDays(joinDate, justBeforeEnd);
+}
+
+// 取得員工目前尚未結算的特休週年期間；若不存在（新員工）則建立第一期
+async function getOrCreateActivePeriod(employeeId, joinDate) {
+  const [rows] = await pool.execute(
+    'SELECT * FROM leave_periods WHERE employeeId = ? AND settledAt IS NULL ORDER BY periodStart DESC LIMIT 1',
+    [employeeId]
+  );
+  if (rows[0]) {
+    return rows[0];
+  }
+
+  const periodEnd = addOneYear(joinDate);
+  const grantedDays = computePeriodGrant(joinDate, periodEnd);
+
+  const [result] = await pool.execute(
+    'INSERT INTO leave_periods (employeeId, periodStart, periodEnd, grantedDays, carriedInDays, usedDays) VALUES (?, ?, ?, ?, 0, 0)',
+    [employeeId, joinDate, periodEnd, grantedDays]
+  );
+  const [newRows] = await pool.execute('SELECT * FROM leave_periods WHERE id = ?', [result.insertId]);
+  return newRows[0];
+}
+
+// 依「遞延進來的天數優先使用」試算週年結算時：強制折現天數（遞延已逾期未休）
+// 與可選遞延天數（本期新發放、還沒到期，可選擇遞延或折現）
+function computeSettlementSplit(period) {
+  const usedFromCarriedIn = Math.min(period.usedDays, period.carriedInDays);
+  const usedFromGrant = period.usedDays - usedFromCarriedIn;
+  const mandatoryCashOutDays = period.carriedInDays - usedFromCarriedIn;
+  const remainingGrantDays = Math.max(0, period.grantedDays - usedFromGrant);
+  return { mandatoryCashOutDays, remainingGrantDays };
 }
 
 // 解析政府行政機關辦公日曆表（人事行政總處開放資料）CSV，格式彈性辨識欄位
@@ -322,21 +371,18 @@ api.get('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
 
 api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
-    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes } = req.body;
+    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary } = req.body;
     if (!name || !employeeId || !department || !position || !email || !joinDate) {
       return res.status(400).json({ error: '所有必填欄位皆需填寫' });
     }
     const [result] = await pool.execute(
-      'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null]
+      'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, monthlySalary || null]
     );
 
-    // 依到職日建立初始特休假別餘額
-    const annualLeave = calculateAnnualLeaveDays(joinDate);
-    await pool.execute(
-      'INSERT INTO leave_balances (employeeId, annualLeave, annualLeaveUsed) VALUES (?, ?, 0)',
-      [employeeId, annualLeave]
-    );
+    // 建立第一期特休週年紀錄；病假/補休沿用 leave_balances 預設值
+    await getOrCreateActivePeriod(employeeId, joinDate);
+    await pool.execute('INSERT INTO leave_balances (employeeId) VALUES (?)', [employeeId]);
 
     // 自動建立員工登入帳號：帳號＝員工 email，預設密碼＝員工編號，登入後請自行修改密碼
     await syncEmployeeAccount(employeeId, email);
@@ -352,14 +398,14 @@ api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
 api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes } = req.body;
+    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary } = req.body;
 
     const [beforeRows] = await pool.execute('SELECT employeeId FROM employees WHERE id = ?', [id]);
     const previousEmployeeId = beforeRows[0]?.employeeId;
 
     await pool.execute(
-      'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ? WHERE id = ?',
-      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', id]
+      'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, monthlySalary = ? WHERE id = ?',
+      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', monthlySalary || null, id]
     );
 
     // 同步登入帳號：email 異動時登入帳號一併更新
@@ -524,10 +570,30 @@ api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (re
     const { id } = req.params;
     const { status, approver } = req.body;
 
+    const [beforeRows] = await pool.execute(`
+      SELECT la.employeeId, la.days, la.status as previousStatus, lt.code as leaveTypeCode, e.joinDate
+      FROM leave_applications la
+      LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
+      LEFT JOIN employees e ON la.employeeId = e.employeeId
+      WHERE la.id = ?
+    `, [id]);
+    const application = beforeRows[0];
+
     await pool.execute(
       'UPDATE leave_applications SET status = ?, approver = ? WHERE id = ?',
       [status, approver, id]
     );
+
+    // 特休申請核准時計入目前週年期間的已用天數；若從已核准改回其他狀態則退回
+    if (application && application.leaveTypeCode === 'AL' && application.joinDate) {
+      if (status === 'approved' && application.previousStatus !== 'approved') {
+        const period = await getOrCreateActivePeriod(application.employeeId, application.joinDate);
+        await pool.execute('UPDATE leave_periods SET usedDays = usedDays + ? WHERE id = ?', [application.days, period.id]);
+      } else if (status !== 'approved' && application.previousStatus === 'approved') {
+        const period = await getOrCreateActivePeriod(application.employeeId, application.joinDate);
+        await pool.execute('UPDATE leave_periods SET usedDays = GREATEST(0, usedDays - ?) WHERE id = ?', [application.days, period.id]);
+      }
+    }
 
     const [updatedApplication] = await pool.execute(`
       SELECT
@@ -549,16 +615,25 @@ api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (re
 
 // 假別餘額 API 路由
 
+// 特休（annualLeave/annualLeaveUsed）改由目前尚未結算的 leave_periods 即時計算：
+// 可用天數＝本期發放＋上期遞延，已用天數＝本期已核准的特休申請累計
 api.get('/leave-balances', async (req, res) => {
   try {
     // employee 角色只能看到自己的假別餘額
     const isEmployee = req.user.role === 'employee';
     const [rows] = await pool.execute(`
       SELECT
-        lb.*,
-        e.name as employee
+        lb.id, lb.employeeId, lb.sickLeave, lb.sickLeaveUsed, lb.compensatoryLeave, lb.compensatoryLeaveUsed, lb.updated_at,
+        e.name as employee,
+        IFNULL(lp.grantedDays + lp.carriedInDays, 0) as annualLeave,
+        IFNULL(lp.usedDays, 0) as annualLeaveUsed
       FROM leave_balances lb
       LEFT JOIN employees e ON lb.employeeId = e.employeeId
+      LEFT JOIN leave_periods lp ON lp.id = (
+        SELECT id FROM leave_periods lp2
+        WHERE lp2.employeeId = lb.employeeId AND lp2.settledAt IS NULL
+        ORDER BY lp2.periodStart DESC LIMIT 1
+      )
       ${isEmployee ? 'WHERE lb.employeeId = ?' : ''}
       ORDER BY lb.employeeId
     `, isEmployee ? [req.user.employeeId] : []);
@@ -572,19 +647,26 @@ api.get('/leave-balances', async (req, res) => {
 api.put('/leave-balances/:employeeId', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { employeeId } = req.params;
-    const { annualLeave, annualLeaveUsed, sickLeave, sickLeaveUsed, compensatoryLeave, compensatoryLeaveUsed } = req.body;
+    const { sickLeave, sickLeaveUsed, compensatoryLeave, compensatoryLeaveUsed } = req.body;
 
     await pool.execute(
-      'UPDATE leave_balances SET annualLeave = ?, annualLeaveUsed = ?, sickLeave = ?, sickLeaveUsed = ?, compensatoryLeave = ?, compensatoryLeaveUsed = ? WHERE employeeId = ?',
-      [annualLeave, annualLeaveUsed, sickLeave, sickLeaveUsed, compensatoryLeave, compensatoryLeaveUsed, employeeId]
+      'UPDATE leave_balances SET sickLeave = ?, sickLeaveUsed = ?, compensatoryLeave = ?, compensatoryLeaveUsed = ? WHERE employeeId = ?',
+      [sickLeave, sickLeaveUsed, compensatoryLeave, compensatoryLeaveUsed, employeeId]
     );
 
     const [updatedBalance] = await pool.execute(`
       SELECT
-        lb.*,
-        e.name as employee
+        lb.id, lb.employeeId, lb.sickLeave, lb.sickLeaveUsed, lb.compensatoryLeave, lb.compensatoryLeaveUsed, lb.updated_at,
+        e.name as employee,
+        IFNULL(lp.grantedDays + lp.carriedInDays, 0) as annualLeave,
+        IFNULL(lp.usedDays, 0) as annualLeaveUsed
       FROM leave_balances lb
       LEFT JOIN employees e ON lb.employeeId = e.employeeId
+      LEFT JOIN leave_periods lp ON lp.id = (
+        SELECT id FROM leave_periods lp2
+        WHERE lp2.employeeId = lb.employeeId AND lp2.settledAt IS NULL
+        ORDER BY lp2.periodStart DESC LIMIT 1
+      )
       WHERE lb.employeeId = ?
     `, [employeeId]);
 
@@ -595,24 +677,17 @@ api.put('/leave-balances/:employeeId', requireRole(...STAFF_ROLES), async (req, 
   }
 });
 
-// 依所有在職員工的到職日重新計算特休天數（勞基法第 38 條），已使用天數維持不變
+// 重新整理所有在職員工「目前這期」的特休發放天數（勞基法第 38 條年資級距），
+// 用於到職未滿一年、跨過 6 個月門檻等年資級距中途變動的情況；已用天數不受影響
 api.post('/leave-balances/recalculate', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const [employees] = await pool.execute('SELECT employeeId, joinDate FROM employees WHERE active = TRUE');
 
     let updated = 0;
     for (const employee of employees) {
-      const annualLeave = calculateAnnualLeaveDays(employee.joinDate);
-      const [result] = await pool.execute(
-        'UPDATE leave_balances SET annualLeave = ? WHERE employeeId = ?',
-        [annualLeave, employee.employeeId]
-      );
-      if (result.affectedRows === 0) {
-        await pool.execute(
-          'INSERT INTO leave_balances (employeeId, annualLeave, annualLeaveUsed) VALUES (?, ?, 0)',
-          [employee.employeeId, annualLeave]
-        );
-      }
+      const period = await getOrCreateActivePeriod(employee.employeeId, employee.joinDate);
+      const grantedDays = computePeriodGrant(employee.joinDate, period.periodEnd);
+      await pool.execute('UPDATE leave_periods SET grantedDays = ? WHERE id = ?', [grantedDays, period.id]);
       updated += 1;
     }
 
@@ -620,6 +695,108 @@ api.post('/leave-balances/recalculate', requireRole(...STAFF_ROLES), async (req,
   } catch (error) {
     console.error('Error recalculating annual leave:', error);
     res.status(500).json({ error: '重新計算特休天數失敗', detail: error.message });
+  }
+});
+
+// 特休週年結算 API 路由（僅 HR/主管）
+
+// 查詢某員工的特休週年紀錄（含歷史已結算的期間）
+api.get('/leave-periods', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const { employeeId } = req.query;
+    const params = [];
+    let query = `
+      SELECT lp.*, e.name as employee
+      FROM leave_periods lp
+      LEFT JOIN employees e ON lp.employeeId = e.employeeId
+    `;
+    if (employeeId) {
+      query += ' WHERE lp.employeeId = ?';
+      params.push(employeeId);
+    }
+    query += ' ORDER BY lp.employeeId, lp.periodStart DESC';
+    const [rows] = await pool.execute(query, params);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching leave periods:', error);
+    res.status(500).json({ error: '獲取特休週年紀錄失敗', detail: error.message });
+  }
+});
+
+// 列出已到期但尚未結算的特休週年期間，供 HR 決定遞延/折現天數
+api.get('/leave-periods/pending-settlement', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT lp.*, e.name as employee, e.monthlySalary
+      FROM leave_periods lp
+      LEFT JOIN employees e ON lp.employeeId = e.employeeId
+      WHERE lp.settledAt IS NULL AND lp.periodEnd <= CURDATE()
+      ORDER BY lp.periodEnd
+    `);
+    const withComputed = rows.map((period) => ({
+      ...period,
+      ...computeSettlementSplit(period),
+    }));
+    res.json(withComputed);
+  } catch (error) {
+    console.error('Error fetching pending leave period settlements:', error);
+    res.status(500).json({ error: '獲取待結算特休週年清單失敗', detail: error.message });
+  }
+});
+
+// 結算一筆到期的特休週年期間：依勞基法第 38 條，本期新發放且尚未休完的天數可
+// 選擇遞延一次或折現，但上一期遞延進來、這期仍未休完的天數不可再遞延，必須全數折現
+api.post('/leave-periods/:id/settle', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const carryOverDays = Number(req.body.carryOverDays) || 0;
+
+    const [rows] = await pool.execute(`
+      SELECT lp.*, e.monthlySalary, e.joinDate
+      FROM leave_periods lp
+      LEFT JOIN employees e ON lp.employeeId = e.employeeId
+      WHERE lp.id = ?
+    `, [id]);
+    const period = rows[0];
+    if (!period) {
+      return res.status(404).json({ error: '找不到該筆特休週年紀錄' });
+    }
+    if (period.settledAt) {
+      return res.status(400).json({ error: '這筆週年紀錄已經結算過' });
+    }
+
+    const { mandatoryCashOutDays, remainingGrantDays } = computeSettlementSplit(period);
+    if (carryOverDays < 0 || carryOverDays > remainingGrantDays) {
+      return res.status(400).json({ error: `遞延天數必須介於 0 到 ${remainingGrantDays} 之間` });
+    }
+
+    const cashOutDays = mandatoryCashOutDays + (remainingGrantDays - carryOverDays);
+    const dailyWage = period.monthlySalary ? period.monthlySalary / 30 : null;
+    const cashOutAmount = dailyWage !== null ? Math.round(cashOutDays * dailyWage) : null;
+
+    await pool.execute(
+      'UPDATE leave_periods SET settledAt = NOW(), carriedOutDays = ?, cashOutDays = ?, cashOutAmount = ? WHERE id = ?',
+      [carryOverDays, cashOutDays, cashOutAmount, id]
+    );
+
+    // 開出下一期
+    const nextPeriodEnd = addOneYear(period.periodEnd);
+    const nextGrantedDays = computePeriodGrant(period.joinDate, nextPeriodEnd);
+    await pool.execute(
+      'INSERT INTO leave_periods (employeeId, periodStart, periodEnd, grantedDays, carriedInDays, usedDays) VALUES (?, ?, ?, ?, ?, 0)',
+      [period.employeeId, period.periodEnd, nextPeriodEnd, nextGrantedDays, carryOverDays]
+    );
+
+    res.json({
+      message: '結算完成',
+      cashOutDays,
+      cashOutAmount,
+      carriedOutDays: carryOverDays,
+      warning: dailyWage === null ? '該員工尚未設定月薪，無法計算折現金額，請補上月薪後自行換算' : null,
+    });
+  } catch (error) {
+    console.error('Error settling leave period:', error);
+    res.status(500).json({ error: '特休結算失敗', detail: error.message });
   }
 });
 

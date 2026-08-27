@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS employees (
   terminationReason TEXT NULL,
   address TEXT,
   notes TEXT,
+  monthlySalary DECIMAL(10,0) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -82,6 +83,27 @@ CREATE TABLE IF NOT EXISTS leave_balances (
   sickLeaveUsed INT DEFAULT 0,
   compensatoryLeave INT DEFAULT 0,
   compensatoryLeaveUsed INT DEFAULT 0,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
+);
+
+-- 特休週年期間表：每位員工每個特休週年都有一筆，記錄該期發放天數、
+-- 上期遞延進來的天數、本期已用天數；到期結算後會凍結遞延/折現天數與金額，
+-- 並自動開出下一期。特休依勞基法第 38 條僅能遞延一次，故遞延進來的天數
+-- 若在本期還是沒休完，結算時必須全數折算工資，不可再遞延
+CREATE TABLE IF NOT EXISTS leave_periods (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL,
+  periodStart DATE NOT NULL,
+  periodEnd DATE NOT NULL,
+  grantedDays DECIMAL(4,1) NOT NULL DEFAULT 0,
+  carriedInDays DECIMAL(4,1) NOT NULL DEFAULT 0,
+  usedDays DECIMAL(4,1) NOT NULL DEFAULT 0,
+  settledAt TIMESTAMP NULL,
+  carriedOutDays DECIMAL(4,1) NULL,
+  cashOutDays DECIMAL(4,1) NULL,
+  cashOutAmount DECIMAL(10,0) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
 );

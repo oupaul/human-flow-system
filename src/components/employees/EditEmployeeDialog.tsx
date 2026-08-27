@@ -148,14 +148,26 @@ const EditEmployeeDialog = ({
             </div>
             <div className="space-y-2">
               <Label htmlFor="editAddress">地址</Label>
-              <Input 
-                id="editAddress" 
+              <Input
+                id="editAddress"
                 name="address"
-                placeholder="輸入地址" 
+                placeholder="輸入地址"
                 value={formData.address}
                 onChange={onFormChange}
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="editMonthlySalary">月薪（選填，用於特休未休折現試算）</Label>
+            <Input
+              id="editMonthlySalary"
+              name="monthlySalary"
+              type="number"
+              min="0"
+              placeholder="輸入月薪"
+              value={formData.monthlySalary ?? ""}
+              onChange={onFormChange}
+            />
           </div>
           <div className="flex items-center space-x-2">
             <Label htmlFor="active">在職狀態</Label>

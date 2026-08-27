@@ -12,6 +12,7 @@ export interface Employee {
   terminationReason?: string;
   address: string;
   notes: string;
+  monthlySalary?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -30,6 +31,7 @@ export interface EmployeeFormData {
   terminationReason: string;
   address: string;
   notes: string;
+  monthlySalary: number | null;
 }
 
 export const statusOptions = [
@@ -52,6 +54,7 @@ export const emptyFormData: EmployeeFormData = {
   terminationReason: "",
   address: "",
   notes: "",
+  monthlySalary: null,
 };
 
 export const employeeToFormData = (employee: Employee): EmployeeFormData => {
@@ -68,6 +71,7 @@ export const employeeToFormData = (employee: Employee): EmployeeFormData => {
     terminationDate: employee.terminationDate || "",
     terminationReason: employee.terminationReason || "",
     address: employee.address || "",
-    notes: employee.notes || ""
+    notes: employee.notes || "",
+    monthlySalary: employee.monthlySalary ?? null,
   };
 };

@@ -45,8 +45,10 @@ import { Calendar, Plus, FileText, CheckCircle2, XCircle, Loader2, RefreshCcw, U
 import { useLeaveManagement } from "@/hooks/useLeaveManagement";
 import { useOvertimeApplications } from "@/hooks/useOvertimeApplications";
 import { useHolidays } from "@/hooks/useHolidays";
+import { useLeavePeriodSettlements } from "@/hooks/useLeavePeriodSettlements";
 import { LeaveApplicationFormData } from "@/types/leave";
 import { OvertimeApplicationFormData } from "@/types/overtime";
+import { PendingLeavePeriodSettlement } from "@/types/leavePeriod";
 
 const LeaveManagement = () => {
   const {
@@ -64,6 +66,10 @@ const LeaveManagement = () => {
     createOvertimeApplication,
     updateOvertimeStatus,
   } = useOvertimeApplications();
+
+  const { pendingSettlements, settlePeriod } = useLeavePeriodSettlements();
+  const [settlingPeriod, setSettlingPeriod] = useState<PendingLeavePeriodSettlement | null>(null);
+  const [carryOverDays, setCarryOverDays] = useState(0);
 
   const currentYear = new Date().getFullYear();
   const [holidayYear, setHolidayYear] = useState(currentYear);
@@ -120,6 +126,17 @@ const LeaveManagement = () => {
     if (!holidayCsv.trim()) return;
     await importHolidays(holidayCsv);
     setHolidayCsv("");
+  };
+
+  const openSettleDialog = (period: PendingLeavePeriodSettlement) => {
+    setSettlingPeriod(period);
+    setCarryOverDays(0);
+  };
+
+  const handleConfirmSettle = async () => {
+    if (!settlingPeriod) return;
+    await settlePeriod(settlingPeriod.id, carryOverDays);
+    setSettlingPeriod(null);
   };
 
   const getStatusDisplay = (status: string) => {
@@ -346,10 +363,11 @@ const LeaveManagement = () => {
       </div>
 
       <Tabs defaultValue="applications" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="applications">請假申請</TabsTrigger>
           <TabsTrigger value="overtime">加班申請</TabsTrigger>
           <TabsTrigger value="balance">假別餘額</TabsTrigger>
+          <TabsTrigger value="settlement">特休結算</TabsTrigger>
           <TabsTrigger value="types">假別設定</TabsTrigger>
           <TabsTrigger value="holidays">國定假日</TabsTrigger>
         </TabsList>
@@ -548,7 +566,110 @@ const LeaveManagement = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
+        <TabsContent value="settlement">
+          <Card>
+            <CardHeader>
+              <CardTitle>特休週年結算</CardTitle>
+              <CardDescription>
+                已到期但尚未結算的特休週年期間。依勞基法第 38 條，本期新發放且尚未休完的天數可選擇遞延一次或折現；上一期遞延進來仍未休完的天數則必須全數折現。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>員工</TableHead>
+                      <TableHead>週年區間</TableHead>
+                      <TableHead>本期發放</TableHead>
+                      <TableHead>上期遞延</TableHead>
+                      <TableHead>已用</TableHead>
+                      <TableHead>應強制折現</TableHead>
+                      <TableHead>可選遞延/折現</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingSettlements.length > 0 ? (
+                      pendingSettlements.map((period) => (
+                        <TableRow key={period.id}>
+                          <TableCell>{period.employee}（{period.employeeId}）</TableCell>
+                          <TableCell>{period.periodStart} ~ {period.periodEnd}</TableCell>
+                          <TableCell>{period.grantedDays}</TableCell>
+                          <TableCell>{period.carriedInDays}</TableCell>
+                          <TableCell>{period.usedDays}</TableCell>
+                          <TableCell className="text-red-600">{period.mandatoryCashOutDays}</TableCell>
+                          <TableCell>{period.remainingGrantDays}</TableCell>
+                          <TableCell className="text-right">
+                            <Button size="sm" onClick={() => openSettleDialog(period)}>
+                              結算
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                          目前沒有待結算的週年期間
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Dialog open={!!settlingPeriod} onOpenChange={(open) => !open && setSettlingPeriod(null)}>
+            <DialogContent className="sm:max-w-[450px]">
+              <DialogHeader>
+                <DialogTitle>結算特休週年</DialogTitle>
+                <DialogDescription>
+                  {settlingPeriod && `${settlingPeriod.employee}（${settlingPeriod.employeeId}）${settlingPeriod.periodStart} ~ ${settlingPeriod.periodEnd}`}
+                </DialogDescription>
+              </DialogHeader>
+              {settlingPeriod && (
+                <div className="space-y-4 py-2">
+                  <div className="rounded-md bg-muted p-3 text-sm space-y-1">
+                    <p>應強制折現（上期遞延未休完）：<strong>{settlingPeriod.mandatoryCashOutDays} 天</strong></p>
+                    <p>本期可選遞延或折現：<strong>{settlingPeriod.remainingGrantDays} 天</strong></p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="carryOverDays">選擇遞延到下一期的天數（其餘自動折現）</Label>
+                    <Input
+                      id="carryOverDays"
+                      type="number"
+                      min={0}
+                      max={settlingPeriod.remainingGrantDays}
+                      step={0.5}
+                      value={carryOverDays}
+                      onChange={(e) => setCarryOverDays(Number(e.target.value))}
+                    />
+                  </div>
+                  <div className="rounded-md border p-3 text-sm space-y-1">
+                    <p>將折現天數：<strong>{(settlingPeriod.mandatoryCashOutDays + settlingPeriod.remainingGrantDays - carryOverDays).toFixed(1)} 天</strong></p>
+                    <p>
+                      預估折現金額：
+                      <strong>
+                        {settlingPeriod.monthlySalary
+                          ? `NT$${Math.round((settlingPeriod.mandatoryCashOutDays + settlingPeriod.remainingGrantDays - carryOverDays) * (settlingPeriod.monthlySalary / 30)).toLocaleString()}`
+                          : "尚未設定月薪，無法試算"}
+                      </strong>
+                    </p>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSettlingPeriod(null)}>
+                  取消
+                </Button>
+                <Button onClick={handleConfirmSettle}>確認結算</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TabsContent>
+
         <TabsContent value="types">
           <Card>
             <CardHeader>

@@ -55,6 +55,17 @@ ADMIN_PASSWORD=你的密碼 docker compose run --rm -e ADMIN_PASSWORD backend no
 
 看到 `✅ 已建立/更新管理員帳號：admin` 即成功。可用 `-e ADMIN_USERNAME=自訂帳號` 改帳號名稱。
 
+### 既有部署升級：套用特休週年結算功能
+
+如果你的 `db_data` volume 是在「特休週年結算」功能上線前就建立的（已經有資料），需要額外套用結構異動並補建既有員工的週年紀錄：
+
+```sh
+docker compose exec db mysql -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/001_leave_periods.sql
+npm run docker:migrate-leave-periods
+```
+
+全新安裝（第一次啟動 `db` 容器）不需要這步，`schema.sql` 已經包含最新結構。
+
 ## 步驟 4：測試
 
 ### 4.1 後端健康檢查
