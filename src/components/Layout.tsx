@@ -1,24 +1,32 @@
 
 import { useState } from "react";
-import { Outlet, NavLink } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Users, 
-  Building2, 
-  Calendar, 
-  BarChart3, 
-  Menu, 
-  X, 
-  LogOut, 
-  Settings 
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Users,
+  Building2,
+  Calendar,
+  BarChart3,
+  Menu,
+  X,
+  LogOut,
+  Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -94,7 +102,11 @@ const Layout = () => {
               <Settings className="mr-2 h-5 w-5" />
               設置
             </Button>
-            <Button variant="ghost" className="w-full justify-start text-gray-300 hover:bg-hrms-dark hover:text-white">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-gray-300 hover:bg-hrms-dark hover:text-white"
+              onClick={handleLogout}
+            >
               <LogOut className="mr-2 h-5 w-5" />
               登出
             </Button>
@@ -119,11 +131,11 @@ const Layout = () => {
             <div className="relative">
               <Button variant="ghost" size="sm" className="flex items-center">
                 <img
-                  src="https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff"
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.username ?? "User")}&background=0D8ABC&color=fff`}
                   alt="Profile"
                   className="mr-2 h-8 w-8 rounded-full"
                 />
-                <span>Admin User</span>
+                <span>{user?.username ?? "User"}</span>
               </Button>
             </div>
           </div>

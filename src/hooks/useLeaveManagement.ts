@@ -66,6 +66,21 @@ export const useLeaveManagement = () => {
     }
   };
 
+  const recalculateAnnualLeave = async () => {
+    try {
+      const result = await leaveApi.recalculateAnnualLeave();
+      await loadAllData();
+      toast.success("特休天數已重新計算", {
+        description: `已更新 ${result.updated} 位員工的特休餘額。`,
+      });
+    } catch (error) {
+      console.error('Failed to recalculate annual leave:', error);
+      toast.error("重新計算特休天數失敗", {
+        description: "請檢查網路連線或聯繫系統管理員",
+      });
+    }
+  };
+
   return {
     leaveTypes,
     leaveApplications,
@@ -73,6 +88,7 @@ export const useLeaveManagement = () => {
     loading,
     createLeaveApplication,
     updateApplicationStatus,
+    recalculateAnnualLeave,
     loadAllData,
   };
 };

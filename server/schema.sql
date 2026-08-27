@@ -1,0 +1,136 @@
+-- HRMS 資料庫結構
+-- 手動建置：先建立好資料庫並選取後執行，例如：
+--   mysql -u root -p hrms_database < server/schema.sql
+-- Docker：透過 docker-entrypoint-initdb.d 自動於容器初次啟動時執行
+
+-- 部門表
+CREATE TABLE IF NOT EXISTS departments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  leadName VARCHAR(255) NOT NULL,
+  parentId INT DEFAULT NULL,
+  employeeCount INT DEFAULT 0,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (parentId) REFERENCES departments(id) ON DELETE SET NULL
+);
+
+-- 員工表
+CREATE TABLE IF NOT EXISTS employees (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  employeeId VARCHAR(50) UNIQUE NOT NULL,
+  department VARCHAR(255) NOT NULL,
+  position VARCHAR(255) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  phone VARCHAR(50),
+  joinDate DATE NOT NULL,
+  active BOOLEAN DEFAULT TRUE,
+  terminationDate DATE NULL,
+  terminationReason TEXT NULL,
+  address TEXT,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 假別類型表
+CREATE TABLE IF NOT EXISTS leave_types (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  code VARCHAR(10) NOT NULL UNIQUE,
+  unit VARCHAR(50) NOT NULL,
+  needProof BOOLEAN DEFAULT FALSE,
+  affectAttendance BOOLEAN DEFAULT FALSE,
+  isPaid BOOLEAN DEFAULT TRUE,
+  maxDays VARCHAR(100),
+  advanceApply VARCHAR(100),
+  canSplit BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 請假申請表
+CREATE TABLE IF NOT EXISTS leave_applications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL,
+  leaveTypeId INT NOT NULL,
+  startDate DATE NOT NULL,
+  endDate DATE NOT NULL,
+  startTime TIME NULL,
+  endTime TIME NULL,
+  days DECIMAL(3,1) NOT NULL,
+  reason TEXT NOT NULL,
+  deputy VARCHAR(255) NULL,
+  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  approver VARCHAR(255) NULL,
+  attachment VARCHAR(500) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (leaveTypeId) REFERENCES leave_types(id),
+  FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
+);
+
+-- 假別餘額表
+CREATE TABLE IF NOT EXISTS leave_balances (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL UNIQUE,
+  annualLeave INT DEFAULT 0,
+  annualLeaveUsed INT DEFAULT 0,
+  sickLeave INT DEFAULT 30,
+  sickLeaveUsed INT DEFAULT 0,
+  compensatoryLeave INT DEFAULT 0,
+  compensatoryLeaveUsed INT DEFAULT 0,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
+);
+
+-- 國定假日行事曆
+CREATE TABLE IF NOT EXISTS holidays (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  date DATE NOT NULL UNIQUE,
+  name VARCHAR(255) NULL,
+  isHoliday BOOLEAN NOT NULL DEFAULT TRUE,
+  source VARCHAR(20) DEFAULT 'manual',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 加班申請表
+CREATE TABLE IF NOT EXISTS overtime_applications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL,
+  date DATE NOT NULL,
+  startTime TIME NOT NULL,
+  endTime TIME NOT NULL,
+  hours DECIMAL(4,1) NOT NULL,
+  reason TEXT NOT NULL,
+  onHoliday BOOLEAN DEFAULT FALSE,
+  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  approver VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
+);
+
+-- 登入帳號表
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('admin', 'hr', 'manager', 'employee') DEFAULT 'employee',
+  employee_id VARCHAR(50) NULL,
+  active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (employee_id) REFERENCES employees(employeeId)
+);
+
+-- 範例假別類型（可依需求刪減）
+INSERT INTO leave_types (name, code, unit, needProof, affectAttendance, isPaid, maxDays, advanceApply, canSplit) VALUES
+('特休', 'AL', '天', FALSE, FALSE, TRUE, '依年資', '3天', TRUE),
+('事假', 'PL', '小時', FALSE, TRUE, FALSE, '14天', '3天', TRUE),
+('病假', 'SL', '天', TRUE, FALSE, FALSE, '30天', '當天', TRUE),
+('婚假', 'ML', '天', TRUE, FALSE, TRUE, '8天', '7天', FALSE),
+('公假', 'OL', '天', TRUE, FALSE, TRUE, '依需求', '3天', TRUE),
+('喪假', 'BL', '天', TRUE, FALSE, TRUE, '依親屬關係', '當天', TRUE);

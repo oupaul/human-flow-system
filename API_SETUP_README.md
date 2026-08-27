@@ -1,113 +1,111 @@
+# API 伺服器設置說明
 
-# ... keep existing code (前置需求和步驟說明)
+本專案的後端 API 伺服器在 `server/index.js`，使用 Express + MySQL/MariaDB，並以 JWT 驗證登入。
 
-## 步驟 1: 在 MariaDB 中創建資料表
+## 前置需求
 
-```sql
-CREATE DATABASE IF NOT EXISTS your_database;
-USE your_database;
+- Node.js 18+
+- 一個 MariaDB / MySQL 資料庫
 
--- ... keep existing code (部門和員工資料表)
+## 步驟 1：設定環境變數
 
--- 假別類型表
-CREATE TABLE IF NOT EXISTS leave_types (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  code VARCHAR(10) NOT NULL UNIQUE,
-  unit VARCHAR(50) NOT NULL,
-  needProof BOOLEAN DEFAULT FALSE,
-  affectAttendance BOOLEAN DEFAULT FALSE,
-  isPaid BOOLEAN DEFAULT TRUE,
-  maxDays VARCHAR(100),
-  advanceApply VARCHAR(100),
-  canSplit BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+複製 `.env.example` 為 `.env`，並填入你的資料庫連線資訊與一組隨機的 `JWT_SECRET`：
 
--- 請假申請表
-CREATE TABLE IF NOT EXISTS leave_applications (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  employeeId VARCHAR(50) NOT NULL,
-  leaveTypeId INT NOT NULL,
-  startDate DATE NOT NULL,
-  endDate DATE NOT NULL,
-  startTime TIME NULL,
-  endTime TIME NULL,
-  days DECIMAL(3,1) NOT NULL,
-  reason TEXT NOT NULL,
-  deputy VARCHAR(255) NULL,
-  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
-  approver VARCHAR(255) NULL,
-  attachment VARCHAR(500) NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (leaveTypeId) REFERENCES leave_types(id),
-  FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
-);
-
--- 假別餘額表
-CREATE TABLE IF NOT EXISTS leave_balances (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  employeeId VARCHAR(50) NOT NULL UNIQUE,
-  annualLeave INT DEFAULT 0,
-  annualLeaveUsed INT DEFAULT 0,
-  sickLeave INT DEFAULT 30,
-  sickLeaveUsed INT DEFAULT 0,
-  compensatoryLeave INT DEFAULT 0,
-  compensatoryLeaveUsed INT DEFAULT 0,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
-);
-
--- 插入範例假別類型
-INSERT INTO leave_types (name, code, unit, needProof, affectAttendance, isPaid, maxDays, advanceApply, canSplit) VALUES
-('特休', 'AL', '天', FALSE, FALSE, TRUE, '依年資', '3天', TRUE),
-('事假', 'PL', '小時', FALSE, TRUE, FALSE, '14天', '3天', TRUE),
-('病假', 'SL', '天', TRUE, FALSE, FALSE, '30天', '當天', TRUE),
-('婚假', 'ML', '天', TRUE, FALSE, TRUE, '8天', '7天', FALSE),
-('公假', 'OL', '天', TRUE, FALSE, TRUE, '依需求', '3天', TRUE),
-('喪假', 'BL', '天', TRUE, FALSE, TRUE, '依親屬關係', '當天', TRUE);
-
--- 插入範例請假申請
-INSERT INTO leave_applications (employeeId, leaveTypeId, startDate, endDate, days, reason, status, approver) VALUES
-('EMP001', 1, '2023-05-10', '2023-05-12', 3, '家庭旅遊', 'approved', '李主管'),
-('EMP002', 3, '2023-05-15', '2023-05-15', 1, '感冒就醫', 'approved', '王主管'),
-('EMP003', 2, '2023-05-18', '2023-05-18', 0.5, '個人事務', 'pending', ''),
-('EMP004', 4, '2023-06-01', '2023-06-08', 8, '結婚', 'pending', ''),
-('EMP005', 6, '2023-05-20', '2023-05-23', 4, '祖父過世', 'pending', '');
-
--- 插入範例假別餘額
-INSERT INTO leave_balances (employeeId, annualLeave, annualLeaveUsed, sickLeave, sickLeaveUsed, compensatoryLeave, compensatoryLeaveUsed) VALUES
-('EMP001', 10, 3, 30, 0, 2, 0),
-('EMP002', 7, 0, 30, 1, 0, 0),
-('EMP003', 14, 5, 30, 2, 1, 0),
-('EMP004', 21, 10, 30, 4, 3, 2),
-('EMP005', 3, 0, 30, 0, 0, 0);
-
--- ... keep existing code (插入範例資料)
+```sh
+cp .env.example .env
 ```
 
-# ... keep existing code (後續步驟)
+`.env` 內容說明：
+
+```
+PORT=3001
+CORS_ORIGIN=http://localhost:8080
+
+DB_HOST=localhost
+DB_USER=hrms_user
+DB_PASSWORD=你的資料庫密碼
+DB_NAME=hrms_database
+DB_PORT=3306
+
+JWT_SECRET=一組長度足夠的隨機字串
+JWT_EXPIRES_IN=8h
+```
+
+## 步驟 2：建立資料表
+
+完整結構定義於 [`server/schema.sql`](server/schema.sql)（部門、員工、假別類型/申請/餘額、國定假日、加班申請、登入帳號，並附範例假別類型資料）。
+
+```sh
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS hrms_database"
+mysql -u root -p hrms_database < server/schema.sql
+```
+
+（使用 Docker 部署時此步驟會自動執行，詳見 [`DEPLOY.md`](DEPLOY.md)）
+
+## 步驟 3：安裝套件並建立管理員帳號
+
+```sh
+npm install
+ADMIN_PASSWORD=請改成你的密碼 npm run seed:admin
+```
+
+這會在 `users` 表建立（或更新）一個 `admin` 帳號，密碼會以 bcrypt 雜湊後儲存。可用 `ADMIN_USERNAME` 自訂帳號名稱。
+
+## 步驟 4：啟動伺服器
+
+```sh
+# 後端 API（http://localhost:3001）
+npm run server
+
+# 另開一個終端機啟動前端（http://localhost:8080，已設定 proxy 轉發 /api）
+npm run dev
+```
 
 ## API 端點
 
+### 登入（公開，不需 token）
+- `POST /api/auth/login` — `{ username, password }`，成功回傳 `{ token, user }`
+- `GET /api/health` — 健康檢查
+
+以下端點皆需在 Header 帶上 `Authorization: Bearer <token>`：
+
+- `GET /api/auth/me` — 取得目前登入的使用者
+
 ### 部門管理
-- ... keep existing code (部門 API)
+- `GET /api/departments`
+- `POST /api/departments`
+- `PUT /api/departments/:id`
+- `DELETE /api/departments/:id`
 
 ### 員工管理
-- ... keep existing code (員工 API)
+- `GET /api/employees`
+- `POST /api/employees`
+- `PUT /api/employees/:id`
+- `DELETE /api/employees/:id`
+- `PUT /api/employees/:id/terminate`
 
 ### 假別管理
-- `GET /api/leave-types` - 獲取所有假別類型
-- `POST /api/leave-types` - 新增假別類型
-- `GET /api/leave-applications` - 獲取所有請假申請
-- `POST /api/leave-applications` - 新增請假申請
-- `PUT /api/leave-applications/:id/status` - 更新請假申請狀態
-- `GET /api/leave-balances` - 獲取所有假別餘額
-- `PUT /api/leave-balances/:employeeId` - 更新假別餘額
+- `GET /api/leave-types`
+- `POST /api/leave-types`
+- `GET /api/leave-applications`
+- `POST /api/leave-applications`
+- `PUT /api/leave-applications/:id/status`
+- `GET /api/leave-balances`
+- `PUT /api/leave-balances/:employeeId`
+- `POST /api/leave-balances/recalculate` — 依所有在職員工到職日，依勞基法第 38 條重新計算特休天數（已用天數不變）
+
+### 國定假日行事曆
+- `GET /api/holidays?year=2026` — 取得（可選年度篩選）
+- `POST /api/holidays` — 新增/更新單筆 `{ date, name, isHoliday }`
+- `POST /api/holidays/import` — 匯入人事行政總處「政府行政機關辦公日曆表」CSV，`{ csv: "西元日期,星期,是否放假,備註\n20260101,四,2,開國紀念日\n..." }`（可至 [政府資料開放平台](https://data.gov.tw) 搜尋「政府行政機關辦公日曆表」下載官方 CSV，貼上內容即可，欄位辨識具彈性）
+- `DELETE /api/holidays/:id`
+
+### 加班申請
+- `GET /api/overtime-applications`
+- `POST /api/overtime-applications` — `{ employeeId, date, startTime, endTime, reason }`，時數自動換算，並依 `holidays` 表自動標記是否為假日加班
+- `PUT /api/overtime-applications/:id/status` — `{ status, approver }`
 
 ### Dashboard
-- ... keep existing code (Dashboard API)
-
-# ... keep existing code (測試和其他說明)
+- `GET /api/dashboard/stats`
+- `GET /api/dashboard/attendance`
+- `GET /api/dashboard/leaves`
