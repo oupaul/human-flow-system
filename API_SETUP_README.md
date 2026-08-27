@@ -61,6 +61,15 @@ npm run server
 npm run dev
 ```
 
+## 角色與權限
+
+`users.role` 分兩類：
+
+- **HR/主管**（`admin`、`hr`、`manager`）：可管理部門、員工、假別設定、國定假日，並審核所有請假/加班申請（目前不分部門，任一角色皆可審核全公司）。
+- **員工**（`employee`）：只能看到並操作自己的資料——提交請假/加班申請、查看自己的申請紀錄與假別餘額；無法存取部門/員工管理、Dashboard、審核他人申請。
+
+員工登入帳號會在 HR 於「員工管理」新增員工時**自動建立**：帳號＝員工編號、預設密碼＝員工編號，角色固定為 `employee`。HR 也可在員工列表對任一員工按「重設密碼」按鈕，將密碼重設回員工編號（同時補建帳號，適用於系統升級前就存在的舊員工）。員工登入後導向 `/my` 自助服務頁面；HR/主管登入後導向原本的管理後台。
+
 ## API 端點
 
 ### 登入（公開，不需 token）
@@ -71,41 +80,42 @@ npm run dev
 
 - `GET /api/auth/me` — 取得目前登入的使用者
 
-### 部門管理
+### 部門管理（僅 HR/主管）
 - `GET /api/departments`
 - `POST /api/departments`
 - `PUT /api/departments/:id`
 - `DELETE /api/departments/:id`
 
-### 員工管理
+### 員工管理（僅 HR/主管）
 - `GET /api/employees`
-- `POST /api/employees`
+- `POST /api/employees` — 新增員工時會自動建立對應的員工登入帳號
 - `PUT /api/employees/:id`
 - `DELETE /api/employees/:id`
-- `PUT /api/employees/:id/terminate`
+- `PUT /api/employees/:id/terminate` — 員工離職時會一併停用其登入帳號
+- `POST /api/employees/:id/reset-password` — 將該員工登入密碼重設為預設值（＝員工編號），無帳號時會一併建立
 
 ### 假別管理
-- `GET /api/leave-types`
-- `POST /api/leave-types`
-- `GET /api/leave-applications`
-- `POST /api/leave-applications`
-- `PUT /api/leave-applications/:id/status`
-- `GET /api/leave-balances`
-- `PUT /api/leave-balances/:employeeId`
-- `POST /api/leave-balances/recalculate` — 依所有在職員工到職日，依勞基法第 38 條重新計算特休天數（已用天數不變）
+- `GET /api/leave-types` — 所有登入者皆可查詢
+- `POST /api/leave-types`（僅 HR/主管）
+- `GET /api/leave-applications` — 員工只會看到自己的申請，HR/主管看到全公司
+- `POST /api/leave-applications` — 員工角色送出時會強制以自己的 employeeId 覆蓋，無法代他人申請
+- `PUT /api/leave-applications/:id/status`（僅 HR/主管審核）
+- `GET /api/leave-balances` — 員工只會看到自己的餘額
+- `PUT /api/leave-balances/:employeeId`（僅 HR/主管）
+- `POST /api/leave-balances/recalculate`（僅 HR/主管）— 依所有在職員工到職日，依勞基法第 38 條重新計算特休天數（已用天數不變）
 
 ### 國定假日行事曆
-- `GET /api/holidays?year=2026` — 取得（可選年度篩選）
-- `POST /api/holidays` — 新增/更新單筆 `{ date, name, isHoliday }`
-- `POST /api/holidays/import` — 匯入人事行政總處「政府行政機關辦公日曆表」CSV，`{ csv: "西元日期,星期,是否放假,備註\n20260101,四,2,開國紀念日\n..." }`（可至 [政府資料開放平台](https://data.gov.tw) 搜尋「政府行政機關辦公日曆表」下載官方 CSV，貼上內容即可，欄位辨識具彈性）
-- `DELETE /api/holidays/:id`
+- `GET /api/holidays?year=2026` — 所有登入者皆可查詢（可選年度篩選）
+- `POST /api/holidays`（僅 HR/主管）— 新增/更新單筆 `{ date, name, isHoliday }`
+- `POST /api/holidays/import`（僅 HR/主管）— 匯入人事行政總處「政府行政機關辦公日曆表」CSV，`{ csv: "西元日期,星期,是否放假,備註\n20260101,四,2,開國紀念日\n..." }`（可至 [政府資料開放平台](https://data.gov.tw) 搜尋「政府行政機關辦公日曆表」下載官方 CSV，貼上內容即可，欄位辨識具彈性）
+- `DELETE /api/holidays/:id`（僅 HR/主管）
 
 ### 加班申請
-- `GET /api/overtime-applications`
-- `POST /api/overtime-applications` — `{ employeeId, date, startTime, endTime, reason }`，時數自動換算，並依 `holidays` 表自動標記是否為假日加班
-- `PUT /api/overtime-applications/:id/status` — `{ status, approver }`
+- `GET /api/overtime-applications` — 員工只會看到自己的申請，HR/主管看到全公司
+- `POST /api/overtime-applications` — `{ employeeId, date, startTime, endTime, reason }`，時數自動換算，並依 `holidays` 表自動標記是否為假日加班；員工角色送出時會強制以自己的 employeeId 覆蓋
+- `PUT /api/overtime-applications/:id/status`（僅 HR/主管審核）— `{ status, approver }`
 
-### Dashboard
+### Dashboard（僅 HR/主管）
 - `GET /api/dashboard/stats`
 - `GET /api/dashboard/attendance`
 - `GET /api/dashboard/leaves`

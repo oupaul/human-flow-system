@@ -19,7 +19,9 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (user) {
-    const redirectTo = (location.state as { from?: string } | null)?.from || "/";
+    const redirectTo = user.role === "employee"
+      ? "/my"
+      : (location.state as { from?: string } | null)?.from || "/";
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -28,8 +30,8 @@ const Login = () => {
     setError(null);
     setIsSubmitting(true);
     try {
-      await login(username, password);
-      navigate("/", { replace: true });
+      const loggedInUser = await login(username, password);
+      navigate(loggedInUser.role === "employee" ? "/my" : "/", { replace: true });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "登入失敗，請稍後再試");
     } finally {

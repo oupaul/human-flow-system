@@ -20,9 +20,9 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { 
-  Pencil, 
-  FileText, 
+import {
+  Pencil,
+  FileText,
   Trash2,
   Badge,
   UserX,
@@ -30,7 +30,8 @@ import {
   Phone,
   Mail,
   Calendar,
-  Briefcase
+  Briefcase,
+  KeyRound
 } from "lucide-react";
 import { Employee, EmployeeFormData } from "@/types/employee";
 
@@ -40,6 +41,7 @@ interface EmployeeTableProps {
   onEditEmployee: (employee: Employee) => void;
   onDeleteEmployee: (employee: Employee) => void;
   onTerminateEmployee: (employee: Employee) => void;
+  onResetPassword: (employee: Employee) => void;
 }
 
 const EmployeeTable = ({
@@ -47,7 +49,8 @@ const EmployeeTable = ({
   onViewEmployee,
   onEditEmployee,
   onDeleteEmployee,
-  onTerminateEmployee
+  onTerminateEmployee,
+  onResetPassword
 }: EmployeeTableProps) => {
   return (
     <Card>
@@ -138,13 +141,21 @@ const EmployeeTable = ({
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           onClick={() => onEditEmployee(employee)}
                           title="編輯資料"
                         >
                           <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onResetPassword(employee)}
+                          title="重設登入密碼"
+                        >
+                          <KeyRound className="h-4 w-4" />
                         </Button>
                         {employee.active && (
                           <Button 

@@ -10,10 +10,14 @@ import Departments from "./pages/Departments";
 import LeaveManagement from "./pages/LeaveManagement";
 import Reports from "./pages/Reports";
 import Login from "./pages/Login";
+import MyPortal from "./pages/MyPortal";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
+import EmployeeLayout from "./components/EmployeeLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RoleRoute from "./components/RoleRoute";
 import { AuthProvider } from "./contexts/AuthContext";
+import { STAFF_ROLES } from "./services/authApi";
 
 const queryClient = new QueryClient();
 
@@ -27,13 +31,20 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Layout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="employees" element={<Employees />} />
-                <Route path="departments" element={<Departments />} />
-                <Route path="leave-management" element={<LeaveManagement />} />
-                <Route path="reports" element={<Reports />} />
-                <Route path="*" element={<NotFound />} />
+              <Route element={<RoleRoute allow={["employee"]} fallback="/" />}>
+                <Route path="/my" element={<EmployeeLayout />}>
+                  <Route index element={<MyPortal />} />
+                </Route>
+              </Route>
+              <Route element={<RoleRoute allow={[...STAFF_ROLES]} fallback="/my" />}>
+                <Route path="/" element={<Layout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="employees" element={<Employees />} />
+                  <Route path="departments" element={<Departments />} />
+                  <Route path="leave-management" element={<LeaveManagement />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
               </Route>
             </Route>
           </Routes>

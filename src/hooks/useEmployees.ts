@@ -46,8 +46,9 @@ export const useEmployees = () => {
       const result = await employeeApi.createEmployee(employeeData);
       console.log('Employee created successfully:', result);
       await loadEmployees(); // 重新載入資料
-      toast.success("新增成功", {
-        description: `員工 ${employeeData.name} (${employeeData.employeeId}) 已新增。`,
+      toast.success("新增成功，已自動建立登入帳號", {
+        description: `員工 ${employeeData.name} (${employeeData.employeeId}) 已新增。登入帳號：${employeeData.employeeId}，預設密碼：${employeeData.employeeId}，請提醒員工登入後自行修改密碼。`,
+        duration: 15000,
       });
     } catch (error) {
       console.error('Failed to create employee:', error);
@@ -108,6 +109,24 @@ export const useEmployees = () => {
     }
   };
 
+  const resetPassword = async (employeeId: number) => {
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (!employee) return;
+
+    try {
+      const result = await employeeApi.resetPassword(employeeId);
+      toast.success("密碼已重設", {
+        description: `員工 ${employee.name}（${result.username}）的登入密碼已重設為預設密碼：${result.defaultPassword}，請提醒員工登入後自行修改密碼。`,
+        duration: 15000,
+      });
+    } catch (error) {
+      console.error('Failed to reset employee password:', error);
+      toast.error("重設密碼失敗", {
+        description: "請檢查網路連線或聯繫系統管理員",
+      });
+    }
+  };
+
   return {
     employees,
     loading,
@@ -115,6 +134,7 @@ export const useEmployees = () => {
     updateEmployee,
     deleteEmployee,
     terminateEmployee,
+    resetPassword,
     loadEmployees,
   };
 };

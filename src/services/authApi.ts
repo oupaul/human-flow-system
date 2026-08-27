@@ -1,10 +1,17 @@
 import { apiFetch, setToken, clearToken, getToken } from "@/lib/apiClient";
 
+export const STAFF_ROLES = ["admin", "hr", "manager"] as const;
+
 export interface AuthUser {
   id: number;
   username: string;
   role: string;
   employeeId: string | null;
+  employeeName: string | null;
+}
+
+export function isStaffRole(role: string): boolean {
+  return (STAFF_ROLES as readonly string[]).includes(role);
 }
 
 interface LoginResponse {

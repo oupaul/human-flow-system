@@ -113,7 +113,9 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const [rows] = await pool.execute(
-      'SELECT * FROM users WHERE username = ? AND active = TRUE',
+      `SELECT u.*, e.name as employeeName FROM users u
+       LEFT JOIN employees e ON u.employee_id = e.employeeId
+       WHERE u.username = ? AND u.active = TRUE`,
       [username]
     );
     const user = rows[0];
@@ -127,7 +129,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { sub: user.id, username: user.username, role: user.role },
+      { sub: user.id, username: user.username, role: user.role, employeeId: user.employee_id },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
@@ -139,6 +141,7 @@ app.post('/api/auth/login', async (req, res) => {
         username: user.username,
         role: user.role,
         employeeId: user.employee_id,
+        employeeName: user.employeeName || null,
       },
     });
   } catch (error) {
@@ -164,6 +167,19 @@ function authMiddleware(req, res, next) {
   }
 }
 
+// admin/hr/manager 三種角色視為「人資/主管」，可管理全公司資料；
+// employee 角色僅能存取與自己相關的資料（由各路由自行過濾／覆寫 employeeId）
+const STAFF_ROLES = ['admin', 'hr', 'manager'];
+
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: '權限不足' });
+    }
+    next();
+  };
+}
+
 // 以下路由皆須登入
 const api = express.Router();
 api.use(authMiddleware);
@@ -171,7 +187,10 @@ api.use(authMiddleware);
 api.get('/auth/me', async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      'SELECT id, username, role, employee_id FROM users WHERE id = ?',
+      `SELECT u.id, u.username, u.role, u.employee_id, e.name as employeeName
+       FROM users u
+       LEFT JOIN employees e ON u.employee_id = e.employeeId
+       WHERE u.id = ?`,
       [req.user.sub]
     );
     const user = rows[0];
@@ -184,6 +203,7 @@ api.get('/auth/me', async (req, res) => {
         username: user.username,
         role: user.role,
         employeeId: user.employee_id,
+        employeeName: user.employeeName || null,
       },
     });
   } catch (error) {
@@ -192,9 +212,9 @@ api.get('/auth/me', async (req, res) => {
   }
 });
 
-// 部門 API 路由
+// 部門 API 路由（僅 HR/主管可管理）
 
-api.get('/departments', async (req, res) => {
+api.get('/departments', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     // employeeCount 即時從 employees 表計算在職人數，不使用 departments 表裡從未被維護過的靜態欄位
     const [rows] = await pool.execute(`
@@ -216,7 +236,7 @@ api.get('/departments', async (req, res) => {
   }
 });
 
-api.post('/departments', async (req, res) => {
+api.post('/departments', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { name, leadName, parentId, description } = req.body;
     if (!name || !leadName) {
@@ -234,7 +254,7 @@ api.post('/departments', async (req, res) => {
   }
 });
 
-api.put('/departments/:id', async (req, res) => {
+api.put('/departments/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, leadName, parentId, description } = req.body;
@@ -252,7 +272,7 @@ api.put('/departments/:id', async (req, res) => {
   }
 });
 
-api.delete('/departments/:id', async (req, res) => {
+api.delete('/departments/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
     await pool.execute('DELETE FROM departments WHERE id = ?', [id]);
@@ -263,9 +283,9 @@ api.delete('/departments/:id', async (req, res) => {
   }
 });
 
-// 員工 API 路由
+// 員工 API 路由（僅 HR/主管可管理；員工本人請至自助服務端點）
 
-api.get('/employees', async (req, res) => {
+api.get('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const [rows] = await pool.execute('SELECT * FROM employees ORDER BY id');
     res.json(rows);
@@ -275,7 +295,7 @@ api.get('/employees', async (req, res) => {
   }
 });
 
-api.post('/employees', async (req, res) => {
+api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { name, employeeId, department, position, email, phone, joinDate, active, address, notes } = req.body;
     if (!name || !employeeId || !department || !position || !email || !joinDate) {
@@ -293,6 +313,14 @@ api.post('/employees', async (req, res) => {
       [employeeId, annualLeave]
     );
 
+    // 自動建立員工登入帳號：帳號＝員工編號，預設密碼＝員工編號，登入後請自行修改密碼
+    const defaultPasswordHash = await bcrypt.hash(employeeId, 10);
+    await pool.execute(
+      `INSERT INTO users (username, password_hash, role, employee_id, active) VALUES (?, ?, 'employee', ?, TRUE)
+       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), role = 'employee', employee_id = VALUES(employee_id), active = TRUE`,
+      [employeeId, defaultPasswordHash, employeeId]
+    );
+
     const [newEmployee] = await pool.execute('SELECT * FROM employees WHERE id = ?', [result.insertId]);
     res.json(newEmployee[0]);
   } catch (error) {
@@ -301,7 +329,7 @@ api.post('/employees', async (req, res) => {
   }
 });
 
-api.put('/employees/:id', async (req, res) => {
+api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, employeeId, department, position, email, phone, joinDate, active, address, notes } = req.body;
@@ -319,7 +347,7 @@ api.put('/employees/:id', async (req, res) => {
   }
 });
 
-api.delete('/employees/:id', async (req, res) => {
+api.delete('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
     await pool.execute('DELETE FROM employees WHERE id = ?', [id]);
@@ -330,7 +358,7 @@ api.delete('/employees/:id', async (req, res) => {
   }
 });
 
-api.put('/employees/:id/terminate', async (req, res) => {
+api.put('/employees/:id/terminate', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
     const { terminationDate, terminationReason } = req.body;
@@ -340,11 +368,41 @@ api.put('/employees/:id/terminate', async (req, res) => {
       [terminationDate, terminationReason, id]
     );
 
+    // 離職後停用其登入帳號
+    const [employeeRows] = await pool.execute('SELECT employeeId FROM employees WHERE id = ?', [id]);
+    if (employeeRows[0]) {
+      await pool.execute('UPDATE users SET active = FALSE WHERE employee_id = ?', [employeeRows[0].employeeId]);
+    }
+
     const [updatedEmployee] = await pool.execute('SELECT * FROM employees WHERE id = ?', [id]);
     res.json(updatedEmployee[0]);
   } catch (error) {
     console.error('Error terminating employee:', error);
     res.status(500).json({ error: '員工離職失敗', detail: error.message });
+  }
+});
+
+// 重設員工登入密碼為預設值（＝員工編號）；若尚未有登入帳號則一併建立
+api.post('/employees/:id/reset-password', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [employeeRows] = await pool.execute('SELECT employeeId FROM employees WHERE id = ?', [id]);
+    const employee = employeeRows[0];
+    if (!employee) {
+      return res.status(404).json({ error: '找不到員工資料' });
+    }
+
+    const defaultPasswordHash = await bcrypt.hash(employee.employeeId, 10);
+    await pool.execute(
+      `INSERT INTO users (username, password_hash, role, employee_id, active) VALUES (?, ?, 'employee', ?, TRUE)
+       ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash), employee_id = VALUES(employee_id), active = TRUE`,
+      [employee.employeeId, defaultPasswordHash, employee.employeeId]
+    );
+
+    res.json({ message: '密碼已重設', username: employee.employeeId, defaultPassword: employee.employeeId });
+  } catch (error) {
+    console.error('Error resetting employee password:', error);
+    res.status(500).json({ error: '重設密碼失敗', detail: error.message });
   }
 });
 
@@ -360,7 +418,7 @@ api.get('/leave-types', async (req, res) => {
   }
 });
 
-api.post('/leave-types', async (req, res) => {
+api.post('/leave-types', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { name, code, unit, needProof, affectAttendance, isPaid, maxDays, advanceApply, canSplit } = req.body;
 
@@ -381,6 +439,8 @@ api.post('/leave-types', async (req, res) => {
 
 api.get('/leave-applications', async (req, res) => {
   try {
+    // employee 角色只能看到自己的請假紀錄，其餘角色可看全公司
+    const isEmployee = req.user.role === 'employee';
     const [rows] = await pool.execute(`
       SELECT
         la.*,
@@ -389,8 +449,9 @@ api.get('/leave-applications', async (req, res) => {
       FROM leave_applications la
       LEFT JOIN employees e ON la.employeeId = e.employeeId
       LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
+      ${isEmployee ? 'WHERE la.employeeId = ?' : ''}
       ORDER BY la.created_at DESC
-    `);
+    `, isEmployee ? [req.user.employeeId] : []);
     res.json(rows);
   } catch (error) {
     console.error('Error fetching leave applications:', error);
@@ -400,7 +461,9 @@ api.get('/leave-applications', async (req, res) => {
 
 api.post('/leave-applications', async (req, res) => {
   try {
-    const { employeeId, leaveTypeId, startDate, endDate, startTime, endTime, reason, deputy } = req.body;
+    // employee 角色只能為自己申請，強制以登入帳號綁定的 employeeId 覆蓋前端傳入值
+    const employeeId = req.user.role === 'employee' ? req.user.employeeId : req.body.employeeId;
+    const { leaveTypeId, startDate, endDate, startTime, endTime, reason, deputy } = req.body;
 
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -430,7 +493,7 @@ api.post('/leave-applications', async (req, res) => {
   }
 });
 
-api.put('/leave-applications/:id/status', async (req, res) => {
+api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
     const { status, approver } = req.body;
@@ -462,14 +525,17 @@ api.put('/leave-applications/:id/status', async (req, res) => {
 
 api.get('/leave-balances', async (req, res) => {
   try {
+    // employee 角色只能看到自己的假別餘額
+    const isEmployee = req.user.role === 'employee';
     const [rows] = await pool.execute(`
       SELECT
         lb.*,
         e.name as employee
       FROM leave_balances lb
       LEFT JOIN employees e ON lb.employeeId = e.employeeId
+      ${isEmployee ? 'WHERE lb.employeeId = ?' : ''}
       ORDER BY lb.employeeId
-    `);
+    `, isEmployee ? [req.user.employeeId] : []);
     res.json(rows);
   } catch (error) {
     console.error('Error fetching leave balances:', error);
@@ -477,7 +543,7 @@ api.get('/leave-balances', async (req, res) => {
   }
 });
 
-api.put('/leave-balances/:employeeId', async (req, res) => {
+api.put('/leave-balances/:employeeId', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { employeeId } = req.params;
     const { annualLeave, annualLeaveUsed, sickLeave, sickLeaveUsed, compensatoryLeave, compensatoryLeaveUsed } = req.body;
@@ -504,7 +570,7 @@ api.put('/leave-balances/:employeeId', async (req, res) => {
 });
 
 // 依所有在職員工的到職日重新計算特休天數（勞基法第 38 條），已使用天數維持不變
-api.post('/leave-balances/recalculate', async (req, res) => {
+api.post('/leave-balances/recalculate', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const [employees] = await pool.execute('SELECT employeeId, joinDate FROM employees WHERE active = TRUE');
 
@@ -551,7 +617,7 @@ api.get('/holidays', async (req, res) => {
   }
 });
 
-api.post('/holidays', async (req, res) => {
+api.post('/holidays', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { date, name, isHoliday } = req.body;
     if (!date) {
@@ -571,7 +637,7 @@ api.post('/holidays', async (req, res) => {
 });
 
 // 匯入人事行政總處公布的政府行政機關辦公日曆表 CSV（西元日期,星期,是否放假,備註）
-api.post('/holidays/import', async (req, res) => {
+api.post('/holidays/import', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { csv } = req.body;
     if (!csv) {
@@ -598,7 +664,7 @@ api.post('/holidays/import', async (req, res) => {
   }
 });
 
-api.delete('/holidays/:id', async (req, res) => {
+api.delete('/holidays/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
     await pool.execute('DELETE FROM holidays WHERE id = ?', [id]);
@@ -613,14 +679,17 @@ api.delete('/holidays/:id', async (req, res) => {
 
 api.get('/overtime-applications', async (req, res) => {
   try {
+    // employee 角色只能看到自己的加班紀錄
+    const isEmployee = req.user.role === 'employee';
     const [rows] = await pool.execute(`
       SELECT
         o.*,
         e.name as employee
       FROM overtime_applications o
       LEFT JOIN employees e ON o.employeeId = e.employeeId
+      ${isEmployee ? 'WHERE o.employeeId = ?' : ''}
       ORDER BY o.created_at DESC
-    `);
+    `, isEmployee ? [req.user.employeeId] : []);
     res.json(rows);
   } catch (error) {
     console.error('Error fetching overtime applications:', error);
@@ -630,7 +699,9 @@ api.get('/overtime-applications', async (req, res) => {
 
 api.post('/overtime-applications', async (req, res) => {
   try {
-    const { employeeId, date, startTime, endTime, reason } = req.body;
+    // employee 角色只能為自己申請，強制以登入帳號綁定的 employeeId 覆蓋前端傳入值
+    const employeeId = req.user.role === 'employee' ? req.user.employeeId : req.body.employeeId;
+    const { date, startTime, endTime, reason } = req.body;
     if (!employeeId || !date || !startTime || !endTime || !reason) {
       return res.status(400).json({ error: '所有必填欄位皆需填寫' });
     }
@@ -667,7 +738,7 @@ api.post('/overtime-applications', async (req, res) => {
   }
 });
 
-api.put('/overtime-applications/:id/status', async (req, res) => {
+api.put('/overtime-applications/:id/status', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
     const { status, approver } = req.body;
@@ -693,7 +764,7 @@ api.put('/overtime-applications/:id/status', async (req, res) => {
 
 // Dashboard API 路由
 
-api.get('/dashboard/stats', async (req, res) => {
+api.get('/dashboard/stats', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const [totalEmployees] = await pool.execute('SELECT COUNT(*) as count FROM employees WHERE active = true');
     const [monthlyLeaves] = await pool.execute(`
@@ -728,7 +799,7 @@ api.get('/dashboard/stats', async (req, res) => {
 
 // 注意：系統目前沒有出勤打卡資料表，attendance 固定回傳 0；
 // leave（本月請假件數）與 overtime（本月平均加班時數）則查詢真實資料
-api.get('/dashboard/attendance', async (req, res) => {
+api.get('/dashboard/attendance', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const [rows] = await pool.execute(`
       SELECT
@@ -760,7 +831,7 @@ api.get('/dashboard/attendance', async (req, res) => {
   }
 });
 
-api.get('/dashboard/leaves', async (req, res) => {
+api.get('/dashboard/leaves', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const [rows] = await pool.execute(`
       SELECT lt.name as name, SUM(la.days) as value

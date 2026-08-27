@@ -32,4 +32,10 @@ export const employeeApi = {
       body: JSON.stringify(terminationData),
     });
   },
+
+  async resetPassword(id: number): Promise<{ message: string; username: string; defaultPassword: string }> {
+    return apiFetch<{ message: string; username: string; defaultPassword: string }>(`/employees/${id}/reset-password`, {
+      method: "POST",
+    });
+  },
 };

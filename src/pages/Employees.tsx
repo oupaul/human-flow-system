@@ -18,7 +18,7 @@ import EmployeeDetailSheet from "@/components/employees/EmployeeDetailSheet";
 import EmployeeConfirmDialogs from "@/components/employees/EmployeeConfirmDialogs";
 
 const Employees = () => {
-  const { employees, loading, addEmployee, updateEmployee, deleteEmployee, terminateEmployee } = useEmployees();
+  const { employees, loading, addEmployee, updateEmployee, deleteEmployee, terminateEmployee, resetPassword } = useEmployees();
   const {
     searchTerm,
     setSearchTerm,
@@ -71,6 +71,11 @@ const Employees = () => {
     setSelectedEmployee(employeeFormData);
     setFormData(employeeFormData);
     setIsEditEmployeeOpen(true);
+  };
+
+  // 重設員工登入密碼
+  const handleResetPassword = (employee: Employee) => {
+    resetPassword(employee.id);
   };
 
   // 刪除員工
@@ -174,6 +179,7 @@ const Employees = () => {
         onEditEmployee={handleEditEmployee}
         onDeleteEmployee={handleDeleteEmployee}
         onTerminateEmployee={handleTerminateEmployee}
+        onResetPassword={handleResetPassword}
       />
 
       {/* 新增員工對話框 */}
