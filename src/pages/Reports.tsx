@@ -31,44 +31,14 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
 } from "recharts";
-import { Download, Calendar, RefreshCcw } from "lucide-react";
+import { Download, Calendar } from "lucide-react";
 import { dashboardApi } from "@/services/dashboardApi";
 
-// Mock attendance data by month
-const attendanceByMonth = [
-  { month: "1月", attendance: 95.2 },
-  { month: "2月", attendance: 94.8 },
-  { month: "3月", attendance: 93.5 },
-  { month: "4月", attendance: 96.1 },
-  { month: "5月", attendance: 95.8 },
-  { month: "6月", attendance: 94.2 },
-  { month: "7月", attendance: 93.0 },
-  { month: "8月", attendance: 92.5 },
-  { month: "9月", attendance: 94.7 },
-  { month: "10月", attendance: 96.3 },
-  { month: "11月", attendance: 95.5 },
-  { month: "12月", attendance: 93.8 },
-];
-
-// Mock leave distribution data
-const leaveDistributionData = [
-  { name: "特休", value: 45, color: "#3b82f6" },
-  { name: "事假", value: 20, color: "#f59e0b" },
-  { name: "病假", value: 15, color: "#ef4444" },
-  { name: "婚假", value: 5, color: "#10b981" },
-  { name: "喪假", value: 3, color: "#8b5cf6" },
-  { name: "公假", value: 7, color: "#06b6d4" },
-  { name: "其他", value: 5, color: "#6b7280" },
-];
-
 const Reports = () => {
-  const [selectedYear, setSelectedYear] = useState("2023");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [departmentComparison, setDepartmentComparison] = useState([]);
@@ -126,65 +96,12 @@ const Reports = () => {
         <TabsContent value="attendance">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>年度出勤率趨勢</CardTitle>
-                  <CardDescription>各月份公司整體出勤率變化</CardDescription>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Select 
-                    value={selectedYear} 
-                    onValueChange={setSelectedYear}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="選擇年份" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2021">2021年</SelectItem>
-                      <SelectItem value="2022">2022年</SelectItem>
-                      <SelectItem value="2023">2023年</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button variant="outline" size="icon">
-                    <RefreshCcw className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <CardTitle>年度出勤率趨勢</CardTitle>
+              <CardDescription>各月份公司整體出勤率變化</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-96 mt-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={attendanceByMonth}
-                    margin={{
-                      top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis 
-                      domain={[90, 100]}
-                      tickFormatter={(value) => `${value}%`}
-                    />
-                    <Tooltip formatter={(value) => [`${value}%`, "出勤率"]} />
-                    <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="attendance" 
-                      name="出勤率" 
-                      stroke="#3b82f6" 
-                      strokeWidth={2}
-                      dot={{ stroke: '#3b82f6', strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 8 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="text-center text-muted-foreground py-12">
+                系統目前尚未建置出勤打卡紀錄功能，暫無月度出勤率資料可供分析。
               </div>
             </CardContent>
           </Card>

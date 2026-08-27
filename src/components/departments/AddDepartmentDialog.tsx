@@ -90,8 +90,8 @@ const AddDepartmentDialog = ({
                 <FormItem>
                   <FormLabel>上級部門</FormLabel>
                   <Select
-                    onValueChange={(value) => field.onChange(value ? Number(value) : undefined)}
-                    value={field.value?.toString()}
+                    onValueChange={(value) => field.onChange(value === "none" ? undefined : Number(value))}
+                    value={field.value ? field.value.toString() : "none"}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -99,7 +99,7 @@ const AddDepartmentDialog = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">無上級部門</SelectItem>
+                      <SelectItem value="none">無上級部門</SelectItem>
                       {parentOptions.map((dept) => (
                         <SelectItem key={dept.id} value={dept.id.toString()}>
                           {dept.name}

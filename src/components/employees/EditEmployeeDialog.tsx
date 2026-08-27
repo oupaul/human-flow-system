@@ -92,7 +92,7 @@ const EditEmployeeDialog = ({
                 </SelectTrigger>
                 <SelectContent>
                   {departments.length === 0 ? (
-                    <SelectItem value="" disabled>尚無部門</SelectItem>
+                    <SelectItem value="__no_departments__" disabled>尚無部門</SelectItem>
                   ) : (
                     departments.map((dept) => (
                       <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>

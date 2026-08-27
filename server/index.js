@@ -32,6 +32,16 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  // DATE/DATETIME 欄位回傳為 'YYYY-MM-DD' 字串，避免被序列化成帶時區的完整 ISO 時間，
+  // 導致前端 <input type="date"> 無法正確顯示
+  dateStrings: true,
+  // TINYINT(1) 欄位（如 active、isPaid…）自動轉為 JS boolean，避免前端收到 0/1 數字
+  typeCast: (field, next) => {
+    if (field.type === 'TINY' && field.length === 1) {
+      return field.string() === '1';
+    }
+    return next();
+  },
 });
 
 // 依勞基法第 38 條計算特休天數（以到職日與基準日的年資試算）

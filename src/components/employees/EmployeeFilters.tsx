@@ -1,9 +1,10 @@
-import { 
-  Card, 
-  CardContent 
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -12,6 +13,9 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Search, Filter } from "lucide-react";
+import { statusOptions } from "@/types/employee";
+import { departmentApi } from "@/services/departmentApi";
+import { Department } from "@/types/department";
 
 interface EmployeeFiltersProps {
   searchTerm: string;
@@ -30,6 +34,12 @@ const EmployeeFilters = ({
   onDepartmentChange,
   onStatusChange
 }: EmployeeFiltersProps) => {
+  const [departments, setDepartments] = useState<Department[]>([]);
+
+  useEffect(() => {
+    departmentApi.getDepartments().then(setDepartments).catch(() => setDepartments([]));
+  }, []);
+
   return (
     <Card>
       <CardContent className="p-6">
@@ -57,11 +67,12 @@ const EmployeeFilters = ({
                   <SelectValue placeholder="選擇部門" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* {departmentOptions.map((dept) => (
-                    <SelectItem key={dept.value} value={dept.value}>
-                      {dept.label}
+                  <SelectItem value="all">全部部門</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.name}>
+                      {dept.name}
                     </SelectItem>
-                  ))} */}
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -77,11 +88,11 @@ const EmployeeFilters = ({
                   <SelectValue placeholder="選擇狀態" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* {statusOptions.map((status) => (
+                  {statusOptions.map((status) => (
                     <SelectItem key={status.value} value={status.value}>
                       {status.label}
                     </SelectItem>
-                  ))} */}
+                  ))}
                 </SelectContent>
               </Select>
             </div>
