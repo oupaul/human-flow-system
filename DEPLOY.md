@@ -60,7 +60,7 @@ ADMIN_PASSWORD=你的密碼 docker compose run --rm -e ADMIN_PASSWORD backend no
 如果你的 `db_data` volume 是在「特休週年結算」功能上線前就建立的（已經有資料），需要額外套用結構異動並補建既有員工的週年紀錄：
 
 ```sh
-docker compose exec -T db mysql -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/001_leave_periods.sql
+docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/001_leave_periods.sql
 npm run docker:migrate-leave-periods
 ```
 
