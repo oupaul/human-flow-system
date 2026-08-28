@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "seed:admin": "node seed-admin.js",
-    "migrate:leave-periods": "node migrate-leave-periods.js"
+    "migrate:leave-periods": "node migrate-leave-periods.js",
+    "fix:leave-periods": "node fix-leave-periods.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

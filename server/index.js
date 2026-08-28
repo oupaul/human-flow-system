@@ -135,6 +135,20 @@ function computePeriodGrant(joinDate, periodEnd) {
   return calculateAnnualLeaveDays(joinDate, justBeforeEnd);
 }
 
+// 從到職日逐年往前推算，找出「今天」所落在的那一個特休週年區間。
+// 用於新增員工時：不管到職日是今天還是很多年前，都會直接對應到目前
+// 這一期，而不是每次都從到職日起算的第一年開始
+function findCurrentPeriod(joinDate) {
+  const today = new Date().toISOString().slice(0, 10);
+  let periodStart = joinDate;
+  let periodEnd = addOneYear(periodStart);
+  while (periodEnd <= today) {
+    periodStart = periodEnd;
+    periodEnd = addOneYear(periodStart);
+  }
+  return { periodStart, periodEnd };
+}
+
 // 取得員工目前尚未結算的特休週年期間；若不存在（新員工）則建立第一期
 // initialUsedDays 僅在建立第一期時使用，讓系統上線時導入既有員工可登記
 // 該員工在此之前已經休掉的天數，避免顯示成完全沒用過
@@ -147,12 +161,12 @@ async function getOrCreateActivePeriod(employeeId, joinDate, initialUsedDays = 0
     return rows[0];
   }
 
-  const periodEnd = addOneYear(joinDate);
+  const { periodStart, periodEnd } = findCurrentPeriod(joinDate);
   const grantedDays = computePeriodGrant(joinDate, periodEnd);
 
   const [result] = await pool.execute(
     'INSERT INTO leave_periods (employeeId, periodStart, periodEnd, grantedDays, carriedInDays, usedDays) VALUES (?, ?, ?, ?, 0, ?)',
-    [employeeId, joinDate, periodEnd, grantedDays, initialUsedDays || 0]
+    [employeeId, periodStart, periodEnd, grantedDays, initialUsedDays || 0]
   );
   const [newRows] = await pool.execute('SELECT * FROM leave_periods WHERE id = ?', [result.insertId]);
   return newRows[0];

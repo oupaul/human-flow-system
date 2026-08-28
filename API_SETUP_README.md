@@ -49,6 +49,8 @@ mysql -u root -p hrms_database < server/migrations/001_leave_periods.sql
 npm run migrate:leave-periods   # 幫既有在職員工補建目前這期的特休週年紀錄
 
 mysql -u root -p hrms_database < server/migrations/002_leave_grants.sql   # 假別核給功能
+
+npm run fix:leave-periods   # 修正舊版 bug 造成的錯誤特休週年紀錄（到職日回填多年前時發放天數算錯），可重複執行
 ```
 
 ## 步驟 3：安裝套件並建立管理員帳號

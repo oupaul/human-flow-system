@@ -13,11 +13,13 @@
     "server:dev": "node --watch server/index.js",
     "seed:admin": "node server/seed-admin.js",
     "migrate:leave-periods": "node server/migrate-leave-periods.js",
+    "fix:leave-periods": "node server/fix-leave-periods.js",
     "docker:up": "docker compose up --build -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:seed-admin": "docker compose run --rm backend node seed-admin.js",
-    "docker:migrate-leave-periods": "docker compose run --rm backend node migrate-leave-periods.js"
+    "docker:migrate-leave-periods": "docker compose run --rm backend node migrate-leave-periods.js",
+    "docker:fix-leave-periods": "docker compose run --rm backend node fix-leave-periods.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
