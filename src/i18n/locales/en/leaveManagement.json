@@ -256,7 +256,7 @@
     "calendarDescription": "View imported public holidays and make-up workdays in a monthly calendar",
     "calendarHoverHint": "Hover over a date to see the holiday name",
     "listTitle": "Holiday List",
-    "listDescription": "Imported public holidays and make-up workdays (ordinary workdays are not shown)",
+    "listDescription": "Imported public holidays, make-up workdays, and regular workdays",
     "yearOption": "{{year}}",
     "columns": {
       "date": "Date",
@@ -266,6 +266,7 @@
     },
     "isHoliday": "Holiday",
     "isWorkday": "Make-up Workday",
+    "isRegularWorkday": "Workday",
     "empty": "No holiday data for {{year}} yet; import on the left",
     "toasts": {
       "loadFailed": "Failed to load public holidays",

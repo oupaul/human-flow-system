@@ -256,7 +256,7 @@
     "calendarDescription": "以月曆檢視已匯入的國定假日與補班日",
     "calendarHoverHint": "將滑鼠移到日期上可看到假日名稱",
     "listTitle": "假日列表",
-    "listDescription": "已匯入的國定假日與補班日（一般上班日不會顯示）",
+    "listDescription": "已匯入的國定假日、補班日與一般上班日",
     "yearOption": "{{year}} 年",
     "columns": {
       "date": "日期",
@@ -266,6 +266,7 @@
     },
     "isHoliday": "放假",
     "isWorkday": "補班",
+    "isRegularWorkday": "上班",
     "empty": "{{year}} 年尚無假日資料，請於左側匯入",
     "toasts": {
       "loadFailed": "載入國定假日失敗",

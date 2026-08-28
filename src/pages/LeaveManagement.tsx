@@ -144,15 +144,10 @@ const LeaveManagement = () => {
   };
 
   // 人事行政總處的日曆表是「每一天」都有一筆紀錄（是否放假 0/2），不是只有
-  // 特殊日期，所以平日的「上班」紀錄也會被匯入，isHoliday 為 false。這裡只
-  // 把「原本是週末、卻被排定要上班」的日子當作補班日；平日的一般上班日不算
-  // 特殊日期，不需要顯示或標記
-  const noteworthyHolidays = useMemo(
-    () => holidays.filter((h) => h.isHoliday || isWeekendDate(h.date)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [holidays]
-  );
-
+  // 特殊日期，所以平日的「上班」紀錄也會被匯入，isHoliday 為 false。這裡分
+  // 三類：假日（isHoliday）、補班日（isHoliday=false 但原本是週末）、一般
+  // 上班日（isHoliday=false 且原本就是平日），三種都會標示，方便確認匯入
+  // 是否完整涵蓋每一天
   const holidayByDateKey = useMemo(() => {
     const map = new Map<string, typeof holidays[number]>();
     holidays.forEach((holiday) => map.set(holiday.date, holiday));
@@ -160,12 +155,18 @@ const LeaveManagement = () => {
   }, [holidays]);
 
   const holidayDates = useMemo(
-    () => noteworthyHolidays.filter((h) => h.isHoliday).map((h) => parseDateKey(h.date)),
-    [noteworthyHolidays]
+    () => holidays.filter((h) => h.isHoliday).map((h) => parseDateKey(h.date)),
+    [holidays]
   );
-  const workdayDates = useMemo(
-    () => noteworthyHolidays.filter((h) => !h.isHoliday).map((h) => parseDateKey(h.date)),
-    [noteworthyHolidays]
+  const makeupWorkdayDates = useMemo(
+    () => holidays.filter((h) => !h.isHoliday && isWeekendDate(h.date)).map((h) => parseDateKey(h.date)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [holidays]
+  );
+  const regularWorkdayDates = useMemo(
+    () => holidays.filter((h) => !h.isHoliday && !isWeekendDate(h.date)).map((h) => parseDateKey(h.date)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [holidays]
   );
 
   const [isAddLeaveOpen, setIsAddLeaveOpen] = useState(false);
@@ -1509,10 +1510,11 @@ const LeaveManagement = () => {
                   onMonthChange={setHolidayCalendarMonth}
                   fromDate={new Date(holidayYear, 0, 1)}
                   toDate={new Date(holidayYear, 11, 31)}
-                  modifiers={{ holiday: holidayDates, workday: workdayDates }}
+                  modifiers={{ holiday: holidayDates, makeupWorkday: makeupWorkdayDates, regularWorkday: regularWorkdayDates }}
                   modifiersClassNames={{
                     holiday: "bg-green-100 text-green-700 hover:bg-green-200",
-                    workday: "bg-orange-100 text-orange-700 hover:bg-orange-200",
+                    makeupWorkday: "bg-orange-100 text-orange-700 hover:bg-orange-200",
+                    regularWorkday: "bg-gray-100 text-gray-600 hover:bg-gray-200",
                   }}
                   components={{
                     DayContent: ({ date }) => {
@@ -1530,6 +1532,9 @@ const LeaveManagement = () => {
                   </span>
                   <span className="flex items-center gap-1.5">
                     <span className="h-3 w-3 rounded-sm bg-orange-100" /> {t("leaveManagement:holidays.isWorkday")}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-sm bg-gray-100" /> {t("leaveManagement:holidays.isRegularWorkday")}
                   </span>
                   <span>{t("leaveManagement:holidays.calendarHoverHint")}</span>
                 </div>
@@ -1556,15 +1561,17 @@ const LeaveManagement = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {noteworthyHolidays.map((holiday) => (
+                    {holidays.map((holiday) => (
                       <TableRow key={holiday.id}>
                         <TableCell>{holiday.date}</TableCell>
                         <TableCell>{holiday.name || "-"}</TableCell>
                         <TableCell>
                           {holiday.isHoliday ? (
                             <span className="text-green-600">{t("leaveManagement:holidays.isHoliday")}</span>
-                          ) : (
+                          ) : isWeekendDate(holiday.date) ? (
                             <span className="text-orange-600">{t("leaveManagement:holidays.isWorkday")}</span>
+                          ) : (
+                            <span className="text-gray-500">{t("leaveManagement:holidays.isRegularWorkday")}</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -1574,7 +1581,7 @@ const LeaveManagement = () => {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {noteworthyHolidays.length === 0 && (
+                    {holidays.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
                           {t("leaveManagement:holidays.empty", { year: holidayYear })}
