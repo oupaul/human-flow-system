@@ -24,11 +24,14 @@ export class ApiError extends Error {
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
+  // FormData（檔案上傳）不能手動設定 Content-Type，瀏覽器要自己帶正確的
+  // multipart boundary，設了反而會讓後端解析失敗
+  const isFormData = options.body instanceof FormData;
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
@@ -54,4 +57,19 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
 
   return response.json();
+}
+
+// 下載二進位檔案（如請假附件）用，apiFetch 的 response.json() 不適用
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const token = getToken();
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    throw new ApiError(response.status, errorBody?.error || `HTTP error! status: ${response.status}`);
+  }
+
+  return response.blob();
 }

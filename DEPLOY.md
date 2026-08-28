@@ -5,7 +5,7 @@
 | 服務 | 說明 | 對外連接埠 |
 |---|---|---|
 | `frontend` | Nginx 提供前端靜態檔案，並將 `/api` 反向代理到 `backend` | `8080` |
-| `backend` | Express API 伺服器 | 僅容器內網路可存取（不直接對外開放） |
+| `backend` | Express API 伺服器（含請假證明文件，存在 `uploads_data` volume） | 僅容器內網路可存取（不直接對外開放） |
 | `db` | MariaDB，首次啟動會自動執行 `server/schema.sql` 建表 | `3306`（方便本機用 DB 工具連線除錯） |
 
 ## 前置需求

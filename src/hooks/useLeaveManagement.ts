@@ -36,9 +36,19 @@ export const useLeaveManagement = () => {
     }
   };
 
-  const createLeaveApplication = async (applicationData: LeaveApplicationFormData) => {
+  const createLeaveApplication = async (applicationData: LeaveApplicationFormData, attachment?: File) => {
     try {
-      await leaveApi.createLeaveApplication(applicationData);
+      const created = await leaveApi.createLeaveApplication(applicationData);
+      if (attachment) {
+        try {
+          await leaveApi.uploadLeaveAttachment(created.id, attachment);
+        } catch (uploadError) {
+          console.error('Failed to upload leave attachment:', uploadError);
+          toast.error("證明文件上傳失敗", {
+            description: "請假申請已送出，但附件上傳失敗，請稍後重新上傳。",
+          });
+        }
+      }
       await loadAllData();
       toast.success("請假申請成功", {
         description: "您的請假申請已提交，等待主管審核。",
@@ -51,9 +61,9 @@ export const useLeaveManagement = () => {
     }
   };
 
-  const updateApplicationStatus = async (id: number, status: 'approved' | 'rejected', approver: string) => {
+  const updateApplicationStatus = async (id: number, status: 'approved' | 'rejected', approver: string, days?: number) => {
     try {
-      await leaveApi.updateLeaveApplicationStatus(id, status, approver);
+      await leaveApi.updateLeaveApplicationStatus(id, status, approver, days);
       await loadAllData();
       toast.success("審核狀態已更新", {
         description: `請假申請已${status === 'approved' ? '核准' : '拒絕'}。`,

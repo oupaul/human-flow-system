@@ -34,12 +34,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle2, Clock, Loader2, Plus, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, Paperclip, Plus, XCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLeaveManagement } from "@/hooks/useLeaveManagement";
 import { useOvertimeApplications } from "@/hooks/useOvertimeApplications";
 import { LeaveApplicationFormData } from "@/types/leave";
 import { OvertimeApplicationFormData } from "@/types/overtime";
+import { leaveApi } from "@/services/leaveApi";
 
 const getStatusDisplay = (status: string) => {
   switch (status) {
@@ -70,6 +71,8 @@ const MyPortal = () => {
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const [selectedLeaveType, setSelectedLeaveType] = useState("");
   const [leaveForm, setLeaveForm] = useState<Partial<LeaveApplicationFormData>>({ unit: "day" });
+  const [leaveAttachment, setLeaveAttachment] = useState<File | null>(null);
+  const selectedLeaveTypeNeedsProof = leaveTypes.find((t) => t.id.toString() === selectedLeaveType)?.needProof;
 
   const [isOvertimeDialogOpen, setIsOvertimeDialogOpen] = useState(false);
   const [overtimeForm, setOvertimeForm] = useState<Partial<OvertimeApplicationFormData>>({});
@@ -80,10 +83,21 @@ const MyPortal = () => {
     if (!user?.employeeId || !leaveForm.leaveTypeId || !leaveForm.startDate || !leaveForm.endDate || !leaveForm.reason) {
       return;
     }
-    await createLeaveApplication({ ...leaveForm, employeeId: user.employeeId } as LeaveApplicationFormData);
+    await createLeaveApplication({ ...leaveForm, employeeId: user.employeeId } as LeaveApplicationFormData, leaveAttachment || undefined);
     setIsLeaveDialogOpen(false);
     setLeaveForm({ unit: "day" });
     setSelectedLeaveType("");
+    setLeaveAttachment(null);
+  };
+
+  const handleViewAttachment = async (applicationId: number) => {
+    try {
+      const blob = await leaveApi.downloadLeaveAttachment(applicationId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Failed to view attachment:", error);
+    }
   };
 
   const handleSubmitOvertime = async () => {
@@ -241,6 +255,17 @@ const MyPortal = () => {
                     onChange={(e) => setLeaveForm({ ...leaveForm, deputy: e.target.value })}
                   />
                 </div>
+                {selectedLeaveTypeNeedsProof && (
+                  <div className="space-y-2">
+                    <Label htmlFor="leaveAttachment">證明文件（此假別建議檢附證明文件）</Label>
+                    <Input
+                      id="leaveAttachment"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,application/pdf"
+                      onChange={(e) => setLeaveAttachment(e.target.files?.[0] || null)}
+                    />
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsLeaveDialogOpen(false)}>
@@ -296,6 +321,7 @@ const MyPortal = () => {
                   <TableHead>結束日期</TableHead>
                   <TableHead>天數</TableHead>
                   <TableHead>狀態</TableHead>
+                  <TableHead>附件</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -307,11 +333,20 @@ const MyPortal = () => {
                       <TableCell>{application.endDate}</TableCell>
                       <TableCell>{application.days}</TableCell>
                       <TableCell>{getStatusDisplay(application.status)}</TableCell>
+                      <TableCell>
+                        {application.attachment ? (
+                          <Button variant="ghost" size="icon" onClick={() => handleViewAttachment(application.id)} title="查看附件">
+                            <Paperclip className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">無</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                       尚無請假紀錄
                     </TableCell>
                   </TableRow>

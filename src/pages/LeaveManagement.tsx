@@ -41,16 +41,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Plus, FileText, CheckCircle2, XCircle, Loader2, RefreshCcw, Upload, Trash2, Clock } from "lucide-react";
+import { Calendar, Plus, FileText, CheckCircle2, XCircle, Loader2, RefreshCcw, Upload, Trash2, Clock, Paperclip } from "lucide-react";
 import { useLeaveManagement } from "@/hooks/useLeaveManagement";
 import { useOvertimeApplications } from "@/hooks/useOvertimeApplications";
 import { useHolidays } from "@/hooks/useHolidays";
 import { useLeavePeriodSettlements } from "@/hooks/useLeavePeriodSettlements";
-import { LeaveApplicationFormData } from "@/types/leave";
+import { useAuth } from "@/contexts/AuthContext";
+import { LeaveApplicationFormData, LeaveApplication } from "@/types/leave";
 import { OvertimeApplicationFormData } from "@/types/overtime";
 import { PendingLeavePeriodSettlement } from "@/types/leavePeriod";
+import { leaveApi } from "@/services/leaveApi";
 
 const LeaveManagement = () => {
+  const { user } = useAuth();
+  const approverName = user?.employeeName || user?.username || "系統管理員";
+
   const {
     leaveTypes,
     leaveApplications,
@@ -81,27 +86,40 @@ const LeaveManagement = () => {
   const [formData, setFormData] = useState<Partial<LeaveApplicationFormData>>({
     unit: 'day'
   });
+  const [leaveAttachment, setLeaveAttachment] = useState<File | null>(null);
+  const selectedLeaveTypeNeedsProof = leaveTypes.find((t) => t.id.toString() === selectedLeaveType)?.needProof;
 
   const [isAddOvertimeOpen, setIsAddOvertimeOpen] = useState(false);
   const [overtimeFormData, setOvertimeFormData] = useState<Partial<OvertimeApplicationFormData>>({});
+
+  const [approvingApplication, setApprovingApplication] = useState<LeaveApplication | null>(null);
+  const [approvedDays, setApprovedDays] = useState(0);
 
   const handleSubmitApplication = async () => {
     if (!formData.employeeId || !formData.leaveTypeId || !formData.startDate || !formData.endDate || !formData.reason) {
       return;
     }
 
-    await createLeaveApplication(formData as LeaveApplicationFormData);
+    await createLeaveApplication(formData as LeaveApplicationFormData, leaveAttachment || undefined);
     setIsAddLeaveOpen(false);
     setFormData({ unit: 'day' });
     setSelectedLeaveType("");
+    setLeaveAttachment(null);
   };
 
-  const handleApprove = async (applicationId: number) => {
-    await updateApplicationStatus(applicationId, 'approved', '系統管理員');
+  const openApproveDialog = (application: LeaveApplication) => {
+    setApprovingApplication(application);
+    setApprovedDays(application.days);
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!approvingApplication) return;
+    await updateApplicationStatus(approvingApplication.id, 'approved', approverName, approvedDays);
+    setApprovingApplication(null);
   };
 
   const handleReject = async (applicationId: number) => {
-    await updateApplicationStatus(applicationId, 'rejected', '系統管理員');
+    await updateApplicationStatus(applicationId, 'rejected', approverName);
   };
 
   const handleSubmitOvertime = async () => {
@@ -115,11 +133,21 @@ const LeaveManagement = () => {
   };
 
   const handleApproveOvertime = async (id: number) => {
-    await updateOvertimeStatus(id, 'approved', '系統管理員');
+    await updateOvertimeStatus(id, 'approved', approverName);
   };
 
   const handleRejectOvertime = async (id: number) => {
-    await updateOvertimeStatus(id, 'rejected', '系統管理員');
+    await updateOvertimeStatus(id, 'rejected', approverName);
+  };
+
+  const handleViewAttachment = async (applicationId: number) => {
+    try {
+      const blob = await leaveApi.downloadLeaveAttachment(applicationId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Failed to view attachment:", error);
+    }
   };
 
   const handleImportHolidays = async () => {
@@ -348,6 +376,17 @@ const LeaveManagement = () => {
                   onChange={(e) => setFormData({...formData, deputy: e.target.value})}
                 />
               </div>
+              {selectedLeaveTypeNeedsProof && (
+                <div className="space-y-2">
+                  <Label htmlFor="leaveAttachment">證明文件（此假別建議檢附證明文件）</Label>
+                  <Input
+                    id="leaveAttachment"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    onChange={(e) => setLeaveAttachment(e.target.files?.[0] || null)}
+                  />
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddLeaveOpen(false)}>
@@ -392,6 +431,7 @@ const LeaveManagement = () => {
                       <TableHead>結束日期</TableHead>
                       <TableHead>天數</TableHead>
                       <TableHead>狀態</TableHead>
+                      <TableHead>附件</TableHead>
                       <TableHead className="text-right">操作</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -409,6 +449,15 @@ const LeaveManagement = () => {
                             {getStatusDisplay(application.status)}
                           </div>
                         </TableCell>
+                        <TableCell>
+                          {application.attachment ? (
+                            <Button variant="ghost" size="icon" onClick={() => handleViewAttachment(application.id)} title="查看附件">
+                              <Paperclip className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">無</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
                             {application.status === 'pending' && (
@@ -417,7 +466,7 @@ const LeaveManagement = () => {
                                   size="sm"
                                   variant="outline"
                                   className="text-green-600 hover:bg-green-50"
-                                  onClick={() => handleApprove(application.id)}
+                                  onClick={() => openApproveDialog(application)}
                                 >
                                   核准
                                 </Button>
@@ -431,9 +480,6 @@ const LeaveManagement = () => {
                                 </Button>
                               </>
                             )}
-                            <Button variant="ghost" size="icon">
-                              <FileText className="h-4 w-4" />
-                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -444,6 +490,46 @@ const LeaveManagement = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <Dialog open={!!approvingApplication} onOpenChange={(open) => !open && setApprovingApplication(null)}>
+          <DialogContent className="sm:max-w-[450px]">
+            <DialogHeader>
+              <DialogTitle>核准請假申請</DialogTitle>
+              <DialogDescription>
+                {approvingApplication && `${approvingApplication.employee}（${approvingApplication.employeeId}）· ${approvingApplication.type} · ${approvingApplication.startDate} ~ ${approvingApplication.endDate}`}
+              </DialogDescription>
+            </DialogHeader>
+            {approvingApplication && (
+              <div className="space-y-4 py-2">
+                <div className="rounded-md bg-muted p-3 text-sm space-y-1">
+                  <p>申請事由：{approvingApplication.reason}</p>
+                  {approvingApplication.attachment && (
+                    <Button variant="link" className="h-auto p-0" onClick={() => handleViewAttachment(approvingApplication.id)}>
+                      <Paperclip className="mr-1 h-3 w-3" /> 查看附件
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="approvedDays">核准天數（可依證明文件調整，例如喪假依親屬關係核定天數）</Label>
+                  <Input
+                    id="approvedDays"
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={approvedDays}
+                    onChange={(e) => setApprovedDays(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setApprovingApplication(null)}>
+                取消
+              </Button>
+              <Button onClick={handleConfirmApprove}>確認核准</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <TabsContent value="overtime">
           <Card>

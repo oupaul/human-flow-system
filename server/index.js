@@ -4,6 +4,11 @@ import mysql from 'mysql2/promise';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -46,6 +51,34 @@ const pool = mysql.createPool({
       return value === null ? null : parseFloat(value);
     }
     return next();
+  },
+});
+
+// 請假證明文件（如訃聞、診斷證明）上傳設定：存在容器內的 uploads 目錄，
+// docker-compose 會掛一個獨立 volume 讓檔案不會隨容器重建而消失
+// 以此檔案所在目錄為基準，不受執行時的工作目錄影響（Docker 內是 /app/uploads，
+// 本機用 npm run server 執行時則是 server/uploads）；用 fileURLToPath 而非
+// URL.pathname 是因為路徑含空白等字元時 .pathname 只會回傳未解碼的 %20
+const UPLOAD_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'uploads', 'leave-attachments');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const ALLOWED_ATTACHMENT_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+
+const uploadAttachment = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (ALLOWED_ATTACHMENT_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('僅允許上傳 JPG/PNG/WEBP 圖片或 PDF 檔案'));
+    }
   },
 });
 
@@ -565,10 +598,70 @@ api.post('/leave-applications', async (req, res) => {
   }
 });
 
+// 上傳請假證明文件（如訃聞、診斷證明）；本人或 HR/主管可上傳，會覆蓋舊檔案
+api.post('/leave-applications/:id/attachment', (req, res, next) => {
+  uploadAttachment.single('file')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ error: '請選擇要上傳的檔案' });
+    }
+
+    const [rows] = await pool.execute('SELECT employeeId, attachment FROM leave_applications WHERE id = ?', [id]);
+    const application = rows[0];
+    if (!application) {
+      return res.status(404).json({ error: '找不到該筆請假申請' });
+    }
+    if (req.user.role === 'employee' && application.employeeId !== req.user.employeeId) {
+      return res.status(403).json({ error: '無權操作他人的請假申請' });
+    }
+
+    if (application.attachment) {
+      fs.unlink(path.join(UPLOAD_DIR, application.attachment), () => {});
+    }
+
+    await pool.execute('UPDATE leave_applications SET attachment = ? WHERE id = ?', [req.file.filename, id]);
+    res.json({ message: '附件上傳成功' });
+  } catch (error) {
+    console.error('Error uploading leave application attachment:', error);
+    res.status(500).json({ error: '附件上傳失敗', detail: error.message });
+  }
+});
+
+// 下載請假證明文件；本人或 HR/主管可下載
+api.get('/leave-applications/:id/attachment', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.execute('SELECT employeeId, attachment FROM leave_applications WHERE id = ?', [id]);
+    const application = rows[0];
+    if (!application || !application.attachment) {
+      return res.status(404).json({ error: '找不到附件' });
+    }
+    if (req.user.role === 'employee' && application.employeeId !== req.user.employeeId) {
+      return res.status(403).json({ error: '無權查看他人的附件' });
+    }
+
+    const filePath = path.join(UPLOAD_DIR, application.attachment);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: '附件檔案遺失' });
+    }
+    res.sendFile(filePath);
+  } catch (error) {
+    console.error('Error downloading leave application attachment:', error);
+    res.status(500).json({ error: '下載附件失敗', detail: error.message });
+  }
+});
+
 api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, approver } = req.body;
+    const { status, approver, days } = req.body;
 
     const [beforeRows] = await pool.execute(`
       SELECT la.employeeId, la.days, la.status as previousStatus, lt.code as leaveTypeCode, e.joinDate
@@ -578,17 +671,24 @@ api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (re
       WHERE la.id = ?
     `, [id]);
     const application = beforeRows[0];
+    if (!application) {
+      return res.status(404).json({ error: '找不到該筆請假申請' });
+    }
+
+    // 核准時可由 HR/主管調整實際核准天數（例如依喪假訃聞判斷的親屬關係天數），
+    // 不一定等於員工申請當下試算的天數；未提供則沿用原本天數
+    const finalDays = (days !== undefined && days !== null && days !== '') ? Number(days) : application.days;
 
     await pool.execute(
-      'UPDATE leave_applications SET status = ?, approver = ? WHERE id = ?',
-      [status, approver, id]
+      'UPDATE leave_applications SET status = ?, approver = ?, days = ? WHERE id = ?',
+      [status, approver, finalDays, id]
     );
 
-    // 特休申請核准時計入目前週年期間的已用天數；若從已核准改回其他狀態則退回
-    if (application && application.leaveTypeCode === 'AL' && application.joinDate) {
+    // 特休申請核准時計入目前週年期間的已用天數（以最終核准天數計）；若從已核准改回其他狀態則退回
+    if (application.leaveTypeCode === 'AL' && application.joinDate) {
       if (status === 'approved' && application.previousStatus !== 'approved') {
         const period = await getOrCreateActivePeriod(application.employeeId, application.joinDate);
-        await pool.execute('UPDATE leave_periods SET usedDays = usedDays + ? WHERE id = ?', [application.days, period.id]);
+        await pool.execute('UPDATE leave_periods SET usedDays = usedDays + ? WHERE id = ?', [finalDays, period.id]);
       } else if (status !== 'approved' && application.previousStatus === 'approved') {
         const period = await getOrCreateActivePeriod(application.employeeId, application.joinDate);
         await pool.execute('UPDATE leave_periods SET usedDays = GREATEST(0, usedDays - ?) WHERE id = ?', [application.days, period.id]);

@@ -1,5 +1,5 @@
 import { LeaveType, LeaveApplication, LeaveBalance, LeaveApplicationFormData } from "@/types/leave";
-import { apiFetch } from "@/lib/apiClient";
+import { apiFetch, apiFetchBlob } from "@/lib/apiClient";
 
 export const leaveApi = {
   // 假別類型管理
@@ -19,11 +19,24 @@ export const leaveApi = {
     });
   },
 
-  async updateLeaveApplicationStatus(id: number, status: "approved" | "rejected", approver: string): Promise<LeaveApplication> {
+  async updateLeaveApplicationStatus(id: number, status: "approved" | "rejected", approver: string, days?: number): Promise<LeaveApplication> {
     return apiFetch<LeaveApplication>(`/leave-applications/${id}/status`, {
       method: "PUT",
-      body: JSON.stringify({ status, approver }),
+      body: JSON.stringify({ status, approver, days }),
     });
+  },
+
+  async uploadLeaveAttachment(id: number, file: File): Promise<{ message: string }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiFetch<{ message: string }>(`/leave-applications/${id}/attachment`, {
+      method: "POST",
+      body: formData,
+    });
+  },
+
+  async downloadLeaveAttachment(id: number): Promise<Blob> {
+    return apiFetchBlob(`/leave-applications/${id}/attachment`);
   },
 
   // 假別餘額管理

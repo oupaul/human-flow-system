@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# 本機執行 server 時上傳的請假證明文件（正式環境走 docker volume）
+server/uploads
+
 # Environment variables
 .env
 .env.*
