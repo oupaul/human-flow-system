@@ -21,5 +21,8 @@ CREATE TABLE IF NOT EXISTS leave_grants (
 );
 
 ALTER TABLE leave_applications ADD COLUMN IF NOT EXISTS grantId INT NULL;
-ALTER TABLE leave_applications ADD CONSTRAINT IF NOT EXISTS fk_leave_applications_grant
+
+-- MariaDB 的 ADD CONSTRAINT 不支援 IF NOT EXISTS，若重複執行此檔會在這行
+-- 報錯「Duplicate key name」，屬正常現象（代表已經加過了），可略過
+ALTER TABLE leave_applications ADD CONSTRAINT fk_leave_applications_grant
   FOREIGN KEY (grantId) REFERENCES leave_grants(id) ON DELETE SET NULL;
