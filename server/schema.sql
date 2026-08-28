@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS leave_applications (
   deputy VARCHAR(255) NULL,
   status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
   approver VARCHAR(255) NULL,
+  reviewNote TEXT NULL,
   attachment VARCHAR(500) NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -150,6 +151,7 @@ CREATE TABLE IF NOT EXISTS overtime_applications (
   onHoliday BOOLEAN DEFAULT FALSE,
   status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
   approver VARCHAR(255) NULL,
+  reviewNote TEXT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (employeeId) REFERENCES employees(employeeId)

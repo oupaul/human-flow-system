@@ -50,6 +50,8 @@ npm run migrate:leave-periods   # 幫既有在職員工補建目前這期的特�
 
 mysql -u root -p hrms_database < server/migrations/002_leave_grants.sql   # 假別核給功能
 
+mysql -u root -p hrms_database < server/migrations/003_review_notes.sql   # 審核備註功能（核准/拒絕皆可填寫）
+
 npm run fix:leave-periods   # 修正舊版 bug 造成的錯誤特休週年紀錄（到職日回填多年前時發放天數算錯），可重複執行
 ```
 
@@ -145,7 +147,7 @@ SMTP_AUTH_METHOD=basic   # 或 oauth2
 - `POST /api/leave-applications` — 員工角色送出時會強制以自己的 employeeId 覆蓋，無法代他人申請
 - `POST /api/leave-applications/:id/attachment` — 上傳證明文件（`multipart/form-data`，欄位名 `file`，僅接受 JPG/PNG/WEBP/PDF，5MB 以內），本人或 HR/主管可上傳，重複上傳會覆蓋舊檔
 - `GET /api/leave-applications/:id/attachment` — 下載證明文件，本人或 HR/主管可下載
-- `PUT /api/leave-applications/:id/status`（僅 HR/主管審核）— `{ status, approver, days }`，`days` 可選，用於核准時依證明文件調整實際核准天數（例如喪假依親屬關係核定 3/6/8 天），不帶則沿用申請時的天數
+- `PUT /api/leave-applications/:id/status`（僅 HR/主管審核）— `{ status, approver, days, reviewNote }`，`days` 可選，用於核准時依證明文件調整實際核准天數（例如喪假依親屬關係核定 3/6/8 天），不帶則沿用申請時的天數；`reviewNote` 可選，核准或拒絕都可填寫審核備註，員工自助頁看得到
 - `GET /api/leave-balances` — 員工只會看到自己的餘額
 - `PUT /api/leave-balances/:employeeId`（僅 HR/主管）
 - `POST /api/leave-balances/recalculate`（僅 HR/主管）— 重新整理所有在職員工「目前這期」的特休發放天數（用於到職未滿一年、跨過年資級距門檻等情況），已用天數不變
@@ -171,7 +173,7 @@ SMTP_AUTH_METHOD=basic   # 或 oauth2
 ### 加班申請
 - `GET /api/overtime-applications` — 員工只會看到自己的申請，HR/主管看到全公司
 - `POST /api/overtime-applications` — `{ employeeId, date, startTime, endTime, reason }`，時數自動換算，並依 `holidays` 表自動標記是否為假日加班；員工角色送出時會強制以自己的 employeeId 覆蓋
-- `PUT /api/overtime-applications/:id/status`（僅 HR/主管審核）— `{ status, approver }`
+- `PUT /api/overtime-applications/:id/status`（僅 HR/主管審核）— `{ status, approver, reviewNote }`，`reviewNote` 可選，核准或拒絕都可填寫審核備註
 
 ### Dashboard（僅 HR/主管）
 - `GET /api/dashboard/stats` — `pendingRequests` 同時計入待審核的請假與加班申請

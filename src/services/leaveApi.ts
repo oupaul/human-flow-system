@@ -19,10 +19,10 @@ export const leaveApi = {
     });
   },
 
-  async updateLeaveApplicationStatus(id: number, status: "approved" | "rejected", approver: string, days?: number): Promise<LeaveApplication> {
+  async updateLeaveApplicationStatus(id: number, status: "approved" | "rejected", approver: string, days?: number, reviewNote?: string): Promise<LeaveApplication> {
     return apiFetch<LeaveApplication>(`/leave-applications/${id}/status`, {
       method: "PUT",
-      body: JSON.stringify({ status, approver, days }),
+      body: JSON.stringify({ status, approver, days, reviewNote }),
     });
   },
 

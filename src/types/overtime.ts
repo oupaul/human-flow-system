@@ -10,6 +10,7 @@ export interface OvertimeApplication {
   onHoliday: boolean;
   status: "pending" | "approved" | "rejected";
   approver?: string;
+  reviewNote?: string | null;
   created_at?: string;
   updated_at?: string;
 }

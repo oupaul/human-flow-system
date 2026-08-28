@@ -884,7 +884,7 @@ api.get('/leave-applications/:id/attachment', async (req, res) => {
 api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, approver, days } = req.body;
+    const { status, approver, days, reviewNote } = req.body;
 
     const [beforeRows] = await pool.execute(`
       SELECT la.employeeId, la.days, la.status as previousStatus, la.grantId, lt.code as leaveTypeCode, e.joinDate
@@ -916,8 +916,8 @@ api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (re
     }
 
     await pool.execute(
-      'UPDATE leave_applications SET status = ?, approver = ?, days = ? WHERE id = ?',
-      [status, approver, finalDays, id]
+      'UPDATE leave_applications SET status = ?, approver = ?, days = ?, reviewNote = ? WHERE id = ?',
+      [status, approver, finalDays, reviewNote || null, id]
     );
 
     // 特休申請核准時計入目前週年期間的已用天數（以最終核准天數計）；若從已核准改回其他狀態則退回
@@ -1320,11 +1320,11 @@ api.post('/overtime-applications', async (req, res) => {
 api.put('/overtime-applications/:id/status', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, approver } = req.body;
+    const { status, approver, reviewNote } = req.body;
 
     await pool.execute(
-      'UPDATE overtime_applications SET status = ?, approver = ? WHERE id = ?',
-      [status, approver, id]
+      'UPDATE overtime_applications SET status = ?, approver = ?, reviewNote = ? WHERE id = ?',
+      [status, approver, reviewNote || null, id]
     );
 
     const [updatedApplication] = await pool.execute(`

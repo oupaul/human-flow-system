@@ -369,7 +369,12 @@ const MyPortal = () => {
                       <TableCell>{application.startDate}</TableCell>
                       <TableCell>{application.endDate}</TableCell>
                       <TableCell>{application.days}</TableCell>
-                      <TableCell>{getStatusDisplay(application.status)}</TableCell>
+                      <TableCell>
+                        {getStatusDisplay(application.status)}
+                        {application.reviewNote && (
+                          <p className="mt-1 text-xs text-muted-foreground">備註：{application.reviewNote}</p>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {application.attachment ? (
                           <Button variant="ghost" size="icon" onClick={() => handleViewAttachment(application.id)} title="查看附件">
@@ -419,7 +424,12 @@ const MyPortal = () => {
                         {application.startTime} - {application.endTime}
                       </TableCell>
                       <TableCell>{application.hours}</TableCell>
-                      <TableCell>{getStatusDisplay(application.status)}</TableCell>
+                      <TableCell>
+                        {getStatusDisplay(application.status)}
+                        {application.reviewNote && (
+                          <p className="mt-1 text-xs text-muted-foreground">備註：{application.reviewNote}</p>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : (

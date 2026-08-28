@@ -13,10 +13,10 @@ export const overtimeApi = {
     });
   },
 
-  async updateOvertimeApplicationStatus(id: number, status: "approved" | "rejected", approver: string): Promise<OvertimeApplication> {
+  async updateOvertimeApplicationStatus(id: number, status: "approved" | "rejected", approver: string, reviewNote?: string): Promise<OvertimeApplication> {
     return apiFetch<OvertimeApplication>(`/overtime-applications/${id}/status`, {
       method: "PUT",
-      body: JSON.stringify({ status, approver }),
+      body: JSON.stringify({ status, approver, reviewNote }),
     });
   },
 };

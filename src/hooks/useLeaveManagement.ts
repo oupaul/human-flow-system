@@ -62,9 +62,9 @@ export const useLeaveManagement = () => {
     }
   };
 
-  const updateApplicationStatus = async (id: number, status: 'approved' | 'rejected', approver: string, days?: number) => {
+  const updateApplicationStatus = async (id: number, status: 'approved' | 'rejected', approver: string, days?: number, reviewNote?: string) => {
     try {
-      await leaveApi.updateLeaveApplicationStatus(id, status, approver, days);
+      await leaveApi.updateLeaveApplicationStatus(id, status, approver, days, reviewNote);
       await loadAllData();
       toast.success("審核狀態已更新", {
         description: `請假申請已${status === 'approved' ? '核准' : '拒絕'}。`,

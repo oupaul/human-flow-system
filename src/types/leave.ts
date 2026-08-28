@@ -28,6 +28,7 @@ export interface LeaveApplication {
   reason: string;
   status: 'pending' | 'approved' | 'rejected';
   approver?: string;
+  reviewNote?: string | null;
   deputy?: string;
   attachment?: string;
   created_at?: string;

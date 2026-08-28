@@ -49,7 +49,7 @@ import { useLeavePeriodSettlements } from "@/hooks/useLeavePeriodSettlements";
 import { useLeaveGrants } from "@/hooks/useLeaveGrants";
 import { useAuth } from "@/contexts/AuthContext";
 import { LeaveApplicationFormData, LeaveApplication, LeaveBalance } from "@/types/leave";
-import { OvertimeApplicationFormData } from "@/types/overtime";
+import { OvertimeApplication, OvertimeApplicationFormData } from "@/types/overtime";
 import { PendingLeavePeriodSettlement } from "@/types/leavePeriod";
 import { LeaveGrantFormData } from "@/types/leaveGrant";
 import { leaveApi } from "@/services/leaveApi";
@@ -106,8 +106,14 @@ const LeaveManagement = () => {
   const [isAddOvertimeOpen, setIsAddOvertimeOpen] = useState(false);
   const [overtimeFormData, setOvertimeFormData] = useState<Partial<OvertimeApplicationFormData>>({});
 
-  const [approvingApplication, setApprovingApplication] = useState<LeaveApplication | null>(null);
+  const [reviewingApplication, setReviewingApplication] = useState<LeaveApplication | null>(null);
+  const [reviewAction, setReviewAction] = useState<'approved' | 'rejected'>('approved');
   const [approvedDays, setApprovedDays] = useState(0);
+  const [reviewNote, setReviewNote] = useState("");
+
+  const [reviewingOvertime, setReviewingOvertime] = useState<OvertimeApplication | null>(null);
+  const [overtimeReviewAction, setOvertimeReviewAction] = useState<'approved' | 'rejected'>('approved');
+  const [overtimeReviewNote, setOvertimeReviewNote] = useState("");
 
   const [adjustingBalance, setAdjustingBalance] = useState<LeaveBalance | null>(null);
   const [adjustForm, setAdjustForm] = useState({
@@ -130,19 +136,23 @@ const LeaveManagement = () => {
     setLeaveAttachment(null);
   };
 
-  const openApproveDialog = (application: LeaveApplication) => {
-    setApprovingApplication(application);
+  const openReviewDialog = (application: LeaveApplication, action: 'approved' | 'rejected') => {
+    setReviewingApplication(application);
+    setReviewAction(action);
     setApprovedDays(application.days);
+    setReviewNote("");
   };
 
-  const handleConfirmApprove = async () => {
-    if (!approvingApplication) return;
-    await updateApplicationStatus(approvingApplication.id, 'approved', approverName, approvedDays);
-    setApprovingApplication(null);
-  };
-
-  const handleReject = async (applicationId: number) => {
-    await updateApplicationStatus(applicationId, 'rejected', approverName);
+  const handleConfirmReview = async () => {
+    if (!reviewingApplication) return;
+    await updateApplicationStatus(
+      reviewingApplication.id,
+      reviewAction,
+      approverName,
+      reviewAction === 'approved' ? approvedDays : undefined,
+      reviewNote || undefined
+    );
+    setReviewingApplication(null);
   };
 
   const handleSubmitOvertime = async () => {
@@ -155,12 +165,16 @@ const LeaveManagement = () => {
     setOvertimeFormData({});
   };
 
-  const handleApproveOvertime = async (id: number) => {
-    await updateOvertimeStatus(id, 'approved', approverName);
+  const openOvertimeReviewDialog = (application: OvertimeApplication, action: 'approved' | 'rejected') => {
+    setReviewingOvertime(application);
+    setOvertimeReviewAction(action);
+    setOvertimeReviewNote("");
   };
 
-  const handleRejectOvertime = async (id: number) => {
-    await updateOvertimeStatus(id, 'rejected', approverName);
+  const handleConfirmOvertimeReview = async () => {
+    if (!reviewingOvertime) return;
+    await updateOvertimeStatus(reviewingOvertime.id, overtimeReviewAction, approverName, overtimeReviewNote || undefined);
+    setReviewingOvertime(null);
   };
 
   const handleViewAttachment = async (applicationId: number) => {
@@ -496,6 +510,9 @@ const LeaveManagement = () => {
                           <div className="flex items-center">
                             {getStatusDisplay(application.status)}
                           </div>
+                          {application.reviewNote && (
+                            <p className="mt-1 text-xs text-muted-foreground">備註：{application.reviewNote}</p>
+                          )}
                         </TableCell>
                         <TableCell>
                           {application.attachment ? (
@@ -514,7 +531,7 @@ const LeaveManagement = () => {
                                   size="sm"
                                   variant="outline"
                                   className="text-green-600 hover:bg-green-50"
-                                  onClick={() => openApproveDialog(application)}
+                                  onClick={() => openReviewDialog(application, 'approved')}
                                 >
                                   核准
                                 </Button>
@@ -522,7 +539,7 @@ const LeaveManagement = () => {
                                   size="sm"
                                   variant="outline"
                                   className="text-red-600 hover:bg-red-50"
-                                  onClick={() => handleReject(application.id)}
+                                  onClick={() => openReviewDialog(application, 'rejected')}
                                 >
                                   拒絕
                                 </Button>
@@ -539,50 +556,67 @@ const LeaveManagement = () => {
           </Card>
         </TabsContent>
 
-        <Dialog open={!!approvingApplication} onOpenChange={(open) => !open && setApprovingApplication(null)}>
+        <Dialog open={!!reviewingApplication} onOpenChange={(open) => !open && setReviewingApplication(null)}>
           <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
-              <DialogTitle>核准請假申請</DialogTitle>
+              <DialogTitle>{reviewAction === 'approved' ? '核准' : '拒絕'}請假申請</DialogTitle>
               <DialogDescription>
-                {approvingApplication && `${approvingApplication.employee}（${approvingApplication.employeeId}）· ${approvingApplication.type} · ${approvingApplication.startDate} ~ ${approvingApplication.endDate}`}
+                {reviewingApplication && `${reviewingApplication.employee}（${reviewingApplication.employeeId}）· ${reviewingApplication.type} · ${reviewingApplication.startDate} ~ ${reviewingApplication.endDate}`}
               </DialogDescription>
             </DialogHeader>
-            {approvingApplication && (
+            {reviewingApplication && (
               <div className="space-y-4 py-2">
                 <div className="rounded-md bg-muted p-3 text-sm space-y-1">
-                  <p>申請事由：{approvingApplication.reason}</p>
-                  {approvingApplication.attachment && (
-                    <Button variant="link" className="h-auto p-0" onClick={() => handleViewAttachment(approvingApplication.id)}>
+                  <p>申請事由：{reviewingApplication.reason}</p>
+                  {reviewingApplication.attachment && (
+                    <Button variant="link" className="h-auto p-0" onClick={() => handleViewAttachment(reviewingApplication.id)}>
                       <Paperclip className="mr-1 h-3 w-3" /> 查看附件
                     </Button>
                   )}
                 </div>
-                {approvingApplication.grantId && (() => {
-                  const grant = leaveGrants.find((g) => g.id === approvingApplication.grantId);
+                {reviewAction === 'approved' && reviewingApplication.grantId && (() => {
+                  const grant = leaveGrants.find((g) => g.id === reviewingApplication.grantId);
                   return grant ? (
                     <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
                       此申請已關聯核給紀錄，剩餘 <strong>{grant.totalDays - grant.usedDays}</strong> 天（核給 {grant.totalDays} 天，期限 {grant.deadline || "無"}），核准天數不可超過剩餘天數。
                     </div>
                   ) : null;
                 })()}
+                {reviewAction === 'approved' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="approvedDays">核准天數（可依證明文件調整，例如喪假依親屬關係核定天數）</Label>
+                    <Input
+                      id="approvedDays"
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={approvedDays}
+                      onChange={(e) => setApprovedDays(Number(e.target.value))}
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
-                  <Label htmlFor="approvedDays">核准天數（可依證明文件調整，例如喪假依親屬關係核定天數）</Label>
-                  <Input
-                    id="approvedDays"
-                    type="number"
-                    min={0}
-                    step={0.5}
-                    value={approvedDays}
-                    onChange={(e) => setApprovedDays(Number(e.target.value))}
+                  <Label htmlFor="reviewNote">審核備註（選填）</Label>
+                  <Textarea
+                    id="reviewNote"
+                    rows={3}
+                    placeholder={reviewAction === 'approved' ? '例如：已確認證明文件' : '請說明拒絕原因，員工會看到這則備註'}
+                    value={reviewNote}
+                    onChange={(e) => setReviewNote(e.target.value)}
                   />
                 </div>
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setApprovingApplication(null)}>
+              <Button variant="outline" onClick={() => setReviewingApplication(null)}>
                 取消
               </Button>
-              <Button onClick={handleConfirmApprove}>確認核准</Button>
+              <Button
+                onClick={handleConfirmReview}
+                className={reviewAction === 'rejected' ? 'bg-red-600 hover:bg-red-700' : undefined}
+              >
+                確認{reviewAction === 'approved' ? '核准' : '拒絕'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -629,6 +663,9 @@ const LeaveManagement = () => {
                           <div className="flex items-center">
                             {getStatusDisplay(application.status)}
                           </div>
+                          {application.reviewNote && (
+                            <p className="mt-1 text-xs text-muted-foreground">備註：{application.reviewNote}</p>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           {application.status === 'pending' && (
@@ -637,7 +674,7 @@ const LeaveManagement = () => {
                                 size="sm"
                                 variant="outline"
                                 className="text-green-600 hover:bg-green-50"
-                                onClick={() => handleApproveOvertime(application.id)}
+                                onClick={() => openOvertimeReviewDialog(application, 'approved')}
                               >
                                 核准
                               </Button>
@@ -645,7 +682,7 @@ const LeaveManagement = () => {
                                 size="sm"
                                 variant="outline"
                                 className="text-red-600 hover:bg-red-50"
-                                onClick={() => handleRejectOvertime(application.id)}
+                                onClick={() => openOvertimeReviewDialog(application, 'rejected')}
                               >
                                 拒絕
                               </Button>
@@ -660,6 +697,45 @@ const LeaveManagement = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <Dialog open={!!reviewingOvertime} onOpenChange={(open) => !open && setReviewingOvertime(null)}>
+          <DialogContent className="sm:max-w-[450px]">
+            <DialogHeader>
+              <DialogTitle>{overtimeReviewAction === 'approved' ? '核准' : '拒絕'}加班申請</DialogTitle>
+              <DialogDescription>
+                {reviewingOvertime && `${reviewingOvertime.employee}（${reviewingOvertime.employeeId}）· ${reviewingOvertime.date} ${reviewingOvertime.startTime}-${reviewingOvertime.endTime}（${reviewingOvertime.hours} 小時）`}
+              </DialogDescription>
+            </DialogHeader>
+            {reviewingOvertime && (
+              <div className="space-y-4 py-2">
+                <div className="rounded-md bg-muted p-3 text-sm">
+                  <p>加班事由：{reviewingOvertime.reason}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="overtimeReviewNote">審核備註（選填）</Label>
+                  <Textarea
+                    id="overtimeReviewNote"
+                    rows={3}
+                    placeholder={overtimeReviewAction === 'approved' ? '例如：已確認加班事由' : '請說明拒絕原因，員工會看到這則備註'}
+                    value={overtimeReviewNote}
+                    onChange={(e) => setOvertimeReviewNote(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setReviewingOvertime(null)}>
+                取消
+              </Button>
+              <Button
+                onClick={handleConfirmOvertimeReview}
+                className={overtimeReviewAction === 'rejected' ? 'bg-red-600 hover:bg-red-700' : undefined}
+              >
+                確認{overtimeReviewAction === 'approved' ? '核准' : '拒絕'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <TabsContent value="balance">
           <Card>

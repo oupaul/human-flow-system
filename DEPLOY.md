@@ -66,6 +66,9 @@ npm run docker:migrate-leave-periods
 
 # 假別核給功能（喪假/婚假等同一事由分次請假）
 docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/002_leave_grants.sql
+
+# 審核備註功能（核准/拒絕皆可填寫）
+docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/003_review_notes.sql
 ```
 
 全新安裝（第一次啟動 `db` 容器）不需要這步，`schema.sql` 已經包含最新結構。

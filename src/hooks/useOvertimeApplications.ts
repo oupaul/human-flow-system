@@ -41,9 +41,9 @@ export const useOvertimeApplications = () => {
     }
   };
 
-  const updateOvertimeStatus = async (id: number, status: "approved" | "rejected", approver: string) => {
+  const updateOvertimeStatus = async (id: number, status: "approved" | "rejected", approver: string, reviewNote?: string) => {
     try {
-      await overtimeApi.updateOvertimeApplicationStatus(id, status, approver);
+      await overtimeApi.updateOvertimeApplicationStatus(id, status, approver, reviewNote);
       await loadOvertimeApplications();
       toast.success("審核狀態已更新", {
         description: `加班申請已${status === "approved" ? "核准" : "拒絕"}。`,
