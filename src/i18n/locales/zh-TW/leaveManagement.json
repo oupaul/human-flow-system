@@ -35,7 +35,8 @@
       "reasonPlaceholder": "請簡要說明請假原因",
       "deputy": "職務代理人",
       "deputyPlaceholder": "請輸入職務代理人",
-      "attachment": "證明文件（此假別建議檢附證明文件）"
+      "attachment": "證明文件（此假別建議檢附證明文件）",
+      "lunchBreakHint": "系統會自動扣除與中午 12:00–13:00 午休時段重疊的時間，不列入時數計算。"
     },
     "listTitle": "請假申請列表",
     "listDescription": "所有員工的請假申請紀錄和審核狀態",
@@ -88,7 +89,8 @@
       "compensationType": "領取方式",
       "compensationTypePay": "領加班費",
       "compensationTypeComp": "換補休",
-      "compHint": "依勞基法第 32-1 條，補休時數以工作時數 1:1 換算（加班多少小時、補休多少小時）。需在加班日起 6 個月內休畢，逾期未休完的部分會折算加班費。"
+      "compHint": "依勞基法第 32-1 條，補休時數以工作時數 1:1 換算（加班多少小時、補休多少小時）。需在加班日起 6 個月內休畢，逾期未休完的部分會折算加班費。",
+      "lunchBreakHint": "系統會自動扣除與中午 12:00–13:00 午休時段重疊的時間，不列入時數計算。"
     },
     "listTitle": "加班申請列表",
     "listDescription": "所有員工的加班申請紀錄和審核狀態",

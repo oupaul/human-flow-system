@@ -178,6 +178,7 @@ const MyPortal = () => {
                     />
                   </div>
                 </div>
+                <p className="text-xs text-muted-foreground">{t("myPortal:lunchBreakHint")}</p>
                 <div className="space-y-2">
                   <Label htmlFor="overtimeReason">{t("myPortal:overtimeDialog.reasonLabel")}</Label>
                   <Textarea
@@ -287,6 +288,7 @@ const MyPortal = () => {
                         />
                       </div>
                     </div>
+                    <p className="text-xs text-muted-foreground">{t("myPortal:lunchBreakHint")}</p>
                   </>
                 ) : (
                   <div className="grid grid-cols-2 gap-4">

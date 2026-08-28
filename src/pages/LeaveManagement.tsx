@@ -400,6 +400,7 @@ const LeaveManagement = () => {
                   />
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground">{t("leaveManagement:overtime.applyDialog.lunchBreakHint")}</p>
               <div className="space-y-2">
                 <Label htmlFor="overtimeReason">{t("leaveManagement:overtime.applyDialog.reason")}</Label>
                 <Textarea
@@ -528,6 +529,7 @@ const LeaveManagement = () => {
                       />
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground">{t("leaveManagement:applications.applyDialog.lunchBreakHint")}</p>
                 </>
               ) : (
                 <>

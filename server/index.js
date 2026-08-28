@@ -142,6 +142,26 @@ function calculateCompHours(hours) {
   return Math.round(hours * 10) / 10;
 }
 
+// 中午午休時段固定為 12:00–13:00（如貴公司午休時間不同，請修改這兩個常數）
+const LUNCH_BREAK_START_MINUTES = 12 * 60;
+const LUNCH_BREAK_END_MINUTES = 13 * 60;
+
+// 計算同一天內 startTime~endTime 的實際工時，自動扣除與中午午休時段重疊的部分；
+// 用於加班申請時數與補休請假時數的計算，避免時段橫跨午休時把午休也算成工時/請假
+function calculateWorkingHours(startTime, endTime) {
+  const toMinutes = (t) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const startMinutes = toMinutes(startTime);
+  const endMinutes = toMinutes(endTime);
+  const totalMinutes = endMinutes - startMinutes;
+  const overlapStart = Math.max(startMinutes, LUNCH_BREAK_START_MINUTES);
+  const overlapEnd = Math.min(endMinutes, LUNCH_BREAK_END_MINUTES);
+  const lunchOverlapMinutes = Math.max(0, overlapEnd - overlapStart);
+  return (totalMinutes - lunchOverlapMinutes) / 60;
+}
+
 // 依到期日由近到遠依序扣抵補休額度；額度不足會丟出錯誤，呼叫端需在此之前
 // 就先檢查總剩餘時數，避免扣到一半才失敗造成資料不一致
 async function allocateCompHours(pool, employeeId, hours, leaveApplicationId) {
@@ -940,11 +960,10 @@ api.post('/leave-applications', async (req, res) => {
       if (!startTime || !endTime || startDate !== endDate) {
         return res.status(400).json({ error: '補休請選擇同一天的開始與結束時間' });
       }
-      const start = new Date(`${startDate}T${startTime}`);
-      const end = new Date(`${startDate}T${endTime}`);
-      const hoursDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      // 自動扣除與中午 12:00-13:00 午休時段重疊的部分，避免橫跨午休時多扣補休
+      const hoursDiff = calculateWorkingHours(startTime, endTime);
       if (!(hoursDiff > 0)) {
-        return res.status(400).json({ error: '結束時間必須晚於開始時間' });
+        return res.status(400).json({ error: '扣除午休時段後時數需大於 0，請確認開始與結束時間' });
       }
       daysDiff = Math.round(hoursDiff * 10) / 10;
     } else {
@@ -1476,11 +1495,10 @@ api.post('/overtime-applications', async (req, res) => {
       return res.status(400).json({ error: '所有必填欄位皆需填寫' });
     }
 
-    const start = new Date(`${date}T${startTime}`);
-    const end = new Date(`${date}T${endTime}`);
-    const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    // 自動扣除與中午 12:00-13:00 午休時段重疊的部分，避免整天加班橫跨午休時多算時數
+    const hours = calculateWorkingHours(startTime, endTime);
     if (!(hours > 0)) {
-      return res.status(400).json({ error: '結束時間必須晚於開始時間' });
+      return res.status(400).json({ error: '扣除午休時段後時數需大於 0，請確認開始與結束時間' });
     }
 
     const [holidayRows] = await pool.execute('SELECT isHoliday FROM holidays WHERE date = ?', [date]);

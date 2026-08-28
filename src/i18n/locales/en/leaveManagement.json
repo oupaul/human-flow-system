@@ -35,7 +35,8 @@
       "reasonPlaceholder": "Briefly describe the reason for leave",
       "deputy": "Deputy",
       "deputyPlaceholder": "Enter deputy",
-      "attachment": "Supporting Document (recommended for this leave type)"
+      "attachment": "Supporting Document (recommended for this leave type)",
+      "lunchBreakHint": "The system automatically excludes any time that overlaps with the 12:00–13:00 lunch break from the calculated hours."
     },
     "listTitle": "Leave Application List",
     "listDescription": "Leave application records and review status for all employees",
@@ -88,7 +89,8 @@
       "compensationType": "Compensation Type",
       "compensationTypePay": "Overtime Pay",
       "compensationTypeComp": "Comp Time",
-      "compHint": "Per Article 32-1 of the Labor Standards Act, comp time is converted 1:1 with hours worked. It must be used within 6 months of the overtime date; any portion not used by then will be converted to overtime pay."
+      "compHint": "Per Article 32-1 of the Labor Standards Act, comp time is converted 1:1 with hours worked. It must be used within 6 months of the overtime date; any portion not used by then will be converted to overtime pay.",
+      "lunchBreakHint": "The system automatically excludes any time that overlaps with the 12:00–13:00 lunch break from the calculated hours."
     },
     "listTitle": "Overtime Application List",
     "listDescription": "Overtime application records and review status for all employees",

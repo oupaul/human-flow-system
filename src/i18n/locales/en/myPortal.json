@@ -4,6 +4,7 @@
   "leaveTypeLabel": "Leave Type",
   "startTimeLabel": "Start Time",
   "endTimeLabel": "End Time",
+  "lunchBreakHint": "The system automatically excludes any time that overlaps with the 12:00–13:00 lunch break from the calculated hours.",
   "compensationTypeLabel": "Compensation Type",
   "reviewNotePrefix": "Note: {{note}}",
   "overtimeDialog": {

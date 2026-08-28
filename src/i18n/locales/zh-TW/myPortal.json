@@ -4,6 +4,7 @@
   "leaveTypeLabel": "假別",
   "startTimeLabel": "開始時間",
   "endTimeLabel": "結束時間",
+  "lunchBreakHint": "系統會自動扣除與中午 12:00–13:00 午休時段重疊的時間，不列入時數計算。",
   "compensationTypeLabel": "領取方式",
   "reviewNotePrefix": "備註：{{note}}",
   "overtimeDialog": {

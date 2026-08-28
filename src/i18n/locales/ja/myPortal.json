@@ -4,6 +4,7 @@
   "leaveTypeLabel": "休暇種別",
   "startTimeLabel": "開始時刻",
   "endTimeLabel": "終了時刻",
+  "lunchBreakHint": "お昼休み（12:00〜13:00）と重なる時間は自動的に除外され、時間数に計上されません。",
   "compensationTypeLabel": "受取方法",
   "reviewNotePrefix": "備考：{{note}}",
   "overtimeDialog": {
