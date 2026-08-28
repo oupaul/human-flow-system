@@ -54,6 +54,8 @@ mysql -u root -p hrms_database < server/migrations/003_review_notes.sql   # 審�
 
 mysql -u root -p hrms_database < server/migrations/004_notification_settings.sql   # 通知設定改成存在資料庫，透過「系統設定」頁面管理
 
+mysql -u root -p hrms_database < server/migrations/005_comp_time.sql   # 補休功能（加班可選換補休，依費率換算時數）
+
 npm run fix:leave-periods   # 修正舊版 bug 造成的錯誤特休週年紀錄（到職日回填多年前時發放天數算錯），可重複執行
 ```
 
@@ -92,6 +94,14 @@ npm run dev
 - 「假別餘額」畫面的特休可用/已用天數，是即時從目前尚未結算的那一期算出來的（可用＝本期發放＋上期遞延，已用＝本期已核准天數），不是固定寫死的數字。
 - **週年到期不會自動結算**，需要 HR 到「假別管理 → 特休結算」分頁手動處理：系統會列出所有已到期但尚未結算的期間，並算好「應強制折現天數」（上一期遞延進來、這期還是沒休完的部分，依法不可再遞延）與「可選遞延或折現天數」（這期新發放但沒休完的部分）。HR 輸入要遞延多少天到下一期，其餘自動折算成應發工資天數，並依員工的月薪試算金額（公式為 `未休天數 × 月薪 ÷ 30`，四捨五入到整數；請自行確認是否符合貴公司對「平均日薪」的定義）。結算後會自動開出下一期。
 - 折現金額只是**試算**，本系統不處理實際發薪；請將結算結果交給薪資/會計作業。
+
+## 補休如何運作
+
+- 員工提出加班申請時，可選擇這次要「領加班費」或「換補休」，由**員工自己決定**（比照勞基法第 32-1 條「經勞雇雙方協商同意」的精神）。
+- 選擇換補休且核准後，系統依勞基法加班費率自動換算補休時數（平日前 2 小時 1 又 1/3 倍、超過 2 小時部分 1 又 2/3 倍；假日出勤以加倍發給精神概算為 2 倍，不細分休息日的多階段累進費率，如需精確覆核請 HR 自行調整），開立一筆補休額度（`comp_time_grants` 表），應休畢期限為加班日起 6 個月。
+- 補休透過「假別管理 / 我的入口」的**請假申請**使用：假別選「補休」後，改為輸入同一天的開始/結束時間（以小時為單位），核准時系統會依到期日由近到遠自動扣抵額度，額度不足會擋下核准。
+- 「假別餘額」畫面的補休可用/已用天數，即時從尚未到期、尚未結算的補休額度加總算出，**不再開放手動調整**（來源是加班核准，不是憑空輸入的數字）；HR 可在「補休明細」查看每筆補休的來源加班紀錄與到期日。
+- **到期不會自動結算**，需要 HR 到「假別管理 → 特休結算」分頁下方的「補休結算」區塊手動處理：已逾期但還有剩餘時數的補休額度會被列出，剩餘時數全數折算加班費（依員工月薪換算的時薪 `月薪 ÷ 240`，四捨五入到整數），折算金額同樣只是**試算**，不處理實際發薪。
 
 ## 系統通知設定（選用）
 
@@ -145,12 +155,12 @@ npm run dev
 - `GET /api/leave-types` — 所有登入者皆可查詢
 - `POST /api/leave-types`（僅 HR/主管）
 - `GET /api/leave-applications` — 員工只會看到自己的申請，HR/主管看到全公司
-- `POST /api/leave-applications` — 員工角色送出時會強制以自己的 employeeId 覆蓋，無法代他人申請
+- `POST /api/leave-applications` — 員工角色送出時會強制以自己的 employeeId 覆蓋，無法代他人申請；假別為「補休」時以 `startTime`/`endTime`（需同一天）精確計算小時數，其餘假別仍以 `startDate`/`endDate` 計算日曆天數
 - `POST /api/leave-applications/:id/attachment` — 上傳證明文件（`multipart/form-data`，欄位名 `file`，僅接受 JPG/PNG/WEBP/PDF，5MB 以內），本人或 HR/主管可上傳，重複上傳會覆蓋舊檔
 - `GET /api/leave-applications/:id/attachment` — 下載證明文件，本人或 HR/主管可下載
 - `PUT /api/leave-applications/:id/status`（僅 HR/主管審核）— `{ status, approver, days, reviewNote }`，`days` 可選，用於核准時依證明文件調整實際核准天數（例如喪假依親屬關係核定 3/6/8 天），不帶則沿用申請時的天數；`reviewNote` 可選，核准或拒絕都可填寫審核備註，員工自助頁看得到
-- `GET /api/leave-balances` — 員工只會看到自己的餘額
-- `PUT /api/leave-balances/:employeeId`（僅 HR/主管）
+- `GET /api/leave-balances` — 員工只會看到自己的餘額；特休、補休皆為即時計算欄位（特休來自 `leave_periods`，補休來自 `comp_time_grants`），僅病假可手動調整
+- `PUT /api/leave-balances/:employeeId`（僅 HR/主管）— `{ sickLeave, sickLeaveUsed }`，只能調整病假，特休/補休請分別透過「特休結算」與加班核准/補休請假調整
 - `POST /api/leave-balances/recalculate`（僅 HR/主管）— 重新整理所有在職員工「目前這期」的特休發放天數（用於到職未滿一年、跨過年資級距門檻等情況），已用天數不變
 - `PUT /api/leave-periods/:id`（僅 HR/主管）— `{ usedDays }`，直接調整某期特休的已用天數。用於系統上線時導入既有員工事後補登已休天數，或更正誤植的核准紀錄
 
@@ -173,8 +183,13 @@ npm run dev
 
 ### 加班申請
 - `GET /api/overtime-applications` — 員工只會看到自己的申請，HR/主管看到全公司
-- `POST /api/overtime-applications` — `{ employeeId, date, startTime, endTime, reason }`，時數自動換算，並依 `holidays` 表自動標記是否為假日加班；員工角色送出時會強制以自己的 employeeId 覆蓋
-- `PUT /api/overtime-applications/:id/status`（僅 HR/主管審核）— `{ status, approver, reviewNote }`，`reviewNote` 可選，核准或拒絕都可填寫審核備註
+- `POST /api/overtime-applications` — `{ employeeId, date, startTime, endTime, reason, compensationType }`，`compensationType` 為 `pay`（領加班費，預設）或 `comp`（換補休）；時數與換算後的補休時數自動計算，並依 `holidays` 表自動標記是否為假日加班；員工角色送出時會強制以自己的 employeeId 覆蓋
+- `PUT /api/overtime-applications/:id/status`（僅 HR/主管審核）— `{ status, approver, reviewNote }`，`reviewNote` 可選，核准或拒絕都可填寫審核備註；選擇換補休的申請核准時會自動開立補休額度，補休已被使用後無法取消核准
+
+### 補休額度
+- `GET /api/comp-time-grants?employeeId=EMP001` — 查詢補休額度明細（員工只能看自己的，不帶 employeeId 時 HR/主管看全公司）
+- `GET /api/comp-time-grants/pending-settlement`（僅 HR/主管）— 已逾期但還有剩餘時數、尚未結算的補休額度清單
+- `POST /api/comp-time-grants/:id/settle`（僅 HR/主管）— 結算一筆逾期補休額度，剩餘時數全數折算加班費，回傳折算時數與金額（依員工月薪試算，未設定月薪則為 `null`）
 
 ### Dashboard（僅 HR/主管）
 - `GET /api/dashboard/stats` — `pendingRequests` 同時計入待審核的請假與加班申請

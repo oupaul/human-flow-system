@@ -46,6 +46,7 @@ export interface LeaveBalance {
   sickLeaveUsed: number;
   compensatoryLeave: number;
   compensatoryLeaveUsed: number;
+  compensatoryLeaveDeadline?: string | null;
   updated_at?: string;
 }
 

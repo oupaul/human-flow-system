@@ -139,7 +139,9 @@ CREATE TABLE IF NOT EXISTS holidays (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 加班申請表
+-- 加班申請表：compensationType 由員工申請時選擇要領加班費還是換補休；
+-- compHours 是依勞基法加班費率換算出的補休時數（僅 compensationType='comp' 時有意義），
+-- 核准時才會真的開立補休額度（見 comp_time_grants）
 CREATE TABLE IF NOT EXISTS overtime_applications (
   id INT AUTO_INCREMENT PRIMARY KEY,
   employeeId VARCHAR(50) NOT NULL,
@@ -149,12 +151,45 @@ CREATE TABLE IF NOT EXISTS overtime_applications (
   hours DECIMAL(4,1) NOT NULL,
   reason TEXT NOT NULL,
   onHoliday BOOLEAN DEFAULT FALSE,
+  compensationType ENUM('pay', 'comp') NOT NULL DEFAULT 'pay',
+  compHours DECIMAL(4,1) NULL,
   status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
   approver VARCHAR(255) NULL,
   reviewNote TEXT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
+);
+
+-- 補休額度表：加班申請選擇換補休且核准後，依換算時數開立一筆額度，
+-- deadline 為加班日起算 6 個月（比照勞基法函釋常見作法），到期未休完的部分
+-- 由 HR 結算（settledAt/cashOutHours/cashOutAmount）折算加班費發放
+CREATE TABLE IF NOT EXISTS comp_time_grants (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL,
+  overtimeApplicationId INT NOT NULL UNIQUE,
+  hours DECIMAL(4,1) NOT NULL,
+  usedHours DECIMAL(4,1) NOT NULL DEFAULT 0,
+  deadline DATE NOT NULL,
+  settledAt TIMESTAMP NULL,
+  cashOutHours DECIMAL(4,1) NULL,
+  cashOutAmount DECIMAL(10,0) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (employeeId) REFERENCES employees(employeeId),
+  FOREIGN KEY (overtimeApplicationId) REFERENCES overtime_applications(id)
+);
+
+-- 補休使用紀錄：請假申請（假別為補休）核准時，依到期日由近到遠依序扣抵
+-- comp_time_grants 額度，記錄扣了哪一筆、扣多少，取消核准時才能正確歸還
+CREATE TABLE IF NOT EXISTS comp_time_usages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  grantId INT NOT NULL,
+  leaveApplicationId INT NOT NULL,
+  hours DECIMAL(4,1) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (grantId) REFERENCES comp_time_grants(id),
+  FOREIGN KEY (leaveApplicationId) REFERENCES leave_applications(id)
 );
 
 -- 登入帳號表
@@ -197,4 +232,5 @@ INSERT INTO leave_types (name, code, unit, needProof, affectAttendance, isPaid, 
 ('病假', 'SL', '天', TRUE, FALSE, FALSE, '30天', '當天', TRUE),
 ('婚假', 'ML', '天', TRUE, FALSE, TRUE, '8天', '7天', FALSE),
 ('公假', 'OL', '天', TRUE, FALSE, TRUE, '依需求', '3天', TRUE),
-('喪假', 'BL', '天', TRUE, FALSE, TRUE, '依親屬關係', '當天', TRUE);
+('喪假', 'BL', '天', TRUE, FALSE, TRUE, '依親屬關係', '當天', TRUE),
+('補休', 'COMP', '小時', FALSE, FALSE, TRUE, '依補休餘額', '當天', TRUE);

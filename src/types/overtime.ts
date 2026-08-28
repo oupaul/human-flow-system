@@ -8,6 +8,8 @@ export interface OvertimeApplication {
   hours: number;
   reason: string;
   onHoliday: boolean;
+  compensationType: "pay" | "comp";
+  compHours: number | null;
   status: "pending" | "approved" | "rejected";
   approver?: string;
   reviewNote?: string | null;
@@ -21,4 +23,5 @@ export interface OvertimeApplicationFormData {
   startTime: string;
   endTime: string;
   reason: string;
+  compensationType: "pay" | "comp";
 }

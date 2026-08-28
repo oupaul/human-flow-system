@@ -48,6 +48,8 @@ import { useOvertimeApplications } from "@/hooks/useOvertimeApplications";
 import { useHolidays } from "@/hooks/useHolidays";
 import { useLeavePeriodSettlements } from "@/hooks/useLeavePeriodSettlements";
 import { useLeaveGrants } from "@/hooks/useLeaveGrants";
+import { useCompTimeGrants } from "@/hooks/useCompTimeGrants";
+import { useCompTimeSettlements } from "@/hooks/useCompTimeSettlements";
 import { useAuth } from "@/contexts/AuthContext";
 import { LeaveApplicationFormData, LeaveApplication, LeaveBalance } from "@/types/leave";
 import { OvertimeApplication, OvertimeApplicationFormData } from "@/types/overtime";
@@ -56,6 +58,13 @@ import { LeaveGrantFormData } from "@/types/leaveGrant";
 import { leaveApi } from "@/services/leaveApi";
 import { employeeApi } from "@/services/employeeApi";
 import { Employee } from "@/types/employee";
+
+// 依勞基法加班費率換算補休時數，僅供申請當下試算顯示，實際核准以後端計算為準
+const estimateCompHours = (hours: number, onHoliday: boolean) => {
+  if (!(hours > 0)) return 0;
+  const raw = onHoliday ? hours * 2 : Math.min(hours, 2) * (4 / 3) + Math.max(hours - 2, 0) * (5 / 3);
+  return Math.round(raw * 10) / 10;
+};
 
 const LeaveManagement = () => {
   const { user } = useAuth();
@@ -86,6 +95,10 @@ const LeaveManagement = () => {
   const [grantForm, setGrantForm] = useState<Partial<LeaveGrantFormData>>({});
   const [selectedGrantLeaveType, setSelectedGrantLeaveType] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
+
+  const { compTimeGrants } = useCompTimeGrants();
+  const { pendingSettlements: pendingCompSettlements, settleGrant: settleCompGrant } = useCompTimeSettlements();
+  const [viewingCompLedgerFor, setViewingCompLedgerFor] = useState<LeaveBalance | null>(null);
 
   const VALID_TABS = ["applications", "overtime", "balance", "settlement", "grants", "types", "holidays"];
   const [searchParams, setSearchParams] = useSearchParams();
@@ -119,10 +132,12 @@ const LeaveManagement = () => {
     unit: 'day'
   });
   const [leaveAttachment, setLeaveAttachment] = useState<File | null>(null);
-  const selectedLeaveTypeNeedsProof = leaveTypes.find((t) => t.id.toString() === selectedLeaveType)?.needProof;
+  const selectedLeaveTypeInfo = leaveTypes.find((t) => t.id.toString() === selectedLeaveType);
+  const selectedLeaveTypeNeedsProof = selectedLeaveTypeInfo?.needProof;
+  const selectedLeaveTypeIsComp = selectedLeaveTypeInfo?.code === 'COMP';
 
   const [isAddOvertimeOpen, setIsAddOvertimeOpen] = useState(false);
-  const [overtimeFormData, setOvertimeFormData] = useState<Partial<OvertimeApplicationFormData>>({});
+  const [overtimeFormData, setOvertimeFormData] = useState<Partial<OvertimeApplicationFormData>>({ compensationType: 'pay' });
 
   const [reviewingApplication, setReviewingApplication] = useState<LeaveApplication | null>(null);
   const [reviewAction, setReviewAction] = useState<'approved' | 'rejected'>('approved');
@@ -138,16 +153,23 @@ const LeaveManagement = () => {
     annualLeaveUsed: 0,
     sickLeave: 0,
     sickLeaveUsed: 0,
-    compensatoryLeave: 0,
-    compensatoryLeaveUsed: 0,
   });
 
   const handleSubmitApplication = async () => {
-    if (!formData.employeeId || !formData.leaveTypeId || !formData.startDate || !formData.endDate || !formData.reason) {
+    if (!formData.employeeId || !formData.leaveTypeId || !formData.startDate || !formData.reason) {
+      return;
+    }
+    if (selectedLeaveTypeIsComp) {
+      if (!formData.startTime || !formData.endTime) return;
+    } else if (!formData.endDate) {
       return;
     }
 
-    await createLeaveApplication(formData as LeaveApplicationFormData, leaveAttachment || undefined);
+    const payload: LeaveApplicationFormData = selectedLeaveTypeIsComp
+      ? { ...(formData as LeaveApplicationFormData), endDate: formData.startDate }
+      : (formData as LeaveApplicationFormData);
+
+    await createLeaveApplication(payload, leaveAttachment || undefined);
     setIsAddLeaveOpen(false);
     setFormData({ unit: 'day' });
     setSelectedLeaveType("");
@@ -180,7 +202,7 @@ const LeaveManagement = () => {
 
     await createOvertimeApplication(overtimeFormData as OvertimeApplicationFormData);
     setIsAddOvertimeOpen(false);
-    setOvertimeFormData({});
+    setOvertimeFormData({ compensationType: 'pay' });
   };
 
   const openOvertimeReviewDialog = (application: OvertimeApplication, action: 'approved' | 'rejected') => {
@@ -224,8 +246,6 @@ const LeaveManagement = () => {
       annualLeaveUsed: balance.annualLeaveUsed,
       sickLeave: balance.sickLeave,
       sickLeaveUsed: balance.sickLeaveUsed,
-      compensatoryLeave: balance.compensatoryLeave,
-      compensatoryLeaveUsed: balance.compensatoryLeaveUsed,
     });
   };
 
@@ -244,6 +264,10 @@ const LeaveManagement = () => {
     if (!settlingPeriod) return;
     await settlePeriod(settlingPeriod.id, carryOverDays);
     setSettlingPeriod(null);
+  };
+
+  const handleSettleComp = async (id: number) => {
+    await settleCompGrant(id);
   };
 
   const getStatusDisplay = (status: string) => {
@@ -343,6 +367,29 @@ const LeaveManagement = () => {
                   onChange={(e) => setOvertimeFormData({ ...overtimeFormData, reason: e.target.value })}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="overtimeCompensationType">領取方式</Label>
+                <Select
+                  value={overtimeFormData.compensationType || 'pay'}
+                  onValueChange={(value: 'pay' | 'comp') => setOvertimeFormData({ ...overtimeFormData, compensationType: value })}
+                >
+                  <SelectTrigger id="overtimeCompensationType">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pay">領加班費</SelectItem>
+                    <SelectItem value="comp">換補休</SelectItem>
+                  </SelectContent>
+                </Select>
+                {overtimeFormData.compensationType === 'comp' && overtimeFormData.startTime && overtimeFormData.endTime && (
+                  <p className="text-xs text-muted-foreground">
+                    依勞基法加班費率概算，平日加班約可換 {estimateCompHours(
+                      (new Date(`2000-01-01T${overtimeFormData.endTime}`).getTime() - new Date(`2000-01-01T${overtimeFormData.startTime}`).getTime()) / (1000 * 60 * 60),
+                      false
+                    )} 小時補休；若當天為假日出勤，核准時會以較高倍率換算。實際核准時數以核准結果為準，需在加班日起 6 個月內休畢，逾期未休會折算加班費。
+                  </p>
+                )}
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddOvertimeOpen(false)}>
@@ -400,42 +447,88 @@ const LeaveManagement = () => {
                   </Select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="unit">請假單位</Label>
-                <Select 
-                  value={formData.unit} 
-                  onValueChange={(value: 'day' | 'halfDay' | 'hour') => setFormData({...formData, unit: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="選擇單位" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="day">天</SelectItem>
-                    <SelectItem value="halfDay">半天</SelectItem>
-                    <SelectItem value="hour">小時</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startDate">開始日期</Label>
-                  <Input 
-                    id="startDate" 
-                    type="date" 
-                    value={formData.startDate || ''}
-                    onChange={(e) => setFormData({...formData, startDate: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="endDate">結束日期</Label>
-                  <Input 
-                    id="endDate" 
-                    type="date" 
-                    value={formData.endDate || ''}
-                    onChange={(e) => setFormData({...formData, endDate: e.target.value})}
-                  />
-                </div>
-              </div>
+              {selectedLeaveTypeIsComp ? (
+                <>
+                  {(() => {
+                    const enteredBalance = leaveBalances.find((b) => b.employeeId === formData.employeeId);
+                    if (!enteredBalance) return null;
+                    return (
+                      <p className="text-sm text-muted-foreground">
+                        目前可用補休：{(enteredBalance.compensatoryLeave - enteredBalance.compensatoryLeaveUsed).toFixed(1)} 小時
+                        {enteredBalance.compensatoryLeaveDeadline && `（最近一筆將於 ${enteredBalance.compensatoryLeaveDeadline} 到期）`}
+                      </p>
+                    );
+                  })()}
+                  <div className="space-y-2">
+                    <Label htmlFor="compDate">補休日期</Label>
+                    <Input
+                      id="compDate"
+                      type="date"
+                      value={formData.startDate || ''}
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value, endDate: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="compStartTime">開始時間</Label>
+                      <Input
+                        id="compStartTime"
+                        type="time"
+                        value={formData.startTime || ''}
+                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="compEndTime">結束時間</Label>
+                      <Input
+                        id="compEndTime"
+                        type="time"
+                        value={formData.endTime || ''}
+                        onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="unit">請假單位</Label>
+                    <Select
+                      value={formData.unit}
+                      onValueChange={(value: 'day' | 'halfDay' | 'hour') => setFormData({...formData, unit: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="選擇單位" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="day">天</SelectItem>
+                        <SelectItem value="halfDay">半天</SelectItem>
+                        <SelectItem value="hour">小時</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="startDate">開始日期</Label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        value={formData.startDate || ''}
+                        onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="endDate">結束日期</Label>
+                      <Input
+                        id="endDate"
+                        type="date"
+                        value={formData.endDate || ''}
+                        onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="reason">請假事由</Label>
                 <Textarea
@@ -537,7 +630,7 @@ const LeaveManagement = () => {
                         <TableCell>{application.type}</TableCell>
                         <TableCell>{application.startDate}</TableCell>
                         <TableCell>{application.endDate}</TableCell>
-                        <TableCell>{application.days}</TableCell>
+                        <TableCell>{application.days}{application.type === '補休' ? ' 小時' : ' 天'}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             {getStatusDisplay(application.status)}
@@ -614,9 +707,20 @@ const LeaveManagement = () => {
                     </div>
                   ) : null;
                 })()}
+                {reviewAction === 'approved' && reviewingApplication.type === '補休' && (() => {
+                  const balance = leaveBalances.find((b) => b.employeeId === reviewingApplication.employeeId);
+                  if (!balance) return null;
+                  return (
+                    <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
+                      目前可用補休 <strong>{(balance.compensatoryLeave - balance.compensatoryLeaveUsed).toFixed(1)}</strong> 小時，核准時數不可超過剩餘時數（依到期日近到遠自動扣抵）。
+                    </div>
+                  );
+                })()}
                 {reviewAction === 'approved' && (
                   <div className="space-y-2">
-                    <Label htmlFor="approvedDays">核准天數（可依證明文件調整，例如喪假依親屬關係核定天數）</Label>
+                    <Label htmlFor="approvedDays">
+                      {reviewingApplication.type === '補休' ? '核准時數（小時）' : '核准天數（可依證明文件調整，例如喪假依親屬關係核定天數）'}
+                    </Label>
                     <Input
                       id="approvedDays"
                       type="number"
@@ -672,6 +776,7 @@ const LeaveManagement = () => {
                       <TableHead>時段</TableHead>
                       <TableHead>時數</TableHead>
                       <TableHead>假日加班</TableHead>
+                      <TableHead>領取方式</TableHead>
                       <TableHead>狀態</TableHead>
                       <TableHead className="text-right">操作</TableHead>
                     </TableRow>
@@ -690,6 +795,11 @@ const LeaveManagement = () => {
                           ) : (
                             <XCircle className="h-4 w-4 text-gray-300" />
                           )}
+                        </TableCell>
+                        <TableCell>
+                          {application.compensationType === 'comp'
+                            ? `換補休${application.compHours ? `（${application.compHours} 小時）` : ''}`
+                            : '領加班費'}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center">
@@ -810,6 +920,9 @@ const LeaveManagement = () => {
                         <TableCell>{balance.compensatoryLeave}</TableCell>
                         <TableCell>{balance.compensatoryLeaveUsed}</TableCell>
                         <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => setViewingCompLedgerFor(balance)}>
+                            補休明細
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => openAdjustDialog(balance)}>
                             調整
                           </Button>
@@ -872,28 +985,9 @@ const LeaveManagement = () => {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="adjustComp">補休可用</Label>
-                    <Input
-                      id="adjustComp"
-                      type="number"
-                      min={0}
-                      value={adjustForm.compensatoryLeave}
-                      onChange={(e) => setAdjustForm({ ...adjustForm, compensatoryLeave: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="adjustCompUsed">補休已用</Label>
-                    <Input
-                      id="adjustCompUsed"
-                      type="number"
-                      min={0}
-                      value={adjustForm.compensatoryLeaveUsed}
-                      onChange={(e) => setAdjustForm({ ...adjustForm, compensatoryLeaveUsed: Number(e.target.value) })}
-                    />
-                  </div>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                  補休可用／已用時數改由加班核准與請假使用自動計算，不再開放手動調整；請至「補休明細」查看來源。
+                </p>
               </div>
             )}
             <DialogFooter>
@@ -901,6 +995,64 @@ const LeaveManagement = () => {
                 取消
               </Button>
               <Button onClick={handleConfirmAdjust}>儲存</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!viewingCompLedgerFor} onOpenChange={(open) => !open && setViewingCompLedgerFor(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>補休明細</DialogTitle>
+              <DialogDescription>
+                {viewingCompLedgerFor && `${viewingCompLedgerFor.employee}（${viewingCompLedgerFor.employeeId}）`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>加班日期</TableHead>
+                    <TableHead>換算時數</TableHead>
+                    <TableHead>已用</TableHead>
+                    <TableHead>剩餘</TableHead>
+                    <TableHead>應休畢期限</TableHead>
+                    <TableHead>狀態</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {compTimeGrants.filter((g) => g.employeeId === viewingCompLedgerFor?.employeeId).length > 0 ? (
+                    compTimeGrants
+                      .filter((g) => g.employeeId === viewingCompLedgerFor?.employeeId)
+                      .map((grant) => (
+                        <TableRow key={grant.id}>
+                          <TableCell>{grant.overtimeDate}</TableCell>
+                          <TableCell>{grant.hours}</TableCell>
+                          <TableCell>{grant.usedHours}</TableCell>
+                          <TableCell>{(grant.hours - grant.usedHours).toFixed(1)}</TableCell>
+                          <TableCell>{grant.deadline}</TableCell>
+                          <TableCell>
+                            {grant.settledAt
+                              ? `已結算（折算 ${grant.cashOutHours} 小時）`
+                              : new Date(grant.deadline) < new Date()
+                              ? "已逾期，待 HR 結算"
+                              : "可使用"}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">
+                        尚無補休紀錄
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setViewingCompLedgerFor(null)}>
+                關閉
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1006,6 +1158,57 @@ const LeaveManagement = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>補休結算</CardTitle>
+              <CardDescription>
+                已逾期（超過加班日起 6 個月）但尚未休完的補休額度，剩餘時數需全數折算加班費發放。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>員工</TableHead>
+                      <TableHead>加班日期</TableHead>
+                      <TableHead>核給時數</TableHead>
+                      <TableHead>已用</TableHead>
+                      <TableHead>剩餘（待折現）</TableHead>
+                      <TableHead>應休畢期限</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pendingCompSettlements.length > 0 ? (
+                      pendingCompSettlements.map((grant) => (
+                        <TableRow key={grant.id}>
+                          <TableCell>{grant.employee}（{grant.employeeId}）</TableCell>
+                          <TableCell>{grant.overtimeDate}</TableCell>
+                          <TableCell>{grant.hours}</TableCell>
+                          <TableCell>{grant.usedHours}</TableCell>
+                          <TableCell className="text-red-600">{(grant.hours - grant.usedHours).toFixed(1)}</TableCell>
+                          <TableCell>{grant.deadline}</TableCell>
+                          <TableCell className="text-right">
+                            <Button size="sm" onClick={() => handleSettleComp(grant.id)}>
+                              結算
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                          目前沒有待結算的補休額度
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="grants">

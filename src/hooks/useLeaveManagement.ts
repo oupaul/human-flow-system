@@ -94,7 +94,7 @@ export const useLeaveManagement = () => {
 
   const adjustLeaveBalance = async (
     balance: LeaveBalance,
-    updates: { annualLeaveUsed: number; sickLeave: number; sickLeaveUsed: number; compensatoryLeave: number; compensatoryLeaveUsed: number }
+    updates: { annualLeaveUsed: number; sickLeave: number; sickLeaveUsed: number }
   ) => {
     try {
       if (balance.activePeriodId && updates.annualLeaveUsed !== balance.annualLeaveUsed) {
@@ -103,8 +103,6 @@ export const useLeaveManagement = () => {
       await leaveApi.updateLeaveBalance(balance.employeeId, {
         sickLeave: updates.sickLeave,
         sickLeaveUsed: updates.sickLeaveUsed,
-        compensatoryLeave: updates.compensatoryLeave,
-        compensatoryLeaveUsed: updates.compensatoryLeaveUsed,
       });
       await loadAllData();
       toast.success("假別餘額已調整");

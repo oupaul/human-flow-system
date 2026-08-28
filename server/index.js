@@ -129,6 +129,54 @@ function addOneYear(dateStr) {
   return d.toISOString().slice(0, 10);
 }
 
+function addMonths(dateStr, months) {
+  const d = new Date(dateStr);
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+
+// 依勞基法加班費率換算補休時數：平日加班前 2 小時 1 又 1/3 倍、超過 2 小時
+// 部分 1 又 2/3 倍；休息日/例假日/國定假日出勤則以加倍發給精神概算為 2 倍
+// （不細分休息日 4 個級距的累進費率，如需精確覆核仍請 HR 依實際情況調整）
+function calculateCompHours(hours, onHoliday) {
+  const raw = onHoliday
+    ? hours * 2
+    : Math.min(hours, 2) * (4 / 3) + Math.max(hours - 2, 0) * (5 / 3);
+  return Math.round(raw * 10) / 10;
+}
+
+// 依到期日由近到遠依序扣抵補休額度；額度不足會丟出錯誤，呼叫端需在此之前
+// 就先檢查總剩餘時數，避免扣到一半才失敗造成資料不一致
+async function allocateCompHours(pool, employeeId, hours, leaveApplicationId) {
+  const [grants] = await pool.execute(
+    `SELECT id, hours, usedHours FROM comp_time_grants
+     WHERE employeeId = ? AND settledAt IS NULL AND deadline >= CURDATE() AND hours > usedHours
+     ORDER BY deadline ASC, id ASC`,
+    [employeeId]
+  );
+  let remaining = hours;
+  for (const grant of grants) {
+    if (remaining <= 0.001) break;
+    const available = grant.hours - grant.usedHours;
+    const take = Math.min(available, remaining);
+    if (take <= 0) continue;
+    await pool.execute('UPDATE comp_time_grants SET usedHours = usedHours + ? WHERE id = ?', [take, grant.id]);
+    await pool.execute('INSERT INTO comp_time_usages (grantId, leaveApplicationId, hours) VALUES (?, ?, ?)', [grant.id, leaveApplicationId, take]);
+    remaining -= take;
+  }
+  if (remaining > 0.001) {
+    throw new Error('INSUFFICIENT_COMP_HOURS');
+  }
+}
+
+async function releaseCompHours(pool, leaveApplicationId) {
+  const [usages] = await pool.execute('SELECT id, grantId, hours FROM comp_time_usages WHERE leaveApplicationId = ?', [leaveApplicationId]);
+  for (const usage of usages) {
+    await pool.execute('UPDATE comp_time_grants SET usedHours = GREATEST(0, usedHours - ?) WHERE id = ?', [usage.hours, usage.grantId]);
+  }
+  await pool.execute('DELETE FROM comp_time_usages WHERE leaveApplicationId = ?', [leaveApplicationId]);
+}
+
 // 計算某個特休週年期間應發放的天數：以該期間結束前一刻的年資判定，
 // 這樣第一年到職滿 6 個月時自然會對應到 3 天、滿 1 年對應到 7 天…以此類推
 function computePeriodGrant(joinDate, periodEnd) {
@@ -854,10 +902,28 @@ api.post('/leave-applications', async (req, res) => {
     const employeeId = req.user.role === 'employee' ? req.user.employeeId : req.body.employeeId;
     const { leaveTypeId, startDate, endDate, startTime, endTime, reason, deputy } = req.body;
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const timeDiff = end.getTime() - start.getTime();
-    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+    const [leaveTypeRows] = await pool.execute('SELECT code FROM leave_types WHERE id = ?', [leaveTypeId]);
+    const leaveTypeCode = leaveTypeRows[0]?.code;
+
+    let daysDiff;
+    if (leaveTypeCode === 'COMP') {
+      // 補休以小時為單位，同一天內用開始/結束時間精確計算，不比照其他假別用日期差
+      if (!startTime || !endTime || startDate !== endDate) {
+        return res.status(400).json({ error: '補休請選擇同一天的開始與結束時間' });
+      }
+      const start = new Date(`${startDate}T${startTime}`);
+      const end = new Date(`${startDate}T${endTime}`);
+      const hoursDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      if (!(hoursDiff > 0)) {
+        return res.status(400).json({ error: '結束時間必須晚於開始時間' });
+      }
+      daysDiff = Math.round(hoursDiff * 10) / 10;
+    } else {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const timeDiff = end.getTime() - start.getTime();
+      daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+    }
 
     // 若該員工此假別有尚未到期、還有剩餘天數的核給紀錄，自動關聯（同一事由分次請假用）
     const [grantRows] = await pool.execute(
@@ -886,10 +952,11 @@ api.post('/leave-applications', async (req, res) => {
     `, [result.insertId]);
 
     const application = newApplication[0];
+    const daysLabel = leaveTypeCode === 'COMP' ? `${application.days} 小時` : `${application.days} 天`;
     sendNotification(
       pool,
       '新的請假申請待審核',
-      `${application.employee}（${application.employeeId}）提交了一筆${application.type}申請（${application.startDate} ~ ${application.endDate}，共 ${application.days} 天），請至系統審核。`
+      `${application.employee}（${application.employeeId}）提交了一筆${application.type}申請（${application.startDate} ~ ${application.endDate}，共 ${daysLabel}），請至系統審核。`
     );
 
     res.json(application);
@@ -993,6 +1060,18 @@ api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (re
       }
     }
 
+    // 補休假別核准前先確認剩餘補休時數足夠，避免核准後才發現額度不足
+    if (application.leaveTypeCode === 'COMP' && status === 'approved' && application.previousStatus !== 'approved') {
+      const [balanceRows] = await pool.execute(
+        `SELECT IFNULL(SUM(hours - usedHours), 0) as remaining FROM comp_time_grants
+         WHERE employeeId = ? AND settledAt IS NULL AND deadline >= CURDATE()`,
+        [application.employeeId]
+      );
+      if (Number(balanceRows[0].remaining) < finalDays - 0.001) {
+        return res.status(400).json({ error: `補休餘額不足，目前可用 ${balanceRows[0].remaining} 小時` });
+      }
+    }
+
     await pool.execute(
       'UPDATE leave_applications SET status = ?, approver = ?, days = ?, reviewNote = ? WHERE id = ?',
       [status, approver, finalDays, reviewNote || null, id]
@@ -1018,6 +1097,15 @@ api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (re
       }
     }
 
+    // 補休假別：核准時依到期日由近到遠扣抵補休額度，取消核准時歸還
+    if (application.leaveTypeCode === 'COMP') {
+      if (status === 'approved' && application.previousStatus !== 'approved') {
+        await allocateCompHours(pool, application.employeeId, finalDays, id);
+      } else if (status !== 'approved' && application.previousStatus === 'approved') {
+        await releaseCompHours(pool, id);
+      }
+    }
+
     const [updatedApplication] = await pool.execute(`
       SELECT
         la.*,
@@ -1039,28 +1127,45 @@ api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (re
 // 假別餘額 API 路由
 
 // 特休（annualLeave/annualLeaveUsed）改由目前尚未結算的 leave_periods 即時計算：
-// 可用天數＝本期發放＋上期遞延，已用天數＝本期已核准的特休申請累計
+// 可用天數＝本期發放＋上期遞延，已用天數＝本期已核准的特休申請累計。
+// 補休（compensatoryLeave/compensatoryLeaveUsed）改由未到期、未結算的 comp_time_grants
+// 即時加總，不再是可手動調整的欄位（來源是加班核准時自動開立的額度）
+const LEAVE_BALANCE_SELECT = `
+  SELECT
+    lb.id, lb.employeeId, lb.sickLeave, lb.sickLeaveUsed, lb.updated_at,
+    e.name as employee,
+    lp.id as activePeriodId,
+    IFNULL(lp.grantedDays + lp.carriedInDays, 0) as annualLeave,
+    IFNULL(lp.usedDays, 0) as annualLeaveUsed,
+    IFNULL(comp.granted, 0) as compensatoryLeave,
+    IFNULL(comp.used, 0) as compensatoryLeaveUsed,
+    comp.nearestDeadline as compensatoryLeaveDeadline
+  FROM leave_balances lb
+  LEFT JOIN employees e ON lb.employeeId = e.employeeId
+  LEFT JOIN leave_periods lp ON lp.id = (
+    SELECT id FROM leave_periods lp2
+    WHERE lp2.employeeId = lb.employeeId AND lp2.settledAt IS NULL
+    ORDER BY lp2.periodStart DESC LIMIT 1
+  )
+  LEFT JOIN (
+    SELECT employeeId,
+      SUM(hours) as granted,
+      SUM(usedHours) as used,
+      MIN(CASE WHEN hours > usedHours THEN deadline END) as nearestDeadline
+    FROM comp_time_grants
+    WHERE settledAt IS NULL AND deadline >= CURDATE()
+    GROUP BY employeeId
+  ) comp ON comp.employeeId = lb.employeeId
+`;
+
 api.get('/leave-balances', async (req, res) => {
   try {
     // employee 角色只能看到自己的假別餘額
     const isEmployee = req.user.role === 'employee';
-    const [rows] = await pool.execute(`
-      SELECT
-        lb.id, lb.employeeId, lb.sickLeave, lb.sickLeaveUsed, lb.compensatoryLeave, lb.compensatoryLeaveUsed, lb.updated_at,
-        e.name as employee,
-        lp.id as activePeriodId,
-        IFNULL(lp.grantedDays + lp.carriedInDays, 0) as annualLeave,
-        IFNULL(lp.usedDays, 0) as annualLeaveUsed
-      FROM leave_balances lb
-      LEFT JOIN employees e ON lb.employeeId = e.employeeId
-      LEFT JOIN leave_periods lp ON lp.id = (
-        SELECT id FROM leave_periods lp2
-        WHERE lp2.employeeId = lb.employeeId AND lp2.settledAt IS NULL
-        ORDER BY lp2.periodStart DESC LIMIT 1
-      )
-      ${isEmployee ? 'WHERE lb.employeeId = ?' : ''}
-      ORDER BY lb.employeeId
-    `, isEmployee ? [req.user.employeeId] : []);
+    const [rows] = await pool.execute(
+      `${LEAVE_BALANCE_SELECT} ${isEmployee ? 'WHERE lb.employeeId = ?' : ''} ORDER BY lb.employeeId`,
+      isEmployee ? [req.user.employeeId] : []
+    );
     res.json(rows);
   } catch (error) {
     console.error('Error fetching leave balances:', error);
@@ -1071,29 +1176,14 @@ api.get('/leave-balances', async (req, res) => {
 api.put('/leave-balances/:employeeId', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { employeeId } = req.params;
-    const { sickLeave, sickLeaveUsed, compensatoryLeave, compensatoryLeaveUsed } = req.body;
+    const { sickLeave, sickLeaveUsed } = req.body;
 
     await pool.execute(
-      'UPDATE leave_balances SET sickLeave = ?, sickLeaveUsed = ?, compensatoryLeave = ?, compensatoryLeaveUsed = ? WHERE employeeId = ?',
-      [sickLeave, sickLeaveUsed, compensatoryLeave, compensatoryLeaveUsed, employeeId]
+      'UPDATE leave_balances SET sickLeave = ?, sickLeaveUsed = ? WHERE employeeId = ?',
+      [sickLeave, sickLeaveUsed, employeeId]
     );
 
-    const [updatedBalance] = await pool.execute(`
-      SELECT
-        lb.id, lb.employeeId, lb.sickLeave, lb.sickLeaveUsed, lb.compensatoryLeave, lb.compensatoryLeaveUsed, lb.updated_at,
-        e.name as employee,
-        lp.id as activePeriodId,
-        IFNULL(lp.grantedDays + lp.carriedInDays, 0) as annualLeave,
-        IFNULL(lp.usedDays, 0) as annualLeaveUsed
-      FROM leave_balances lb
-      LEFT JOIN employees e ON lb.employeeId = e.employeeId
-      LEFT JOIN leave_periods lp ON lp.id = (
-        SELECT id FROM leave_periods lp2
-        WHERE lp2.employeeId = lb.employeeId AND lp2.settledAt IS NULL
-        ORDER BY lp2.periodStart DESC LIMIT 1
-      )
-      WHERE lb.employeeId = ?
-    `, [employeeId]);
+    const [updatedBalance] = await pool.execute(`${LEAVE_BALANCE_SELECT} WHERE lb.employeeId = ?`, [employeeId]);
 
     res.json(updatedBalance[0]);
   } catch (error) {
@@ -1352,7 +1442,7 @@ api.post('/overtime-applications', async (req, res) => {
   try {
     // employee 角色只能為自己申請，強制以登入帳號綁定的 employeeId 覆蓋前端傳入值
     const employeeId = req.user.role === 'employee' ? req.user.employeeId : req.body.employeeId;
-    const { date, startTime, endTime, reason } = req.body;
+    const { date, startTime, endTime, reason, compensationType } = req.body;
     if (!employeeId || !date || !startTime || !endTime || !reason) {
       return res.status(400).json({ error: '所有必填欄位皆需填寫' });
     }
@@ -1370,9 +1460,12 @@ api.post('/overtime-applications', async (req, res) => {
       ? Boolean(holidayRows[0].isHoliday)
       : (dayOfWeek === 0 || dayOfWeek === 6);
 
+    const finalCompensationType = compensationType === 'comp' ? 'comp' : 'pay';
+    const compHours = calculateCompHours(hours, onHoliday);
+
     const [result] = await pool.execute(
-      'INSERT INTO overtime_applications (employeeId, date, startTime, endTime, hours, reason, onHoliday, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [employeeId, date, startTime, endTime, hours, reason, onHoliday, 'pending']
+      'INSERT INTO overtime_applications (employeeId, date, startTime, endTime, hours, reason, onHoliday, compensationType, compHours, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [employeeId, date, startTime, endTime, hours, reason, onHoliday, finalCompensationType, compHours, 'pending']
     );
 
     const [newApplication] = await pool.execute(`
@@ -1401,10 +1494,40 @@ api.put('/overtime-applications/:id/status', requireRole(...STAFF_ROLES), async 
     const { id } = req.params;
     const { status, approver, reviewNote } = req.body;
 
+    const [beforeRows] = await pool.execute(
+      'SELECT employeeId, date, compensationType, compHours, status as previousStatus FROM overtime_applications WHERE id = ?',
+      [id]
+    );
+    const application = beforeRows[0];
+    if (!application) {
+      return res.status(404).json({ error: '找不到該筆加班申請' });
+    }
+
+    // 換補休的加班一旦補休已被請假申請使用，就不能取消核准，否則額度會變成負的
+    if (application.compensationType === 'comp' && status !== 'approved' && application.previousStatus === 'approved') {
+      const [grantRows] = await pool.execute('SELECT usedHours FROM comp_time_grants WHERE overtimeApplicationId = ?', [id]);
+      if (grantRows[0] && grantRows[0].usedHours > 0) {
+        return res.status(400).json({ error: '這筆加班換算的補休已被請假使用，無法取消核准' });
+      }
+    }
+
     await pool.execute(
       'UPDATE overtime_applications SET status = ?, approver = ?, reviewNote = ? WHERE id = ?',
       [status, approver, reviewNote || null, id]
     );
+
+    // 選擇換補休的加班申請：核准時依加班費率換算開立補休額度（6 個月內休畢），取消核准時移除
+    if (application.compensationType === 'comp') {
+      if (status === 'approved' && application.previousStatus !== 'approved') {
+        const deadline = addMonths(application.date, 6);
+        await pool.execute(
+          'INSERT INTO comp_time_grants (employeeId, overtimeApplicationId, hours, deadline) VALUES (?, ?, ?, ?)',
+          [application.employeeId, id, application.compHours, deadline]
+        );
+      } else if (status !== 'approved' && application.previousStatus === 'approved') {
+        await pool.execute('DELETE FROM comp_time_grants WHERE overtimeApplicationId = ?', [id]);
+      }
+    }
 
     const [updatedApplication] = await pool.execute(`
       SELECT o.*, e.name as employee
@@ -1417,6 +1540,92 @@ api.put('/overtime-applications/:id/status', requireRole(...STAFF_ROLES), async 
   } catch (error) {
     console.error('Error updating overtime application status:', error);
     res.status(500).json({ error: '更新加班申請狀態失敗', detail: error.message });
+  }
+});
+
+// 補休額度 API 路由
+
+// 查詢補休額度明細（哪幾筆加班換來的、各自到期日與使用狀況）；
+// employee 角色只能看自己的，HR/主管可用 employeeId 篩選或看全公司
+api.get('/comp-time-grants', async (req, res) => {
+  try {
+    const isEmployee = req.user.role === 'employee';
+    const employeeId = isEmployee ? req.user.employeeId : req.query.employeeId;
+    const params = [];
+    let query = `
+      SELECT ctg.*, e.name as employee, o.date as overtimeDate, o.hours as overtimeHours
+      FROM comp_time_grants ctg
+      LEFT JOIN employees e ON ctg.employeeId = e.employeeId
+      LEFT JOIN overtime_applications o ON ctg.overtimeApplicationId = o.id
+    `;
+    if (employeeId) {
+      query += ' WHERE ctg.employeeId = ?';
+      params.push(employeeId);
+    }
+    query += ' ORDER BY ctg.deadline ASC';
+    const [rows] = await pool.execute(query, params);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching comp time grants:', error);
+    res.status(500).json({ error: '獲取補休額度失敗', detail: error.message });
+  }
+});
+
+// 列出已到期但尚未結算、還有剩餘時數的補休額度，供 HR 折算加班費
+api.get('/comp-time-grants/pending-settlement', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT ctg.*, e.name as employee, e.monthlySalary, o.date as overtimeDate
+      FROM comp_time_grants ctg
+      LEFT JOIN employees e ON ctg.employeeId = e.employeeId
+      LEFT JOIN overtime_applications o ON ctg.overtimeApplicationId = o.id
+      WHERE ctg.settledAt IS NULL AND ctg.deadline < CURDATE() AND ctg.hours > ctg.usedHours
+      ORDER BY ctg.deadline
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching pending comp time settlements:', error);
+    res.status(500).json({ error: '獲取待結算補休清單失敗', detail: error.message });
+  }
+});
+
+// 結算一筆到期未休完的補休額度：剩餘時數全數折算加班費（比照勞基法函釋，
+// 補休僅能遞延一次的精神，逾期不可再遞延，需以加班費結清）
+api.post('/comp-time-grants/:id/settle', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.execute(`
+      SELECT ctg.*, e.monthlySalary
+      FROM comp_time_grants ctg
+      LEFT JOIN employees e ON ctg.employeeId = e.employeeId
+      WHERE ctg.id = ?
+    `, [id]);
+    const grant = rows[0];
+    if (!grant) {
+      return res.status(404).json({ error: '找不到該筆補休額度' });
+    }
+    if (grant.settledAt) {
+      return res.status(400).json({ error: '這筆補休額度已經結算過' });
+    }
+
+    const cashOutHours = grant.hours - grant.usedHours;
+    const hourlyWage = grant.monthlySalary ? grant.monthlySalary / 240 : null;
+    const cashOutAmount = hourlyWage !== null ? Math.round(cashOutHours * hourlyWage) : null;
+
+    await pool.execute(
+      'UPDATE comp_time_grants SET settledAt = NOW(), cashOutHours = ?, cashOutAmount = ? WHERE id = ?',
+      [cashOutHours, cashOutAmount, id]
+    );
+
+    res.json({
+      message: '結算完成',
+      cashOutHours,
+      cashOutAmount,
+      warning: hourlyWage === null ? '該員工尚未設定月薪，無法計算折現金額，請補上月薪後自行換算' : null,
+    });
+  } catch (error) {
+    console.error('Error settling comp time grant:', error);
+    res.status(500).json({ error: '補休結算失敗', detail: error.message });
   }
 });
 
