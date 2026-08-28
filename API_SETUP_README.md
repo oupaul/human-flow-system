@@ -42,11 +42,13 @@ mysql -u root -p hrms_database < server/schema.sql
 
 （使用 Docker 部署時此步驟會自動執行，詳見 [`DEPLOY.md`](DEPLOY.md)）
 
-**已存在資料庫、需要升級到「特休週年結算」功能的既有部署**，請改套用：
+**已存在資料庫的既有部署**，依序套用尚未執行過的遷移檔（`server/migrations/` 目錄下按編號順序）：
 
 ```sh
 mysql -u root -p hrms_database < server/migrations/001_leave_periods.sql
 npm run migrate:leave-periods   # 幫既有在職員工補建目前這期的特休週年紀錄
+
+mysql -u root -p hrms_database < server/migrations/002_leave_grants.sql   # 假別核給功能
 ```
 
 ## 步驟 3：安裝套件並建立管理員帳號
@@ -125,6 +127,12 @@ npm run dev
 - `GET /api/leave-periods?employeeId=EMP001` — 查詢特休週年紀錄（含歷史已結算的期間），不帶 employeeId 則列出全公司
 - `GET /api/leave-periods/pending-settlement` — 列出已到期但尚未結算的期間，並附計算好的應強制折現天數與可選遞延/折現天數
 - `POST /api/leave-periods/:id/settle` — `{ carryOverDays }`，結算一期並自動開出下一期；回傳折現天數、折現金額（依員工月薪試算，未設定月薪則為 `null`）與遞延天數
+
+### 假別核給（僅 HR/主管）
+適用喪假、婚假等「同一事由分次請假」的假別：HR 審核員工提供的證明文件後，直接核給總天數與應休畢期限，之後同一員工、同一假別的請假申請會自動關聯到這筆核給並從中扣抵，核准時若超過剩餘天數會被擋下（回傳 400）。
+- `GET /api/leave-grants?employeeId=EMP001` — 查詢核給紀錄，不帶 employeeId 則列出全公司
+- `POST /api/leave-grants` — `{ employeeId, leaveTypeId, totalDays, deadline, note }`，`deadline`/`note` 選填
+- `DELETE /api/leave-grants/:id` — 刪除核給紀錄（僅未被任何已核准申請使用時可刪）
 
 ### 國定假日行事曆
 - `GET /api/holidays?year=2026` — 所有登入者皆可查詢（可選年度篩選）

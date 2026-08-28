@@ -540,6 +540,76 @@ api.post('/leave-types', requireRole(...STAFF_ROLES), async (req, res) => {
   }
 });
 
+// 假別核給 API 路由（僅 HR/主管）：用於喪假、婚假等「同一事由分次請假」的
+// 假別，HR 審核員工提供的證明文件後直接核給總天數與應休畢期限
+
+api.get('/leave-grants', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const { employeeId } = req.query;
+    const params = [];
+    let query = `
+      SELECT lg.*, e.name as employee, lt.name as leaveTypeName
+      FROM leave_grants lg
+      LEFT JOIN employees e ON lg.employeeId = e.employeeId
+      LEFT JOIN leave_types lt ON lg.leaveTypeId = lt.id
+    `;
+    if (employeeId) {
+      query += ' WHERE lg.employeeId = ?';
+      params.push(employeeId);
+    }
+    query += ' ORDER BY lg.created_at DESC';
+    const [rows] = await pool.execute(query, params);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching leave grants:', error);
+    res.status(500).json({ error: '獲取假別核給紀錄失敗', detail: error.message });
+  }
+});
+
+api.post('/leave-grants', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const { employeeId, leaveTypeId, totalDays, deadline, note } = req.body;
+    if (!employeeId || !leaveTypeId || !totalDays) {
+      return res.status(400).json({ error: '員工、假別與核給天數為必填' });
+    }
+
+    const [result] = await pool.execute(
+      'INSERT INTO leave_grants (employeeId, leaveTypeId, totalDays, deadline, note, createdBy) VALUES (?, ?, ?, ?, ?, ?)',
+      [employeeId, leaveTypeId, totalDays, deadline || null, note || null, req.user.username]
+    );
+
+    const [newGrant] = await pool.execute(`
+      SELECT lg.*, e.name as employee, lt.name as leaveTypeName
+      FROM leave_grants lg
+      LEFT JOIN employees e ON lg.employeeId = e.employeeId
+      LEFT JOIN leave_types lt ON lg.leaveTypeId = lt.id
+      WHERE lg.id = ?
+    `, [result.insertId]);
+    res.json(newGrant[0]);
+  } catch (error) {
+    console.error('Error creating leave grant:', error);
+    res.status(500).json({ error: '新增假別核給失敗', detail: error.message });
+  }
+});
+
+api.delete('/leave-grants/:id', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.execute('SELECT usedDays FROM leave_grants WHERE id = ?', [id]);
+    if (!rows[0]) {
+      return res.status(404).json({ error: '找不到該筆核給紀錄' });
+    }
+    if (rows[0].usedDays > 0) {
+      return res.status(400).json({ error: '已有請假申請使用這筆核給，無法刪除' });
+    }
+    await pool.execute('DELETE FROM leave_grants WHERE id = ?', [id]);
+    res.json({ message: '核給紀錄已刪除' });
+  } catch (error) {
+    console.error('Error deleting leave grant:', error);
+    res.status(500).json({ error: '刪除假別核給失敗', detail: error.message });
+  }
+});
+
 // 請假申請 API 路由
 
 api.get('/leave-applications', async (req, res) => {
@@ -575,9 +645,19 @@ api.post('/leave-applications', async (req, res) => {
     const timeDiff = end.getTime() - start.getTime();
     const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
 
+    // 若該員工此假別有尚未到期、還有剩餘天數的核給紀錄，自動關聯（同一事由分次請假用）
+    const [grantRows] = await pool.execute(
+      `SELECT id FROM leave_grants
+       WHERE employeeId = ? AND leaveTypeId = ? AND usedDays < totalDays
+         AND (deadline IS NULL OR deadline >= CURDATE())
+       ORDER BY created_at ASC LIMIT 1`,
+      [employeeId, leaveTypeId]
+    );
+    const grantId = grantRows[0]?.id || null;
+
     const [result] = await pool.execute(
-      'INSERT INTO leave_applications (employeeId, leaveTypeId, startDate, endDate, startTime, endTime, days, reason, deputy, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [employeeId, leaveTypeId, startDate, endDate, startTime || null, endTime || null, daysDiff, reason, deputy || null, 'pending']
+      'INSERT INTO leave_applications (employeeId, leaveTypeId, grantId, startDate, endDate, startTime, endTime, days, reason, deputy, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [employeeId, leaveTypeId, grantId, startDate, endDate, startTime || null, endTime || null, daysDiff, reason, deputy || null, 'pending']
     );
 
     const [newApplication] = await pool.execute(`
@@ -664,7 +744,7 @@ api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (re
     const { status, approver, days } = req.body;
 
     const [beforeRows] = await pool.execute(`
-      SELECT la.employeeId, la.days, la.status as previousStatus, lt.code as leaveTypeCode, e.joinDate
+      SELECT la.employeeId, la.days, la.status as previousStatus, la.grantId, lt.code as leaveTypeCode, e.joinDate
       FROM leave_applications la
       LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
       LEFT JOIN employees e ON la.employeeId = e.employeeId
@@ -679,6 +759,19 @@ api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (re
     // 不一定等於員工申請當下試算的天數；未提供則沿用原本天數
     const finalDays = (days !== undefined && days !== null && days !== '') ? Number(days) : application.days;
 
+    // 若這筆申請關聯到假別核給紀錄，核准時檢查不能超過核給剩餘天數
+    let grant = null;
+    if (application.grantId) {
+      const [grantRows] = await pool.execute('SELECT * FROM leave_grants WHERE id = ?', [application.grantId]);
+      grant = grantRows[0] || null;
+    }
+    if (grant && status === 'approved' && application.previousStatus !== 'approved') {
+      const remaining = grant.totalDays - grant.usedDays;
+      if (finalDays > remaining) {
+        return res.status(400).json({ error: `超過核給天數上限，此核給剩餘 ${remaining} 天` });
+      }
+    }
+
     await pool.execute(
       'UPDATE leave_applications SET status = ?, approver = ?, days = ? WHERE id = ?',
       [status, approver, finalDays, id]
@@ -692,6 +785,15 @@ api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (re
       } else if (status !== 'approved' && application.previousStatus === 'approved') {
         const period = await getOrCreateActivePeriod(application.employeeId, application.joinDate);
         await pool.execute('UPDATE leave_periods SET usedDays = GREATEST(0, usedDays - ?) WHERE id = ?', [application.days, period.id]);
+      }
+    }
+
+    // 有關聯假別核給紀錄的申請，核准/取消核准時同步扣抵/退回核給的已用天數
+    if (grant) {
+      if (status === 'approved' && application.previousStatus !== 'approved') {
+        await pool.execute('UPDATE leave_grants SET usedDays = usedDays + ? WHERE id = ?', [finalDays, grant.id]);
+      } else if (status !== 'approved' && application.previousStatus === 'approved') {
+        await pool.execute('UPDATE leave_grants SET usedDays = GREATEST(0, usedDays - ?) WHERE id = ?', [application.days, grant.id]);
       }
     }
 

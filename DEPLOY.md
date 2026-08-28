@@ -55,13 +55,17 @@ ADMIN_PASSWORD=你的密碼 docker compose run --rm -e ADMIN_PASSWORD backend no
 
 看到 `✅ 已建立/更新管理員帳號：admin` 即成功。可用 `-e ADMIN_USERNAME=自訂帳號` 改帳號名稱。
 
-### 既有部署升級：套用特休週年結算功能
+### 既有部署升級：套用資料庫結構異動
 
-如果你的 `db_data` volume 是在「特休週年結算」功能上線前就建立的（已經有資料），需要額外套用結構異動並補建既有員工的週年紀錄：
+如果你的 `db_data` volume 是在某個功能上線前就建立的（已經有資料），需要依序套用尚未執行過的遷移檔（`server/migrations/` 目錄下按編號順序）：
 
 ```sh
+# 特休週年結算功能
 docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/001_leave_periods.sql
 npm run docker:migrate-leave-periods
+
+# 假別核給功能（喪假/婚假等同一事由分次請假）
+docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/002_leave_grants.sql
 ```
 
 全新安裝（第一次啟動 `db` 容器）不需要這步，`schema.sql` 已經包含最新結構。

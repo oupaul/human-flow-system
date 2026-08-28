@@ -19,6 +19,7 @@ export interface LeaveApplication {
   employeeId: string;
   employee: string;
   type: string;
+  grantId?: number | null;
   startDate: string;
   endDate: string;
   startTime?: string;

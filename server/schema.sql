@@ -52,11 +52,30 @@ CREATE TABLE IF NOT EXISTS leave_types (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- 假別核給表：用於「同一事由分次請假」的假別（如喪假、婚假）。HR 審核過員工
+-- 提供的證明文件後，直接核給總天數與應休畢期限；之後同一員工、同一假別的
+-- 請假申請會自動從這筆核給扣抵，超過核給剩餘天數時系統會擋下
+CREATE TABLE IF NOT EXISTS leave_grants (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL,
+  leaveTypeId INT NOT NULL,
+  totalDays DECIMAL(4,1) NOT NULL,
+  usedDays DECIMAL(4,1) NOT NULL DEFAULT 0,
+  deadline DATE NULL,
+  note VARCHAR(255) NULL,
+  createdBy VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (employeeId) REFERENCES employees(employeeId),
+  FOREIGN KEY (leaveTypeId) REFERENCES leave_types(id)
+);
+
 -- 請假申請表
 CREATE TABLE IF NOT EXISTS leave_applications (
   id INT AUTO_INCREMENT PRIMARY KEY,
   employeeId VARCHAR(50) NOT NULL,
   leaveTypeId INT NOT NULL,
+  grantId INT NULL,
   startDate DATE NOT NULL,
   endDate DATE NOT NULL,
   startTime TIME NULL,
@@ -70,7 +89,8 @@ CREATE TABLE IF NOT EXISTS leave_applications (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (leaveTypeId) REFERENCES leave_types(id),
-  FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
+  FOREIGN KEY (employeeId) REFERENCES employees(employeeId),
+  FOREIGN KEY (grantId) REFERENCES leave_grants(id) ON DELETE SET NULL
 );
 
 -- 假別餘額表

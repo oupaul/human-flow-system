@@ -46,10 +46,12 @@ import { useLeaveManagement } from "@/hooks/useLeaveManagement";
 import { useOvertimeApplications } from "@/hooks/useOvertimeApplications";
 import { useHolidays } from "@/hooks/useHolidays";
 import { useLeavePeriodSettlements } from "@/hooks/useLeavePeriodSettlements";
+import { useLeaveGrants } from "@/hooks/useLeaveGrants";
 import { useAuth } from "@/contexts/AuthContext";
 import { LeaveApplicationFormData, LeaveApplication } from "@/types/leave";
 import { OvertimeApplicationFormData } from "@/types/overtime";
 import { PendingLeavePeriodSettlement } from "@/types/leavePeriod";
+import { LeaveGrantFormData } from "@/types/leaveGrant";
 import { leaveApi } from "@/services/leaveApi";
 
 const LeaveManagement = () => {
@@ -75,6 +77,10 @@ const LeaveManagement = () => {
   const { pendingSettlements, settlePeriod } = useLeavePeriodSettlements();
   const [settlingPeriod, setSettlingPeriod] = useState<PendingLeavePeriodSettlement | null>(null);
   const [carryOverDays, setCarryOverDays] = useState(0);
+
+  const { leaveGrants, createLeaveGrant, deleteLeaveGrant } = useLeaveGrants();
+  const [grantForm, setGrantForm] = useState<Partial<LeaveGrantFormData>>({});
+  const [selectedGrantLeaveType, setSelectedGrantLeaveType] = useState("");
 
   const currentYear = new Date().getFullYear();
   const [holidayYear, setHolidayYear] = useState(currentYear);
@@ -154,6 +160,13 @@ const LeaveManagement = () => {
     if (!holidayCsv.trim()) return;
     await importHolidays(holidayCsv);
     setHolidayCsv("");
+  };
+
+  const handleCreateGrant = async () => {
+    if (!grantForm.employeeId || !grantForm.leaveTypeId || !grantForm.totalDays) return;
+    await createLeaveGrant(grantForm as LeaveGrantFormData);
+    setGrantForm({});
+    setSelectedGrantLeaveType("");
   };
 
   const openSettleDialog = (period: PendingLeavePeriodSettlement) => {
@@ -402,11 +415,12 @@ const LeaveManagement = () => {
       </div>
 
       <Tabs defaultValue="applications" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="applications">請假申請</TabsTrigger>
           <TabsTrigger value="overtime">加班申請</TabsTrigger>
           <TabsTrigger value="balance">假別餘額</TabsTrigger>
           <TabsTrigger value="settlement">特休結算</TabsTrigger>
+          <TabsTrigger value="grants">假別核給</TabsTrigger>
           <TabsTrigger value="types">假別設定</TabsTrigger>
           <TabsTrigger value="holidays">國定假日</TabsTrigger>
         </TabsList>
@@ -509,6 +523,14 @@ const LeaveManagement = () => {
                     </Button>
                   )}
                 </div>
+                {approvingApplication.grantId && (() => {
+                  const grant = leaveGrants.find((g) => g.id === approvingApplication.grantId);
+                  return grant ? (
+                    <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
+                      此申請已關聯核給紀錄，剩餘 <strong>{grant.totalDays - grant.usedDays}</strong> 天（核給 {grant.totalDays} 天，期限 {grant.deadline || "無"}），核准天數不可超過剩餘天數。
+                    </div>
+                  ) : null;
+                })()}
                 <div className="space-y-2">
                   <Label htmlFor="approvedDays">核准天數（可依證明文件調整，例如喪假依親屬關係核定天數）</Label>
                   <Input
@@ -754,6 +776,136 @@ const LeaveManagement = () => {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+        </TabsContent>
+
+        <TabsContent value="grants">
+          <div className="grid gap-6 md:grid-cols-3">
+            <Card className="md:col-span-1">
+              <CardHeader>
+                <CardTitle>新增假別核給</CardTitle>
+                <CardDescription>
+                  適用喪假、婚假等「同一事由分次請假」的假別。審核過員工提供的證明文件後，直接核給總天數與應休畢期限，之後同一員工、同一假別的請假申請會自動從這筆核給扣抵，超過剩餘天數會被擋下。
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="grantEmployeeId">員工編號</Label>
+                  <Input
+                    id="grantEmployeeId"
+                    placeholder="如: EMP001"
+                    value={grantForm.employeeId || ""}
+                    onChange={(e) => setGrantForm({ ...grantForm, employeeId: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="grantLeaveType">假別</Label>
+                  <Select
+                    value={selectedGrantLeaveType}
+                    onValueChange={(value) => {
+                      setSelectedGrantLeaveType(value);
+                      setGrantForm({ ...grantForm, leaveTypeId: parseInt(value) });
+                    }}
+                  >
+                    <SelectTrigger id="grantLeaveType">
+                      <SelectValue placeholder="選擇假別" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {leaveTypes.filter((t) => t.needProof).map((type) => (
+                        <SelectItem key={type.id} value={type.id.toString()}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="grantTotalDays">核給天數</Label>
+                  <Input
+                    id="grantTotalDays"
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={grantForm.totalDays ?? ""}
+                    onChange={(e) => setGrantForm({ ...grantForm, totalDays: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="grantDeadline">應休畢期限（選填）</Label>
+                  <Input
+                    id="grantDeadline"
+                    type="date"
+                    value={grantForm.deadline || ""}
+                    onChange={(e) => setGrantForm({ ...grantForm, deadline: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="grantNote">備註（選填）</Label>
+                  <Input
+                    id="grantNote"
+                    placeholder="如：父喪，依親屬關係核給 8 天"
+                    value={grantForm.note || ""}
+                    onChange={(e) => setGrantForm({ ...grantForm, note: e.target.value })}
+                  />
+                </div>
+                <Button onClick={handleCreateGrant} className="w-full">
+                  確認核給
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>核給紀錄</CardTitle>
+                <CardDescription>已核給的假別額度與使用狀況</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>員工</TableHead>
+                        <TableHead>假別</TableHead>
+                        <TableHead>核給</TableHead>
+                        <TableHead>已用</TableHead>
+                        <TableHead>剩餘</TableHead>
+                        <TableHead>期限</TableHead>
+                        <TableHead>備註</TableHead>
+                        <TableHead className="text-right">操作</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leaveGrants.length > 0 ? (
+                        leaveGrants.map((grant) => (
+                          <TableRow key={grant.id}>
+                            <TableCell>{grant.employee}（{grant.employeeId}）</TableCell>
+                            <TableCell>{grant.leaveTypeName}</TableCell>
+                            <TableCell>{grant.totalDays}</TableCell>
+                            <TableCell>{grant.usedDays}</TableCell>
+                            <TableCell>{grant.totalDays - grant.usedDays}</TableCell>
+                            <TableCell>{grant.deadline || "無期限"}</TableCell>
+                            <TableCell>{grant.note || "-"}</TableCell>
+                            <TableCell className="text-right">
+                              {grant.usedDays === 0 && (
+                                <Button variant="ghost" size="icon" onClick={() => deleteLeaveGrant(grant.id)}>
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                            尚無核給紀錄
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="types">
