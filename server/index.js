@@ -1450,6 +1450,8 @@ api.get('/dashboard/stats', requireRole(...STAFF_ROLES), async (req, res) => {
       monthlyLeaves: monthlyLeaves[0].count,
       averageAttendance,
       pendingRequests: pendingLeave[0].count + pendingOvertime[0].count,
+      pendingLeaveRequests: pendingLeave[0].count,
+      pendingOvertimeRequests: pendingOvertime[0].count,
     });
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);

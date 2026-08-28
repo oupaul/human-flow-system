@@ -23,6 +23,8 @@ interface DashboardStats {
   monthlyLeaves: number;
   averageAttendance: number;
   pendingRequests: number;
+  pendingLeaveRequests: number;
+  pendingOvertimeRequests: number;
 }
 
 interface DepartmentAttendance {
@@ -67,6 +69,14 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
+
+  // 待審核申請卡片：優先導向實際有待審核項目的分頁，避免使用者還要自行切換
+  const pendingApprovalLink =
+    (stats?.pendingLeaveRequests ?? 0) > 0
+      ? "/leave-management"
+      : (stats?.pendingOvertimeRequests ?? 0) > 0
+      ? "/leave-management?tab=overtime"
+      : "/leave-management";
 
   if (loading) {
     return (
@@ -137,7 +147,7 @@ const Dashboard = () => {
           </Card>
         </Link>
 
-        <Link to="/leave-management" className="block">
+        <Link to={pendingApprovalLink} className="block">
           <Card className="cursor-pointer transition-shadow hover:shadow-md">
             <CardContent className="flex flex-row items-center p-6">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">

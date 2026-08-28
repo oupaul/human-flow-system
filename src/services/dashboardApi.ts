@@ -5,6 +5,8 @@ interface DashboardStats {
   monthlyLeaves: number;
   averageAttendance: number;
   pendingRequests: number;
+  pendingLeaveRequests: number;
+  pendingOvertimeRequests: number;
 }
 
 interface DepartmentAttendance {

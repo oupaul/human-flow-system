@@ -1,5 +1,6 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Tabs,
   TabsContent,
@@ -85,6 +86,23 @@ const LeaveManagement = () => {
   const [grantForm, setGrantForm] = useState<Partial<LeaveGrantFormData>>({});
   const [selectedGrantLeaveType, setSelectedGrantLeaveType] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
+
+  const VALID_TABS = ["applications", "overtime", "balance", "settlement", "grants", "types", "holidays"];
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab = VALID_TABS.includes(tabParam || "") ? tabParam! : "applications";
+  const handleTabChange = (value: string) => {
+    setSearchParams(value === "applications" ? {} : { tab: value });
+  };
+
+  const pendingLeaveCount = useMemo(
+    () => leaveApplications.filter((application) => application.status === "pending").length,
+    [leaveApplications]
+  );
+  const pendingOvertimeCount = useMemo(
+    () => overtimeApplications.filter((application) => application.status === "pending").length,
+    [overtimeApplications]
+  );
 
   useEffect(() => {
     employeeApi.getEmployees().then(setEmployees).catch(() => setEmployees([]));
@@ -462,10 +480,24 @@ const LeaveManagement = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="applications" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="applications">請假申請</TabsTrigger>
-          <TabsTrigger value="overtime">加班申請</TabsTrigger>
+          <TabsTrigger value="applications">
+            請假申請
+            {pendingLeaveCount > 0 && (
+              <span className="ml-1.5 rounded-full bg-hrms-warning px-1.5 py-0.5 text-xs font-semibold text-white">
+                {pendingLeaveCount}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="overtime">
+            加班申請
+            {pendingOvertimeCount > 0 && (
+              <span className="ml-1.5 rounded-full bg-hrms-warning px-1.5 py-0.5 text-xs font-semibold text-white">
+                {pendingOvertimeCount}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="balance">假別餘額</TabsTrigger>
           <TabsTrigger value="settlement">特休結算</TabsTrigger>
           <TabsTrigger value="grants">假別核給</TabsTrigger>
