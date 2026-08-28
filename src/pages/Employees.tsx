@@ -1,10 +1,10 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { 
-  EmployeeFormData, 
-  emptyFormData, 
+import { Plus, Upload } from "lucide-react";
+import {
+  EmployeeFormData,
+  emptyFormData,
   employeeToFormData,
   Employee
 } from "@/types/employee";
@@ -16,9 +16,10 @@ import AddEmployeeDialog from "@/components/employees/AddEmployeeDialog";
 import EditEmployeeDialog from "@/components/employees/EditEmployeeDialog";
 import EmployeeDetailSheet from "@/components/employees/EmployeeDetailSheet";
 import EmployeeConfirmDialogs from "@/components/employees/EmployeeConfirmDialogs";
+import ImportEmployeesDialog from "@/components/employees/ImportEmployeesDialog";
 
 const Employees = () => {
-  const { employees, loading, addEmployee, updateEmployee, deleteEmployee, terminateEmployee, resetPassword } = useEmployees();
+  const { employees, loading, addEmployee, updateEmployee, deleteEmployee, terminateEmployee, resetPassword, importEmployees } = useEmployees();
   const {
     searchTerm,
     setSearchTerm,
@@ -30,6 +31,7 @@ const Employees = () => {
   } = useEmployeeFilters(employees);
 
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
+  const [isImportEmployeesOpen, setIsImportEmployeesOpen] = useState(false);
   const [isViewEmployeeOpen, setIsViewEmployeeOpen] = useState(false);
   const [isEditEmployeeOpen, setIsEditEmployeeOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -154,12 +156,17 @@ const Employees = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">員工管理</h1>
-        <Button className="bg-hrms-accent" onClick={() => {
-          setFormData(emptyFormData);
-          setIsAddEmployeeOpen(true);
-        }}>
-          <Plus className="mr-2 h-4 w-4" /> 新增員工
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsImportEmployeesOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" /> 批次匯入
+          </Button>
+          <Button className="bg-hrms-accent" onClick={() => {
+            setFormData(emptyFormData);
+            setIsAddEmployeeOpen(true);
+          }}>
+            <Plus className="mr-2 h-4 w-4" /> 新增員工
+          </Button>
+        </div>
       </div>
 
       {/* 搜尋與篩選 */}
@@ -180,6 +187,13 @@ const Employees = () => {
         onDeleteEmployee={handleDeleteEmployee}
         onTerminateEmployee={handleTerminateEmployee}
         onResetPassword={handleResetPassword}
+      />
+
+      {/* 批次匯入員工對話框 */}
+      <ImportEmployeesDialog
+        open={isImportEmployeesOpen}
+        onOpenChange={setIsImportEmployeesOpen}
+        onImport={importEmployees}
       />
 
       {/* 新增員工對話框 */}

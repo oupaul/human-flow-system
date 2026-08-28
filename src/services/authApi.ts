@@ -44,4 +44,11 @@ export const authApi = {
   logout(): void {
     clearToken();
   },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await apiFetch<{ message: string }>("/auth/change-password", {
+      method: "PUT",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
 };

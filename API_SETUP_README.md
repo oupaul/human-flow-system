@@ -98,6 +98,7 @@ npm run dev
 以下端點皆需在 Header 帶上 `Authorization: Bearer <token>`：
 
 - `GET /api/auth/me` — 取得目前登入的使用者
+- `PUT /api/auth/change-password` — `{ currentPassword, newPassword }`，任何登入者皆可自行修改密碼，需先驗證目前密碼正確
 
 ### 部門管理（僅 HR/主管）
 - `GET /api/departments`
@@ -108,6 +109,7 @@ npm run dev
 ### 員工管理（僅 HR/主管）
 - `GET /api/employees`
 - `POST /api/employees` — 新增員工時會自動建立對應的員工登入帳號與第一期特休週年紀錄；可選帶 `initialAnnualLeaveUsed`，登記系統上線前該員工已休掉的特休天數（預設 0）
+- `POST /api/employees/import` — `{ csv }` 批次匯入，標題列需含姓名/員工編號/部門/職位/電子郵件/到職日（電話/地址/備註/月薪/已用特休天數選填，欄位可任意排序），逐列處理、單列失敗不影響其他列，回傳 `{ created, failed: [{ row, employeeId, error }] }`
 - `PUT /api/employees/:id`
 - `DELETE /api/employees/:id`
 - `PUT /api/employees/:id/terminate` — 員工離職時會一併停用其登入帳號

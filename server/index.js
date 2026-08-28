@@ -172,6 +172,76 @@ async function getOrCreateActivePeriod(employeeId, joinDate, initialUsedDays = 0
   return newRows[0];
 }
 
+// 新增一位員工：建立員工紀錄、第一期特休週年紀錄、假別餘額預設值、登入帳號。
+// 供單筆新增（POST /employees）與批次匯入（POST /employees/import）共用
+async function createEmployeeRecord(data) {
+  const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, initialAnnualLeaveUsed } = data;
+  if (!name || !employeeId || !department || !position || !email || !joinDate) {
+    throw new Error('所有必填欄位皆需填寫（姓名、員工編號、部門、職位、電子郵件、到職日）');
+  }
+
+  const [result] = await pool.execute(
+    'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, monthlySalary || null]
+  );
+
+  await getOrCreateActivePeriod(employeeId, joinDate, Number(initialAnnualLeaveUsed) || 0);
+  await pool.execute('INSERT INTO leave_balances (employeeId) VALUES (?)', [employeeId]);
+  await syncEmployeeAccount(employeeId, email);
+
+  const [newEmployee] = await pool.execute('SELECT * FROM employees WHERE id = ?', [result.insertId]);
+  return newEmployee[0];
+}
+
+// 解析批次匯入員工的 CSV：欄位以標題關鍵字辨識，允許欄位順序調整、只填必要欄位
+function parseEmployeeCsv(csvText) {
+  const lines = csvText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
+
+  const splitRow = (line) => line.split(',').map((cell) => cell.trim().replace(/^"|"$/g, ''));
+  const header = splitRow(lines[0]);
+  const findColumn = (keywords) => header.findIndex((col) => keywords.some((keyword) => col.includes(keyword)));
+
+  const columns = {
+    name: findColumn(['姓名']),
+    employeeId: findColumn(['員工編號', '編號']),
+    department: findColumn(['部門']),
+    position: findColumn(['職位']),
+    email: findColumn(['電子郵件', 'Email', 'email']),
+    phone: findColumn(['電話']),
+    joinDate: findColumn(['到職日']),
+    address: findColumn(['地址']),
+    notes: findColumn(['備註']),
+    monthlySalary: findColumn(['月薪']),
+    initialAnnualLeaveUsed: findColumn(['已用特休', '特休已用']),
+  };
+
+  if (columns.name === -1 || columns.employeeId === -1 || columns.department === -1 ||
+      columns.position === -1 || columns.email === -1 || columns.joinDate === -1) {
+    throw new Error('CSV 標題列需包含：姓名、員工編號、部門、職位、電子郵件、到職日');
+  }
+
+  const normalizeDate = (raw) => (raw ? raw.replace(/\//g, '-') : '');
+  const pick = (cells, key) => (columns[key] === -1 ? '' : (cells[columns[key]] || ''));
+
+  return lines.slice(1).map((line) => {
+    const cells = splitRow(line);
+    return {
+      name: pick(cells, 'name'),
+      employeeId: pick(cells, 'employeeId'),
+      department: pick(cells, 'department'),
+      position: pick(cells, 'position'),
+      email: pick(cells, 'email'),
+      phone: pick(cells, 'phone') || null,
+      joinDate: normalizeDate(pick(cells, 'joinDate')),
+      address: pick(cells, 'address') || null,
+      notes: pick(cells, 'notes') || null,
+      monthlySalary: pick(cells, 'monthlySalary') || null,
+      initialAnnualLeaveUsed: pick(cells, 'initialAnnualLeaveUsed') || 0,
+    };
+  });
+}
+
 // 依「遞延進來的天數優先使用」試算週年結算時：強制折現天數（遞延已逾期未休）
 // 與可選遞延天數（本期新發放、還沒到期，可選擇遞延或折現）
 function computeSettlementSplit(period) {
@@ -335,6 +405,38 @@ api.get('/auth/me', async (req, res) => {
   }
 });
 
+// 任何登入者皆可自行修改密碼（需先驗證目前密碼）
+api.put('/auth/change-password', async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: '請輸入目前密碼與新密碼' });
+    }
+    if (newPassword.length < 4) {
+      return res.status(400).json({ error: '新密碼長度至少 4 碼' });
+    }
+
+    const [rows] = await pool.execute('SELECT password_hash FROM users WHERE id = ?', [req.user.sub]);
+    const user = rows[0];
+    if (!user) {
+      return res.status(401).json({ error: '帳號不存在' });
+    }
+
+    const passwordMatches = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!passwordMatches) {
+      return res.status(401).json({ error: '目前密碼不正確' });
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [newPasswordHash, req.user.sub]);
+
+    res.json({ message: '密碼已更新' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: '修改密碼失敗', detail: error.message });
+  }
+});
+
 // 部門 API 路由（僅 HR/主管可管理）
 
 api.get('/departments', requireRole(...STAFF_ROLES), async (req, res) => {
@@ -420,28 +522,43 @@ api.get('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
 
 api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
-    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, initialAnnualLeaveUsed } = req.body;
-    if (!name || !employeeId || !department || !position || !email || !joinDate) {
-      return res.status(400).json({ error: '所有必填欄位皆需填寫' });
-    }
-    const [result] = await pool.execute(
-      'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, monthlySalary || null]
-    );
-
-    // 建立第一期特休週年紀錄；initialAnnualLeaveUsed 用於系統上線時導入既有
-    // 員工，登記他們在此之前已經休掉的天數。病假/補休沿用 leave_balances 預設值
-    await getOrCreateActivePeriod(employeeId, joinDate, Number(initialAnnualLeaveUsed) || 0);
-    await pool.execute('INSERT INTO leave_balances (employeeId) VALUES (?)', [employeeId]);
-
-    // 自動建立員工登入帳號：帳號＝員工 email，預設密碼＝員工編號，登入後請自行修改密碼
-    await syncEmployeeAccount(employeeId, email);
-
-    const [newEmployee] = await pool.execute('SELECT * FROM employees WHERE id = ?', [result.insertId]);
-    res.json(newEmployee[0]);
+    const newEmployee = await createEmployeeRecord(req.body);
+    res.json(newEmployee);
   } catch (error) {
     console.error('Error creating employee:', error);
-    res.status(500).json({ error: '新增員工失敗', detail: error.message });
+    res.status(error.message?.includes('必填') ? 400 : 500).json({ error: error.message || '新增員工失敗' });
+  }
+});
+
+// 批次匯入員工：CSV 標題列需含姓名/員工編號/部門/職位/電子郵件/到職日，
+// 電話/地址/備註/月薪/已用特休天數為選填。逐列處理，單列失敗不影響其他列
+api.post('/employees/import', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const { csv } = req.body;
+    if (!csv) {
+      return res.status(400).json({ error: '請提供 CSV 內容' });
+    }
+
+    const rows = parseEmployeeCsv(csv);
+    if (rows.length === 0) {
+      return res.status(400).json({ error: 'CSV 中沒有可匯入的員工資料' });
+    }
+
+    let created = 0;
+    const failed = [];
+    for (const [index, row] of rows.entries()) {
+      try {
+        await createEmployeeRecord(row);
+        created += 1;
+      } catch (rowError) {
+        failed.push({ row: index + 2, employeeId: row.employeeId || '(空白)', error: rowError.message });
+      }
+    }
+
+    res.json({ message: '匯入完成', created, failed });
+  } catch (error) {
+    console.error('Error importing employees:', error);
+    res.status(400).json({ error: '批次匯入員工失敗', detail: error.message });
   }
 });
 

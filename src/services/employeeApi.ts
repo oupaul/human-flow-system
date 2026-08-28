@@ -38,4 +38,17 @@ export const employeeApi = {
       method: "POST",
     });
   },
+
+  async importEmployees(csv: string): Promise<ImportEmployeesResult> {
+    return apiFetch<ImportEmployeesResult>("/employees/import", {
+      method: "POST",
+      body: JSON.stringify({ csv }),
+    });
+  },
 };
+
+export interface ImportEmployeesResult {
+  message: string;
+  created: number;
+  failed: { row: number; employeeId: string; error: string }[];
+}

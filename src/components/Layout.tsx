@@ -10,15 +10,17 @@ import {
   Menu,
   X,
   LogOut,
-  Settings
+  KeyRound
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
+import ChangePasswordDialog from "@/components/ChangePasswordDialog";
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const isMobile = useIsMobile();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -98,9 +100,13 @@ const Layout = () => {
 
         <div className="absolute bottom-0 w-full p-4">
           <div className="space-y-1">
-            <Button variant="ghost" className="w-full justify-start text-gray-300 hover:bg-hrms-dark hover:text-white">
-              <Settings className="mr-2 h-5 w-5" />
-              設置
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-gray-300 hover:bg-hrms-dark hover:text-white"
+              onClick={() => setIsChangePasswordOpen(true)}
+            >
+              <KeyRound className="mr-2 h-5 w-5" />
+              修改密碼
             </Button>
             <Button
               variant="ghost"
@@ -146,6 +152,7 @@ const Layout = () => {
           <Outlet />
         </main>
       </div>
+      <ChangePasswordDialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen} />
     </div>
   );
 };

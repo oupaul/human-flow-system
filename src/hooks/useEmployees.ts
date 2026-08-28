@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Employee, EmployeeFormData, employeeToFormData } from "@/types/employee";
-import { employeeApi } from "@/services/employeeApi";
+import { employeeApi, ImportEmployeesResult } from "@/services/employeeApi";
 
 export const useEmployees = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -127,6 +127,31 @@ export const useEmployees = () => {
     }
   };
 
+  const importEmployees = async (csv: string): Promise<ImportEmployeesResult | null> => {
+    try {
+      const result = await employeeApi.importEmployees(csv);
+      await loadEmployees();
+      if (result.failed.length === 0) {
+        toast.success("批次匯入完成", {
+          description: `已成功新增 ${result.created} 位員工，皆已自動建立登入帳號（帳號＝email、預設密碼＝員工編號）。`,
+          duration: 15000,
+        });
+      } else {
+        toast.warning("批次匯入部分完成", {
+          description: `成功 ${result.created} 筆，失敗 ${result.failed.length} 筆，詳見結果列表。`,
+          duration: 15000,
+        });
+      }
+      return result;
+    } catch (error) {
+      console.error('Failed to import employees:', error);
+      toast.error("批次匯入失敗", {
+        description: error instanceof Error ? error.message : "請檢查網路連線或聯繫系統管理員",
+      });
+      return null;
+    }
+  };
+
   return {
     employees,
     loading,
@@ -135,6 +160,7 @@ export const useEmployees = () => {
     deleteEmployee,
     terminateEmployee,
     resetPassword,
+    importEmployees,
     loadEmployees,
   };
 };

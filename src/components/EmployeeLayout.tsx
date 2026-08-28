@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { KeyRound, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import ChangePasswordDialog from "@/components/ChangePasswordDialog";
 
 const EmployeeLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -22,6 +25,15 @@ const EmployeeLayout = () => {
             variant="ghost"
             size="sm"
             className="text-white hover:bg-hrms-dark hover:text-white"
+            onClick={() => setIsChangePasswordOpen(true)}
+          >
+            <KeyRound className="mr-2 h-4 w-4" />
+            修改密碼
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-white hover:bg-hrms-dark hover:text-white"
             onClick={handleLogout}
           >
             <LogOut className="mr-2 h-4 w-4" />
@@ -32,6 +44,7 @@ const EmployeeLayout = () => {
       <main className="mx-auto max-w-4xl p-6">
         <Outlet />
       </main>
+      <ChangePasswordDialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen} />
     </div>
   );
 };
