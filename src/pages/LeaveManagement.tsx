@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Tabs,
   TabsContent,
@@ -53,6 +53,8 @@ import { OvertimeApplicationFormData } from "@/types/overtime";
 import { PendingLeavePeriodSettlement } from "@/types/leavePeriod";
 import { LeaveGrantFormData } from "@/types/leaveGrant";
 import { leaveApi } from "@/services/leaveApi";
+import { employeeApi } from "@/services/employeeApi";
+import { Employee } from "@/types/employee";
 
 const LeaveManagement = () => {
   const { user } = useAuth();
@@ -81,6 +83,11 @@ const LeaveManagement = () => {
   const { leaveGrants, createLeaveGrant, deleteLeaveGrant } = useLeaveGrants();
   const [grantForm, setGrantForm] = useState<Partial<LeaveGrantFormData>>({});
   const [selectedGrantLeaveType, setSelectedGrantLeaveType] = useState("");
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
+  useEffect(() => {
+    employeeApi.getEmployees().then(setEmployees).catch(() => setEmployees([]));
+  }, []);
 
   const currentYear = new Date().getFullYear();
   const [holidayYear, setHolidayYear] = useState(currentYear);
@@ -789,13 +796,22 @@ const LeaveManagement = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="grantEmployeeId">員工編號</Label>
-                  <Input
-                    id="grantEmployeeId"
-                    placeholder="如: EMP001"
+                  <Label htmlFor="grantEmployeeId">員工</Label>
+                  <Select
                     value={grantForm.employeeId || ""}
-                    onChange={(e) => setGrantForm({ ...grantForm, employeeId: e.target.value })}
-                  />
+                    onValueChange={(value) => setGrantForm({ ...grantForm, employeeId: value })}
+                  >
+                    <SelectTrigger id="grantEmployeeId">
+                      <SelectValue placeholder="選擇員工" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {employees.map((employee) => (
+                        <SelectItem key={employee.id} value={employee.employeeId}>
+                          {employee.name}（{employee.employeeId}）
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="grantLeaveType">假別</Label>
