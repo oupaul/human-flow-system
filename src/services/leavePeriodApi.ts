@@ -17,4 +17,11 @@ export const leavePeriodApi = {
       body: JSON.stringify({ carryOverDays }),
     });
   },
+
+  async adjustUsedDays(id: number, usedDays: number): Promise<LeavePeriod> {
+    return apiFetch<LeavePeriod>(`/leave-periods/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ usedDays }),
+    });
+  },
 };

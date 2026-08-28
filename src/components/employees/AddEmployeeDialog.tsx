@@ -167,6 +167,19 @@ const AddEmployeeDialog = ({
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="initialAnnualLeaveUsed">已使用特休天數（選填，僅適用於系統上線前已在職、已休過特休的員工）</Label>
+            <Input
+              id="initialAnnualLeaveUsed"
+              name="initialAnnualLeaveUsed"
+              type="number"
+              min="0"
+              step="0.5"
+              placeholder="0"
+              value={formData.initialAnnualLeaveUsed ?? ""}
+              onChange={onFormChange}
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="notes">備註</Label>
             <Textarea 
               id="notes" 

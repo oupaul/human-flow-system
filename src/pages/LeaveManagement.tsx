@@ -48,7 +48,7 @@ import { useHolidays } from "@/hooks/useHolidays";
 import { useLeavePeriodSettlements } from "@/hooks/useLeavePeriodSettlements";
 import { useLeaveGrants } from "@/hooks/useLeaveGrants";
 import { useAuth } from "@/contexts/AuthContext";
-import { LeaveApplicationFormData, LeaveApplication } from "@/types/leave";
+import { LeaveApplicationFormData, LeaveApplication, LeaveBalance } from "@/types/leave";
 import { OvertimeApplicationFormData } from "@/types/overtime";
 import { PendingLeavePeriodSettlement } from "@/types/leavePeriod";
 import { LeaveGrantFormData } from "@/types/leaveGrant";
@@ -68,6 +68,7 @@ const LeaveManagement = () => {
     createLeaveApplication,
     updateApplicationStatus,
     recalculateAnnualLeave,
+    adjustLeaveBalance,
   } = useLeaveManagement();
 
   const {
@@ -107,6 +108,15 @@ const LeaveManagement = () => {
 
   const [approvingApplication, setApprovingApplication] = useState<LeaveApplication | null>(null);
   const [approvedDays, setApprovedDays] = useState(0);
+
+  const [adjustingBalance, setAdjustingBalance] = useState<LeaveBalance | null>(null);
+  const [adjustForm, setAdjustForm] = useState({
+    annualLeaveUsed: 0,
+    sickLeave: 0,
+    sickLeaveUsed: 0,
+    compensatoryLeave: 0,
+    compensatoryLeaveUsed: 0,
+  });
 
   const handleSubmitApplication = async () => {
     if (!formData.employeeId || !formData.leaveTypeId || !formData.startDate || !formData.endDate || !formData.reason) {
@@ -174,6 +184,23 @@ const LeaveManagement = () => {
     await createLeaveGrant(grantForm as LeaveGrantFormData);
     setGrantForm({});
     setSelectedGrantLeaveType("");
+  };
+
+  const openAdjustDialog = (balance: LeaveBalance) => {
+    setAdjustingBalance(balance);
+    setAdjustForm({
+      annualLeaveUsed: balance.annualLeaveUsed,
+      sickLeave: balance.sickLeave,
+      sickLeaveUsed: balance.sickLeaveUsed,
+      compensatoryLeave: balance.compensatoryLeave,
+      compensatoryLeaveUsed: balance.compensatoryLeaveUsed,
+    });
+  };
+
+  const handleConfirmAdjust = async () => {
+    if (!adjustingBalance) return;
+    await adjustLeaveBalance(adjustingBalance, adjustForm);
+    setAdjustingBalance(null);
   };
 
   const openSettleDialog = (period: PendingLeavePeriodSettlement) => {
@@ -660,6 +687,7 @@ const LeaveManagement = () => {
                       <TableHead>病假已用</TableHead>
                       <TableHead>補休可用</TableHead>
                       <TableHead>補休已用</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -673,6 +701,11 @@ const LeaveManagement = () => {
                         <TableCell>{balance.sickLeaveUsed}</TableCell>
                         <TableCell>{balance.compensatoryLeave}</TableCell>
                         <TableCell>{balance.compensatoryLeaveUsed}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" onClick={() => openAdjustDialog(balance)}>
+                            調整
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -681,6 +714,88 @@ const LeaveManagement = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <Dialog open={!!adjustingBalance} onOpenChange={(open) => !open && setAdjustingBalance(null)}>
+          <DialogContent className="sm:max-w-[450px]">
+            <DialogHeader>
+              <DialogTitle>調整假別餘額</DialogTitle>
+              <DialogDescription>
+                {adjustingBalance && `${adjustingBalance.employee}（${adjustingBalance.employeeId}）`}
+              </DialogDescription>
+            </DialogHeader>
+            {adjustingBalance && (
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="adjustAnnualUsed">
+                    特休已用天數（可用天數 {adjustingBalance.annualLeave} 天由到職年資自動計算，這裡只能調整「已用」）
+                  </Label>
+                  <Input
+                    id="adjustAnnualUsed"
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    disabled={!adjustingBalance.activePeriodId}
+                    value={adjustForm.annualLeaveUsed}
+                    onChange={(e) => setAdjustForm({ ...adjustForm, annualLeaveUsed: Number(e.target.value) })}
+                  />
+                  {!adjustingBalance.activePeriodId && (
+                    <p className="text-xs text-muted-foreground">此員工尚無特休週年紀錄，無法調整</p>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adjustSick">病假可用</Label>
+                    <Input
+                      id="adjustSick"
+                      type="number"
+                      min={0}
+                      value={adjustForm.sickLeave}
+                      onChange={(e) => setAdjustForm({ ...adjustForm, sickLeave: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adjustSickUsed">病假已用</Label>
+                    <Input
+                      id="adjustSickUsed"
+                      type="number"
+                      min={0}
+                      value={adjustForm.sickLeaveUsed}
+                      onChange={(e) => setAdjustForm({ ...adjustForm, sickLeaveUsed: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adjustComp">補休可用</Label>
+                    <Input
+                      id="adjustComp"
+                      type="number"
+                      min={0}
+                      value={adjustForm.compensatoryLeave}
+                      onChange={(e) => setAdjustForm({ ...adjustForm, compensatoryLeave: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adjustCompUsed">補休已用</Label>
+                    <Input
+                      id="adjustCompUsed"
+                      type="number"
+                      min={0}
+                      value={adjustForm.compensatoryLeaveUsed}
+                      onChange={(e) => setAdjustForm({ ...adjustForm, compensatoryLeaveUsed: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAdjustingBalance(null)}>
+                取消
+              </Button>
+              <Button onClick={handleConfirmAdjust}>儲存</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <TabsContent value="settlement">
           <Card>

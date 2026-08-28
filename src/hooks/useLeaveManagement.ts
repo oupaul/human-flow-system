@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { LeaveType, LeaveApplication, LeaveBalance, LeaveApplicationFormData } from "@/types/leave";
 import { leaveApi } from "@/services/leaveApi";
+import { leavePeriodApi } from "@/services/leavePeriodApi";
 
 export const useLeaveManagement = () => {
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
@@ -91,6 +92,30 @@ export const useLeaveManagement = () => {
     }
   };
 
+  const adjustLeaveBalance = async (
+    balance: LeaveBalance,
+    updates: { annualLeaveUsed: number; sickLeave: number; sickLeaveUsed: number; compensatoryLeave: number; compensatoryLeaveUsed: number }
+  ) => {
+    try {
+      if (balance.activePeriodId && updates.annualLeaveUsed !== balance.annualLeaveUsed) {
+        await leavePeriodApi.adjustUsedDays(balance.activePeriodId, updates.annualLeaveUsed);
+      }
+      await leaveApi.updateLeaveBalance(balance.employeeId, {
+        sickLeave: updates.sickLeave,
+        sickLeaveUsed: updates.sickLeaveUsed,
+        compensatoryLeave: updates.compensatoryLeave,
+        compensatoryLeaveUsed: updates.compensatoryLeaveUsed,
+      });
+      await loadAllData();
+      toast.success("假別餘額已調整");
+    } catch (error) {
+      console.error('Failed to adjust leave balance:', error);
+      toast.error("調整假別餘額失敗", {
+        description: error instanceof Error ? error.message : "請檢查網路連線或聯繫系統管理員",
+      });
+    }
+  };
+
   return {
     leaveTypes,
     leaveApplications,
@@ -99,6 +124,7 @@ export const useLeaveManagement = () => {
     createLeaveApplication,
     updateApplicationStatus,
     recalculateAnnualLeave,
+    adjustLeaveBalance,
     loadAllData,
   };
 };

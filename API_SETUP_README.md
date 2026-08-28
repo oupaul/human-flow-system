@@ -105,7 +105,7 @@ npm run dev
 
 ### 員工管理（僅 HR/主管）
 - `GET /api/employees`
-- `POST /api/employees` — 新增員工時會自動建立對應的員工登入帳號
+- `POST /api/employees` — 新增員工時會自動建立對應的員工登入帳號與第一期特休週年紀錄；可選帶 `initialAnnualLeaveUsed`，登記系統上線前該員工已休掉的特休天數（預設 0）
 - `PUT /api/employees/:id`
 - `DELETE /api/employees/:id`
 - `PUT /api/employees/:id/terminate` — 員工離職時會一併停用其登入帳號
@@ -122,6 +122,7 @@ npm run dev
 - `GET /api/leave-balances` — 員工只會看到自己的餘額
 - `PUT /api/leave-balances/:employeeId`（僅 HR/主管）
 - `POST /api/leave-balances/recalculate`（僅 HR/主管）— 重新整理所有在職員工「目前這期」的特休發放天數（用於到職未滿一年、跨過年資級距門檻等情況），已用天數不變
+- `PUT /api/leave-periods/:id`（僅 HR/主管）— `{ usedDays }`，直接調整某期特休的已用天數。用於系統上線時導入既有員工事後補登已休天數，或更正誤植的核准紀錄
 
 ### 特休週年結算（僅 HR/主管）
 - `GET /api/leave-periods?employeeId=EMP001` — 查詢特休週年紀錄（含歷史已結算的期間），不帶 employeeId 則列出全公司

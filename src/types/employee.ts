@@ -32,6 +32,8 @@ export interface EmployeeFormData {
   address: string;
   notes: string;
   monthlySalary: number | null;
+  // 僅新增員工時使用：系統上線時導入既有員工，登記他們在此之前已休掉的特休天數
+  initialAnnualLeaveUsed?: number | null;
 }
 
 export const statusOptions = [
@@ -55,6 +57,7 @@ export const emptyFormData: EmployeeFormData = {
   address: "",
   notes: "",
   monthlySalary: null,
+  initialAnnualLeaveUsed: null,
 };
 
 export const employeeToFormData = (employee: Employee): EmployeeFormData => {

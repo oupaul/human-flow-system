@@ -136,7 +136,9 @@ function computePeriodGrant(joinDate, periodEnd) {
 }
 
 // 取得員工目前尚未結算的特休週年期間；若不存在（新員工）則建立第一期
-async function getOrCreateActivePeriod(employeeId, joinDate) {
+// initialUsedDays 僅在建立第一期時使用，讓系統上線時導入既有員工可登記
+// 該員工在此之前已經休掉的天數，避免顯示成完全沒用過
+async function getOrCreateActivePeriod(employeeId, joinDate, initialUsedDays = 0) {
   const [rows] = await pool.execute(
     'SELECT * FROM leave_periods WHERE employeeId = ? AND settledAt IS NULL ORDER BY periodStart DESC LIMIT 1',
     [employeeId]
@@ -149,8 +151,8 @@ async function getOrCreateActivePeriod(employeeId, joinDate) {
   const grantedDays = computePeriodGrant(joinDate, periodEnd);
 
   const [result] = await pool.execute(
-    'INSERT INTO leave_periods (employeeId, periodStart, periodEnd, grantedDays, carriedInDays, usedDays) VALUES (?, ?, ?, ?, 0, 0)',
-    [employeeId, joinDate, periodEnd, grantedDays]
+    'INSERT INTO leave_periods (employeeId, periodStart, periodEnd, grantedDays, carriedInDays, usedDays) VALUES (?, ?, ?, ?, 0, ?)',
+    [employeeId, joinDate, periodEnd, grantedDays, initialUsedDays || 0]
   );
   const [newRows] = await pool.execute('SELECT * FROM leave_periods WHERE id = ?', [result.insertId]);
   return newRows[0];
@@ -404,7 +406,7 @@ api.get('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
 
 api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
-    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary } = req.body;
+    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, initialAnnualLeaveUsed } = req.body;
     if (!name || !employeeId || !department || !position || !email || !joinDate) {
       return res.status(400).json({ error: '所有必填欄位皆需填寫' });
     }
@@ -413,8 +415,9 @@ api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
       [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, monthlySalary || null]
     );
 
-    // 建立第一期特休週年紀錄；病假/補休沿用 leave_balances 預設值
-    await getOrCreateActivePeriod(employeeId, joinDate);
+    // 建立第一期特休週年紀錄；initialAnnualLeaveUsed 用於系統上線時導入既有
+    // 員工，登記他們在此之前已經休掉的天數。病假/補休沿用 leave_balances 預設值
+    await getOrCreateActivePeriod(employeeId, joinDate, Number(initialAnnualLeaveUsed) || 0);
     await pool.execute('INSERT INTO leave_balances (employeeId) VALUES (?)', [employeeId]);
 
     // 自動建立員工登入帳號：帳號＝員工 email，預設密碼＝員工編號，登入後請自行修改密碼
@@ -829,6 +832,7 @@ api.get('/leave-balances', async (req, res) => {
       SELECT
         lb.id, lb.employeeId, lb.sickLeave, lb.sickLeaveUsed, lb.compensatoryLeave, lb.compensatoryLeaveUsed, lb.updated_at,
         e.name as employee,
+        lp.id as activePeriodId,
         IFNULL(lp.grantedDays + lp.carriedInDays, 0) as annualLeave,
         IFNULL(lp.usedDays, 0) as annualLeaveUsed
       FROM leave_balances lb
@@ -862,6 +866,7 @@ api.put('/leave-balances/:employeeId', requireRole(...STAFF_ROLES), async (req, 
       SELECT
         lb.id, lb.employeeId, lb.sickLeave, lb.sickLeaveUsed, lb.compensatoryLeave, lb.compensatoryLeaveUsed, lb.updated_at,
         e.name as employee,
+        lp.id as activePeriodId,
         IFNULL(lp.grantedDays + lp.carriedInDays, 0) as annualLeave,
         IFNULL(lp.usedDays, 0) as annualLeaveUsed
       FROM leave_balances lb
@@ -924,6 +929,29 @@ api.get('/leave-periods', requireRole(...STAFF_ROLES), async (req, res) => {
   } catch (error) {
     console.error('Error fetching leave periods:', error);
     res.status(500).json({ error: '獲取特休週年紀錄失敗', detail: error.message });
+  }
+});
+
+// 直接調整某期特休的已用天數。用途：(1) 系統上線時導入既有員工，事後補登
+// 他們在此之前已休掉的天數 (2) 更正誤植的核准紀錄。不限制上限，由 HR 專業判斷
+api.put('/leave-periods/:id', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { usedDays } = req.body;
+    if (usedDays === undefined || usedDays === null || Number(usedDays) < 0) {
+      return res.status(400).json({ error: '已用天數不可為負數' });
+    }
+
+    const [result] = await pool.execute('UPDATE leave_periods SET usedDays = ? WHERE id = ?', [Number(usedDays), id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: '找不到該筆特休週年紀錄' });
+    }
+
+    const [rows] = await pool.execute('SELECT * FROM leave_periods WHERE id = ?', [id]);
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Error adjusting leave period usedDays:', error);
+    res.status(500).json({ error: '調整特休已用天數失敗', detail: error.message });
   }
 });
 
