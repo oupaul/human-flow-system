@@ -59,13 +59,6 @@ import { leaveApi } from "@/services/leaveApi";
 import { employeeApi } from "@/services/employeeApi";
 import { Employee } from "@/types/employee";
 
-// 依勞基法加班費率換算補休時數，僅供申請當下試算顯示，實際核准以後端計算為準
-const estimateCompHours = (hours: number, onHoliday: boolean) => {
-  if (!(hours > 0)) return 0;
-  const raw = onHoliday ? hours * 2 : Math.min(hours, 2) * (4 / 3) + Math.max(hours - 2, 0) * (5 / 3);
-  return Math.round(raw * 10) / 10;
-};
-
 const LeaveManagement = () => {
   const { user } = useAuth();
   const approverName = user?.employeeName || user?.username || "系統管理員";
@@ -381,12 +374,9 @@ const LeaveManagement = () => {
                     <SelectItem value="comp">換補休</SelectItem>
                   </SelectContent>
                 </Select>
-                {overtimeFormData.compensationType === 'comp' && overtimeFormData.startTime && overtimeFormData.endTime && (
+                {overtimeFormData.compensationType === 'comp' && (
                   <p className="text-xs text-muted-foreground">
-                    依勞基法加班費率概算，平日加班約可換 {estimateCompHours(
-                      (new Date(`2000-01-01T${overtimeFormData.endTime}`).getTime() - new Date(`2000-01-01T${overtimeFormData.startTime}`).getTime()) / (1000 * 60 * 60),
-                      false
-                    )} 小時補休；若當天為假日出勤，核准時會以較高倍率換算。實際核准時數以核准結果為準，需在加班日起 6 個月內休畢，逾期未休會折算加班費。
+                    依勞基法第 32-1 條，補休時數以工作時數 1:1 換算（加班多少小時、補休多少小時）。需在加班日起 6 個月內休畢，逾期未休完的部分會折算加班費。
                   </p>
                 )}
               </div>

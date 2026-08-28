@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS holidays (
 );
 
 -- 加班申請表：compensationType 由員工申請時選擇要領加班費還是換補休；
--- compHours 是依勞基法加班費率換算出的補休時數（僅 compensationType='comp' 時有意義），
+-- compHours 是依勞基法第 32-1 條以工作時數 1:1 換算出的補休時數（僅 compensationType='comp' 時有意義），
 -- 核准時才會真的開立補休額度（見 comp_time_grants）
 CREATE TABLE IF NOT EXISTS overtime_applications (
   id INT AUTO_INCREMENT PRIMARY KEY,

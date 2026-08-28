@@ -135,14 +135,11 @@ function addMonths(dateStr, months) {
   return d.toISOString().slice(0, 10);
 }
 
-// 依勞基法加班費率換算補休時數：平日加班前 2 小時 1 又 1/3 倍、超過 2 小時
-// 部分 1 又 2/3 倍；休息日/例假日/國定假日出勤則以加倍發給精神概算為 2 倍
-// （不細分休息日 4 個級距的累進費率，如需精確覆核仍請 HR 依實際情況調整）
-function calculateCompHours(hours, onHoliday) {
-  const raw = onHoliday
-    ? hours * 2
-    : Math.min(hours, 2) * (4 / 3) + Math.max(hours - 2, 0) * (5 / 3);
-  return Math.round(raw * 10) / 10;
+// 依勞基法第 32-1 條，補休時數以「勞工工作之時數」計算，即加班 1 小時換
+// 補休 1 小時（1:1），這是法定最低標準，不套用加班費的加成倍率；雇主如願
+// 從優（例如比照加班費倍率）給予補休，屬於勞雇雙方另外約定的範圍
+function calculateCompHours(hours) {
+  return Math.round(hours * 10) / 10;
 }
 
 // 依到期日由近到遠依序扣抵補休額度；額度不足會丟出錯誤，呼叫端需在此之前
@@ -1461,7 +1458,7 @@ api.post('/overtime-applications', async (req, res) => {
       : (dayOfWeek === 0 || dayOfWeek === 6);
 
     const finalCompensationType = compensationType === 'comp' ? 'comp' : 'pay';
-    const compHours = calculateCompHours(hours, onHoliday);
+    const compHours = calculateCompHours(hours);
 
     const [result] = await pool.execute(
       'INSERT INTO overtime_applications (employeeId, date, startTime, endTime, hours, reason, onHoliday, compensationType, compHours, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -1516,7 +1513,7 @@ api.put('/overtime-applications/:id/status', requireRole(...STAFF_ROLES), async 
       [status, approver, reviewNote || null, id]
     );
 
-    // 選擇換補休的加班申請：核准時依加班費率換算開立補休額度（6 個月內休畢），取消核准時移除
+    // 選擇換補休的加班申請：核准時依工作時數 1:1 開立補休額度（6 個月內休畢），取消核准時移除
     if (application.compensationType === 'comp') {
       if (status === 'approved' && application.previousStatus !== 'approved') {
         const deadline = addMonths(application.date, 6);
