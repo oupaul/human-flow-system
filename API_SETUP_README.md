@@ -192,6 +192,6 @@ npm run dev
 - `POST /api/comp-time-grants/:id/settle`（僅 HR/主管）— 結算一筆逾期補休額度，剩餘時數全數折算加班費，回傳折算時數與金額（依員工月薪試算，未設定月薪則為 `null`）
 
 ### Dashboard（僅 HR/主管）
-- `GET /api/dashboard/stats` — `pendingRequests` 同時計入待審核的請假與加班申請
+- `GET /api/dashboard/stats` — `pendingRequests` 同時計入待審核的請假與加班申請；另附 `pendingLeaveRequests`/`pendingOvertimeRequests` 細項，供前端判斷儀表板「待審核申請」卡片該導向哪個分頁
 - `GET /api/dashboard/attendance`
 - `GET /api/dashboard/leaves`
