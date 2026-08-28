@@ -133,6 +133,26 @@ const LeaveManagement = () => {
   const toDateKey = (date: Date) =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
+  const parseDateKey = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+
+  const isWeekendDate = (dateStr: string) => {
+    const day = parseDateKey(dateStr).getDay();
+    return day === 0 || day === 6;
+  };
+
+  // 人事行政總處的日曆表是「每一天」都有一筆紀錄（是否放假 0/2），不是只有
+  // 特殊日期，所以平日的「上班」紀錄也會被匯入，isHoliday 為 false。這裡只
+  // 把「原本是週末、卻被排定要上班」的日子當作補班日；平日的一般上班日不算
+  // 特殊日期，不需要顯示或標記
+  const noteworthyHolidays = useMemo(
+    () => holidays.filter((h) => h.isHoliday || isWeekendDate(h.date)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [holidays]
+  );
+
   const holidayByDateKey = useMemo(() => {
     const map = new Map<string, typeof holidays[number]>();
     holidays.forEach((holiday) => map.set(holiday.date, holiday));
@@ -140,12 +160,12 @@ const LeaveManagement = () => {
   }, [holidays]);
 
   const holidayDates = useMemo(
-    () => holidays.filter((h) => h.isHoliday).map((h) => { const [y, m, d] = h.date.split('-').map(Number); return new Date(y, m - 1, d); }),
-    [holidays]
+    () => noteworthyHolidays.filter((h) => h.isHoliday).map((h) => parseDateKey(h.date)),
+    [noteworthyHolidays]
   );
   const workdayDates = useMemo(
-    () => holidays.filter((h) => !h.isHoliday).map((h) => { const [y, m, d] = h.date.split('-').map(Number); return new Date(y, m - 1, d); }),
-    [holidays]
+    () => noteworthyHolidays.filter((h) => !h.isHoliday).map((h) => parseDateKey(h.date)),
+    [noteworthyHolidays]
   );
 
   const [isAddLeaveOpen, setIsAddLeaveOpen] = useState(false);
@@ -1536,7 +1556,7 @@ const LeaveManagement = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {holidays.map((holiday) => (
+                    {noteworthyHolidays.map((holiday) => (
                       <TableRow key={holiday.id}>
                         <TableCell>{holiday.date}</TableCell>
                         <TableCell>{holiday.name || "-"}</TableCell>
@@ -1554,7 +1574,7 @@ const LeaveManagement = () => {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {holidays.length === 0 && (
+                    {noteworthyHolidays.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
                           {t("leaveManagement:holidays.empty", { year: holidayYear })}

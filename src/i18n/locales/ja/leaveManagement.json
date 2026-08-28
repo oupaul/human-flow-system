@@ -256,7 +256,7 @@
     "calendarDescription": "インポート済みの祝日・振替出勤日を月表示で確認できます",
     "calendarHoverHint": "日付にカーソルを合わせると祝日名が表示されます",
     "listTitle": "祝日一覧",
-    "listDescription": "インポート済みの祝日と振替出勤日",
+    "listDescription": "インポート済みの祝日と振替出勤日（通常の勤務日は表示されません）",
     "yearOption": "{{year}}年",
     "columns": {
       "date": "日付",
