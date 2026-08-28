@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   LogOut,
-  KeyRound
+  KeyRound,
+  Settings as SettingsIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,9 @@ const Layout = () => {
     { to: "/departments", icon: <Building2 className="h-5 w-5" />, label: "部門管理" },
     { to: "/leave-management", icon: <Calendar className="h-5 w-5" />, label: "假別管理" },
     { to: "/reports", icon: <BarChart3 className="h-5 w-5" />, label: "報表分析" },
+    ...(user?.role === "admin"
+      ? [{ to: "/settings", icon: <SettingsIcon className="h-5 w-5" />, label: "系統設定" }]
+      : []),
   ];
 
   return (

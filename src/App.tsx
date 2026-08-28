@@ -9,6 +9,7 @@ import Employees from "./pages/Employees";
 import Departments from "./pages/Departments";
 import LeaveManagement from "./pages/LeaveManagement";
 import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import MyPortal from "./pages/MyPortal";
 import NotFound from "./pages/NotFound";
@@ -43,6 +44,9 @@ const App = () => (
                   <Route path="departments" element={<Departments />} />
                   <Route path="leave-management" element={<LeaveManagement />} />
                   <Route path="reports" element={<Reports />} />
+                  <Route element={<RoleRoute allow={["admin"]} fallback="/" />}>
+                    <Route path="settings" element={<Settings />} />
+                  </Route>
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Route>

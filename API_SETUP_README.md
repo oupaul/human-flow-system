@@ -52,6 +52,8 @@ mysql -u root -p hrms_database < server/migrations/002_leave_grants.sql   # 假�
 
 mysql -u root -p hrms_database < server/migrations/003_review_notes.sql   # 審核備註功能（核准/拒絕皆可填寫）
 
+mysql -u root -p hrms_database < server/migrations/004_notification_settings.sql   # 通知設定改成存在資料庫，透過「系統設定」頁面管理
+
 npm run fix:leave-periods   # 修正舊版 bug 造成的錯誤特休週年紀錄（到職日回填多年前時發放天數算錯），可重複執行
 ```
 
@@ -93,24 +95,18 @@ npm run dev
 
 ## 系統通知設定（選用）
 
-員工送出請假或加班申請時，系統可以主動通知 HR/主管去審核，不用只靠 Dashboard 的待審核數字。透過 `.env` 的 `NOTIFICATION_CHANNEL` 選擇通道，預設 `none`（不發送）：
+員工送出請假或加班申請時，系統可以主動通知 HR/主管去審核，不用只靠 Dashboard 的待審核數字。**設定在網頁上就能改**：以 `admin` 角色登入後，側邊欄會出現「系統設定」，進去「通知設定」選擇通道並填寫，儲存後可以直接按「傳送測試通知」確認有沒有設定對。只有 `admin` 角色看得到這個頁面（HR/主管看不到，因為裡面會有密碼、金鑰等敏感資訊）。
 
-**`NOTIFICATION_CHANNEL=smtp`（寄 email）**
+設定實際存在資料庫的 `notification_settings` 表（單一列）。`.env` 裡的 `NOTIFICATION_CHANNEL`、`SMTP_*`、`TEAMS_WEBHOOK_URL` 只在資料庫**還沒有任何設定紀錄時**當作初始值用一次（方便舊版純環境變數部署直接沿用），之後一律以資料庫內容、也就是「系統設定」頁面上看到的為主，改 `.env` 不會再生效。
 
-```
-NOTIFICATION_TO_EMAILS=hr@example.com,manager@example.com
-SMTP_HOST=smtp.office365.com
-SMTP_PORT=587
-SMTP_FROM=hrms@example.com
-SMTP_AUTH_METHOD=basic   # 或 oauth2
-```
+**Email（SMTP）通道**：
 
-- `SMTP_AUTH_METHOD=basic`：填 `SMTP_USER`、`SMTP_PASSWORD`（帳號密碼登入）。
-- `SMTP_AUTH_METHOD=oauth2`：適用 Microsoft 365、Google Workspace 等已停用密碼登入（Basic Auth）的信箱。需要你自行到該信箱服務商後台申請一組應用程式並取得 refresh token（Microsoft：在 Entra ID/Azure AD 註冊應用程式並授予寄信權限；Google：在 Google Cloud Console 啟用 Gmail API 並建立 OAuth 用戶端，可用 [OAuth 2.0 Playground](https://developers.google.com/oauthplayground) 取得測試用 refresh token），拿到後填入 `SMTP_OAUTH_USER`、`SMTP_OAUTH_CLIENT_ID`、`SMTP_OAUTH_CLIENT_SECRET`、`SMTP_OAUTH_REFRESH_TOKEN`。這部分是信箱服務商的一次性設定，本系統不提供 OAuth 授權流程頁面。
+- 一般帳密登入：填 SMTP 帳號、密碼即可。
+- OAuth2（適用 Microsoft 365、Google Workspace 等已停用密碼登入 Basic Auth 的信箱）：需要你自行到該信箱服務商後台申請一組應用程式並取得 refresh token（Microsoft：在 Entra ID/Azure AD 註冊應用程式並授予寄信權限；Google：在 Google Cloud Console 啟用 Gmail API 並建立 OAuth 用戶端，可用 [OAuth 2.0 Playground](https://developers.google.com/oauthplayground) 取得測試用 refresh token）。這是信箱服務商的一次性設定，本系統不提供 OAuth 授權流程頁面，拿到 Client ID/Secret/refresh token 後直接貼進設定頁面即可。
 
-**`NOTIFICATION_CHANNEL=teams`（發到 Teams 頻道）**
+**Teams 通道**：在目標頻道設定「傳入 Webhook」連接器，取得 Webhook 網址後貼進設定頁面。目前是用傳統 MessageCard 格式；如果貴組織改用較新的 Power Automate 工作流程 Webhook，payload 格式不同，需要調整 `server/notifications.js` 的 `sendTeams` 函式。
 
-在目標頻道設定「傳入 Webhook」連接器，取得 Webhook 網址後填入 `TEAMS_WEBHOOK_URL`。目前是用傳統 MessageCard 格式；如果貴組織改用較新的 Power Automate 工作流程 Webhook，payload 格式不同，需要調整 `server/notifications.js` 的 `sendTeams` 函式。
+密碼/金鑰類欄位（SMTP 密碼、OAuth Client Secret、refresh token、Teams Webhook 網址）**以明文存在資料庫**，本系統目前沒有對這些欄位做額外加密，僅靠 `admin` 角色權限與一般資料庫存取控管保護，請確保正式環境的資料庫本身有適當的存取限制。
 
 通知發送失敗（設定錯誤、網路問題等）只會記錄在後端 log，不會影響申請/審核等主要功能正常運作。
 
@@ -124,6 +120,11 @@ SMTP_AUTH_METHOD=basic   # 或 oauth2
 
 - `GET /api/auth/me` — 取得目前登入的使用者
 - `PUT /api/auth/change-password` — `{ currentPassword, newPassword }`，任何登入者皆可自行修改密碼，需先驗證目前密碼正確
+
+### 系統設定（僅 admin）
+- `GET /api/settings/notifications` — 取得目前通知設定，密碼/金鑰類欄位只回傳是否已設定（`hasSmtpPassword` 等布林值），不回傳明文
+- `PUT /api/settings/notifications` — 更新通知設定；密碼/金鑰類欄位留空表示不變更，非空字串才會覆蓋
+- `POST /api/settings/notifications/test` — 用目前已儲存的設定發送一則測試通知
 
 ### 部門管理（僅 HR/主管）
 - `GET /api/departments`

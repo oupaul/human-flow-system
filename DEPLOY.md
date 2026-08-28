@@ -69,6 +69,9 @@ docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_datab
 
 # 審核備註功能（核准/拒絕皆可填寫）
 docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/003_review_notes.sql
+
+# 通知設定改成存在資料庫，透過「系統設定」頁面管理（僅 admin 可見）
+docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/004_notification_settings.sql
 ```
 
 全新安裝（第一次啟動 `db` 容器）不需要這步，`schema.sql` 已經包含最新結構。

@@ -9,7 +9,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
-import { sendNotification } from './notifications.js';
+import { sendNotification, getNotificationSettings, sendTestNotification } from './notifications.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -438,6 +438,83 @@ api.put('/auth/change-password', async (req, res) => {
   }
 });
 
+// 系統設定 API 路由（僅 admin，內含 SMTP 密碼/OAuth 密鑰等敏感資訊）
+
+// 回傳目前的通知設定；密碼/密鑰類欄位不直接回傳明文，只回傳「是否已設定」，
+// 前端留空送出代表「維持原值不變」，非空字串才會覆蓋
+api.get('/settings/notifications', requireRole('admin'), async (req, res) => {
+  try {
+    const settings = await getNotificationSettings(pool);
+    res.json({
+      channel: settings.channel,
+      smtpHost: settings.smtp_host,
+      smtpPort: settings.smtp_port,
+      smtpSecure: settings.smtp_secure,
+      smtpFrom: settings.smtp_from,
+      notificationToEmails: settings.notification_to_emails,
+      smtpAuthMethod: settings.smtp_auth_method,
+      smtpUser: settings.smtp_user,
+      smtpOauthUser: settings.smtp_oauth_user,
+      smtpOauthClientId: settings.smtp_oauth_client_id,
+      hasSmtpPassword: !!settings.smtp_password,
+      hasSmtpOauthClientSecret: !!settings.smtp_oauth_client_secret,
+      hasSmtpOauthRefreshToken: !!settings.smtp_oauth_refresh_token,
+      hasTeamsWebhookUrl: !!settings.teams_webhook_url,
+    });
+  } catch (error) {
+    console.error('Error fetching notification settings:', error);
+    res.status(500).json({ error: '獲取通知設定失敗', detail: error.message });
+  }
+});
+
+api.put('/settings/notifications', requireRole('admin'), async (req, res) => {
+  try {
+    const current = await getNotificationSettings(pool);
+    const body = req.body;
+    const keep = (newValue, oldValue) => (newValue ? newValue : oldValue);
+
+    await pool.execute(
+      `UPDATE notification_settings SET
+        channel = ?, smtp_host = ?, smtp_port = ?, smtp_secure = ?, smtp_from = ?,
+        notification_to_emails = ?, smtp_auth_method = ?, smtp_user = ?, smtp_password = ?,
+        smtp_oauth_user = ?, smtp_oauth_client_id = ?, smtp_oauth_client_secret = ?,
+        smtp_oauth_refresh_token = ?, teams_webhook_url = ?
+       WHERE id = 1`,
+      [
+        body.channel || 'none',
+        body.smtpHost || null,
+        body.smtpPort ? Number(body.smtpPort) : null,
+        !!body.smtpSecure,
+        body.smtpFrom || null,
+        body.notificationToEmails || null,
+        body.smtpAuthMethod || 'basic',
+        body.smtpUser || null,
+        keep(body.smtpPassword, current.smtp_password),
+        body.smtpOauthUser || null,
+        body.smtpOauthClientId || null,
+        keep(body.smtpOauthClientSecret, current.smtp_oauth_client_secret),
+        keep(body.smtpOauthRefreshToken, current.smtp_oauth_refresh_token),
+        keep(body.teamsWebhookUrl, current.teams_webhook_url),
+      ]
+    );
+
+    res.json({ message: '通知設定已儲存' });
+  } catch (error) {
+    console.error('Error updating notification settings:', error);
+    res.status(500).json({ error: '儲存通知設定失敗', detail: error.message });
+  }
+});
+
+api.post('/settings/notifications/test', requireRole('admin'), async (req, res) => {
+  try {
+    await sendTestNotification(pool);
+    res.json({ message: '測試通知已送出，請確認是否收到' });
+  } catch (error) {
+    console.error('Error sending test notification:', error);
+    res.status(400).json({ error: '測試通知發送失敗', detail: error.message });
+  }
+});
+
 // 部門 API 路由（僅 HR/主管可管理）
 
 api.get('/departments', requireRole(...STAFF_ROLES), async (req, res) => {
@@ -810,6 +887,7 @@ api.post('/leave-applications', async (req, res) => {
 
     const application = newApplication[0];
     sendNotification(
+      pool,
       '新的請假申請待審核',
       `${application.employee}（${application.employeeId}）提交了一筆${application.type}申請（${application.startDate} ~ ${application.endDate}，共 ${application.days} 天），請至系統審核。`
     );
@@ -1306,6 +1384,7 @@ api.post('/overtime-applications', async (req, res) => {
 
     const application = newApplication[0];
     sendNotification(
+      pool,
       '新的加班申請待審核',
       `${application.employee}（${application.employeeId}）提交了一筆加班申請（${application.date} ${application.startTime}-${application.endTime}，共 ${application.hours} 小時），請至系統審核。`
     );

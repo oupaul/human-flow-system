@@ -170,6 +170,26 @@ CREATE TABLE IF NOT EXISTS users (
   FOREIGN KEY (employee_id) REFERENCES employees(employeeId)
 );
 
+-- 系統通知設定：單一列（id 固定為 1），由「設定」頁面維護，取代舊版純環境變數設定
+CREATE TABLE IF NOT EXISTS notification_settings (
+  id INT PRIMARY KEY DEFAULT 1,
+  channel ENUM('none', 'smtp', 'teams') DEFAULT 'none',
+  smtp_host VARCHAR(255) NULL,
+  smtp_port INT NULL,
+  smtp_secure BOOLEAN DEFAULT FALSE,
+  smtp_from VARCHAR(255) NULL,
+  notification_to_emails VARCHAR(500) NULL,
+  smtp_auth_method ENUM('basic', 'oauth2') DEFAULT 'basic',
+  smtp_user VARCHAR(255) NULL,
+  smtp_password VARCHAR(255) NULL,
+  smtp_oauth_user VARCHAR(255) NULL,
+  smtp_oauth_client_id VARCHAR(255) NULL,
+  smtp_oauth_client_secret VARCHAR(255) NULL,
+  smtp_oauth_refresh_token VARCHAR(500) NULL,
+  teams_webhook_url VARCHAR(500) NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- 範例假別類型（可依需求刪減）
 INSERT INTO leave_types (name, code, unit, needProof, affectAttendance, isPaid, maxDays, advanceApply, canSplit) VALUES
 ('特休', 'AL', '天', FALSE, FALSE, TRUE, '依年資', '3天', TRUE),
