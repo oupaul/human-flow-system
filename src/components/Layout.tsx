@@ -39,11 +39,11 @@ const Layout = () => {
   };
 
   const menuItems = [
-    { to: "/", icon: <LayoutDashboard className="h-5 w-5" />, label: "Dashboard" },
-    { to: "/employees", icon: <Users className="h-5 w-5" />, label: "Employees" },
-    { to: "/departments", icon: <Building2 className="h-5 w-5" />, label: "Departments" },
-    { to: "/leave-management", icon: <Calendar className="h-5 w-5" />, label: "Leave Management" },
-    { to: "/reports", icon: <BarChart3 className="h-5 w-5" />, label: "Reports" },
+    { to: "/", icon: <LayoutDashboard className="h-5 w-5" />, label: "儀表板" },
+    { to: "/employees", icon: <Users className="h-5 w-5" />, label: "員工管理" },
+    { to: "/departments", icon: <Building2 className="h-5 w-5" />, label: "部門管理" },
+    { to: "/leave-management", icon: <Calendar className="h-5 w-5" />, label: "假別管理" },
+    { to: "/reports", icon: <BarChart3 className="h-5 w-5" />, label: "報表分析" },
   ];
 
   return (

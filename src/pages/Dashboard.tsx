@@ -1,12 +1,12 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { Users, Calendar, Clock, Briefcase } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { dashboardApi } from "@/services/dashboardApi";
 import { toast } from "sonner";
 
@@ -71,7 +72,7 @@ const Dashboard = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">儀表板</h1>
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
@@ -86,122 +87,134 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight">儀表板</h1>
         <div className="text-sm text-muted-foreground">
           資料更新時間: {new Date().toLocaleString('zh-TW')}
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* 統計卡片：點擊直接跳到對應的功能頁面 */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="flex flex-row items-center p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-              <Users className="h-6 w-6 text-hrms-accent" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-muted-foreground">總員工數</p>
-              <h3 className="text-2xl font-bold">{stats?.totalEmployees || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="flex flex-row items-center p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <Calendar className="h-6 w-6 text-hrms-success" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-muted-foreground">本月請假數</p>
-              <h3 className="text-2xl font-bold">{stats?.monthlyLeaves || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="flex flex-row items-center p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
-              <Clock className="h-6 w-6 text-hrms-warning" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-muted-foreground">平均出勤率</p>
-              <h3 className="text-2xl font-bold">{stats?.averageAttendance || 0}%</h3>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="flex flex-row items-center p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
-              <Briefcase className="h-6 w-6 text-purple-500" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-muted-foreground">待審核申請</p>
-              <h3 className="text-2xl font-bold">{stats?.pendingRequests || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
+        <Link to="/employees" className="block">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardContent className="flex flex-row items-center p-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                <Users className="h-6 w-6 text-hrms-accent" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">總員工數</p>
+                <h3 className="text-2xl font-bold">{stats?.totalEmployees || 0}</h3>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/leave-management" className="block">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardContent className="flex flex-row items-center p-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                <Calendar className="h-6 w-6 text-hrms-success" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">本月請假數</p>
+                <h3 className="text-2xl font-bold">{stats?.monthlyLeaves || 0}</h3>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/reports" className="block">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardContent className="flex flex-row items-center p-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
+                <Clock className="h-6 w-6 text-hrms-warning" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">平均出勤率</p>
+                <h3 className="text-2xl font-bold">{stats?.averageAttendance || 0}%</h3>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/leave-management" className="block">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardContent className="flex flex-row items-center p-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100">
+                <Briefcase className="h-6 w-6 text-purple-500" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-muted-foreground">待審核申請</p>
+                <h3 className="text-2xl font-bold">{stats?.pendingRequests || 0}</h3>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
-      {/* Charts */}
+      {/* 圖表：點擊跳到報表分析對應分頁 */}
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>部門出勤率</CardTitle>
-            <CardDescription>各部門本月平均出勤率分析</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={departmentAttendance}
-                  margin={{
-                    top: 20,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis domain={[75, 100]} />
-                  <Tooltip />
-                  <Bar dataKey="attendance" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>請假類型分布</CardTitle>
-            <CardDescription>本月各類請假使用比例</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={leaveDistribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
+        <Link to="/reports" className="block">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardHeader>
+              <CardTitle>部門出勤率</CardTitle>
+              <CardDescription>各部門本月平均出勤率分析</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={departmentAttendance}
+                    margin={{
+                      top: 20,
+                      right: 30,
+                      left: 20,
+                      bottom: 5,
+                    }}
                   >
-                    {leaveDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis domain={[75, 100]} />
+                    <Tooltip />
+                    <Bar dataKey="attendance" fill="#3b82f6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/reports" className="block">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardHeader>
+              <CardTitle>請假類型分布</CardTitle>
+              <CardDescription>本月各類請假使用比例</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={leaveDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={true}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {leaveDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
     </div>
   );
