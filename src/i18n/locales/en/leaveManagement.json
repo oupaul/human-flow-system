@@ -252,6 +252,9 @@
     "importDescription": "Paste the CSV content of the Directorate-General of Personnel Administration's official calendar (downloadable from Taiwan's government open data platform). The file's column headers must stay in the original Chinese as published by the government — the system matches them by those exact Chinese labels, e.g. below.",
     "csvPlaceholder": "西元日期,星期,是否放假,備註\n20260101,四,2,中華民國開國紀念日",
     "importButton": "Import",
+    "calendarTitle": "Holiday Calendar",
+    "calendarDescription": "View imported public holidays and make-up workdays in a monthly calendar",
+    "calendarHoverHint": "Hover over a date to see the holiday name",
     "listTitle": "Holiday List",
     "listDescription": "Imported public holidays and make-up workdays",
     "yearOption": "{{year}}",
@@ -263,6 +266,17 @@
     },
     "isHoliday": "Holiday",
     "isWorkday": "Make-up Workday",
-    "empty": "No holiday data for {{year}} yet; import on the left"
+    "empty": "No holiday data for {{year}} yet; import on the left",
+    "toasts": {
+      "loadFailed": "Failed to load public holidays",
+      "importSuccessTitle": "Import successful",
+      "importSuccessDescription": "Imported {{count}} holiday records",
+      "importFailedTitle": "Failed to import public holidays",
+      "importFailedFallback": "Please check that the CSV format is correct",
+      "createSuccess": "Holiday added successfully",
+      "createFailedTitle": "Failed to add holiday",
+      "deleteSuccess": "Holiday deleted",
+      "deleteFailedTitle": "Failed to delete holiday"
+    }
   }
 }

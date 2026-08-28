@@ -252,6 +252,9 @@
     "importDescription": "人事行政総処「政府機関執務カレンダー」のCSV内容を貼り付けてください（台湾政府データ公開プラットフォームからダウンロード可能）。列見出しは台湾政府が公開している元の中国語表記のままにしてください。システムはその中国語の見出しで列を判別します（下記の例を参照）。",
     "csvPlaceholder": "西元日期,星期,是否放假,備註\n20260101,四,2,中華民國開國紀念日",
     "importButton": "インポート",
+    "calendarTitle": "祝日カレンダー",
+    "calendarDescription": "インポート済みの祝日・振替出勤日を月表示で確認できます",
+    "calendarHoverHint": "日付にカーソルを合わせると祝日名が表示されます",
     "listTitle": "祝日一覧",
     "listDescription": "インポート済みの祝日と振替出勤日",
     "yearOption": "{{year}}年",
@@ -263,6 +266,17 @@
     },
     "isHoliday": "休日",
     "isWorkday": "振替出勤",
-    "empty": "{{year}}年の祝日データはまだありません。左側からインポートしてください"
+    "empty": "{{year}}年の祝日データはまだありません。左側からインポートしてください",
+    "toasts": {
+      "loadFailed": "祝日の読み込みに失敗しました",
+      "importSuccessTitle": "インポートが完了しました",
+      "importSuccessDescription": "{{count}} 件の祝日データをインポートしました",
+      "importFailedTitle": "祝日のインポートに失敗しました",
+      "importFailedFallback": "CSVの形式が正しいかご確認ください",
+      "createSuccess": "祝日を追加しました",
+      "createFailedTitle": "祝日の追加に失敗しました",
+      "deleteSuccess": "祝日を削除しました",
+      "deleteFailedTitle": "祝日の削除に失敗しました"
+    }
   }
 }

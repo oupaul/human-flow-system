@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Holiday } from "@/types/holiday";
 import { holidayApi } from "@/services/holidayApi";
 
 export const useHolidays = (year: number) => {
+  const { t } = useTranslation(["leaveManagement", "common"]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -14,13 +16,13 @@ export const useHolidays = (year: number) => {
       setHolidays(data);
     } catch (error) {
       console.error("Failed to load holidays:", error);
-      toast.error("載入國定假日失敗", {
-        description: "請檢查網路連線或聯繫系統管理員",
+      toast.error(t("leaveManagement:holidays.toasts.loadFailed"), {
+        description: t("common:common.networkErrorHint"),
       });
     } finally {
       setLoading(false);
     }
-  }, [year]);
+  }, [year, t]);
 
   useEffect(() => {
     loadHolidays();
@@ -30,13 +32,13 @@ export const useHolidays = (year: number) => {
     try {
       const result = await holidayApi.importHolidays(csv);
       await loadHolidays();
-      toast.success("匯入成功", {
-        description: `已匯入 ${result.imported} 筆假日資料`,
+      toast.success(t("leaveManagement:holidays.toasts.importSuccessTitle"), {
+        description: t("leaveManagement:holidays.toasts.importSuccessDescription", { count: result.imported }),
       });
     } catch (error) {
       console.error("Failed to import holidays:", error);
-      toast.error("匯入國定假日失敗", {
-        description: error instanceof Error ? error.message : "請確認 CSV 格式是否正確",
+      toast.error(t("leaveManagement:holidays.toasts.importFailedTitle"), {
+        description: error instanceof Error ? error.message : t("leaveManagement:holidays.toasts.importFailedFallback"),
       });
     }
   };
@@ -45,11 +47,11 @@ export const useHolidays = (year: number) => {
     try {
       await holidayApi.createHoliday(data);
       await loadHolidays();
-      toast.success("假日新增成功");
+      toast.success(t("leaveManagement:holidays.toasts.createSuccess"));
     } catch (error) {
       console.error("Failed to create holiday:", error);
-      toast.error("新增假日失敗", {
-        description: "請檢查網路連線或聯繫系統管理員",
+      toast.error(t("leaveManagement:holidays.toasts.createFailedTitle"), {
+        description: t("common:common.networkErrorHint"),
       });
     }
   };
@@ -58,11 +60,11 @@ export const useHolidays = (year: number) => {
     try {
       await holidayApi.deleteHoliday(id);
       await loadHolidays();
-      toast.success("假日已刪除");
+      toast.success(t("leaveManagement:holidays.toasts.deleteSuccess"));
     } catch (error) {
       console.error("Failed to delete holiday:", error);
-      toast.error("刪除假日失敗", {
-        description: "請檢查網路連線或聯繫系統管理員",
+      toast.error(t("leaveManagement:holidays.toasts.deleteFailedTitle"), {
+        description: t("common:common.networkErrorHint"),
       });
     }
   };

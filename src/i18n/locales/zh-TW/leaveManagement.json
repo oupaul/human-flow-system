@@ -252,6 +252,9 @@
     "importDescription": "貼上人事行政總處「政府行政機關辦公日曆表」CSV 內容（可至政府資料開放平台下載）",
     "csvPlaceholder": "西元日期,星期,是否放假,備註\n20260101,四,2,中華民國開國紀念日",
     "importButton": "匯入",
+    "calendarTitle": "假日行事曆",
+    "calendarDescription": "以月曆檢視已匯入的國定假日與補班日",
+    "calendarHoverHint": "將滑鼠移到日期上可看到假日名稱",
     "listTitle": "假日列表",
     "listDescription": "已匯入的國定假日與補班日",
     "yearOption": "{{year}} 年",
@@ -263,6 +266,17 @@
     },
     "isHoliday": "放假",
     "isWorkday": "補班",
-    "empty": "{{year}} 年尚無假日資料，請於左側匯入"
+    "empty": "{{year}} 年尚無假日資料，請於左側匯入",
+    "toasts": {
+      "loadFailed": "載入國定假日失敗",
+      "importSuccessTitle": "匯入成功",
+      "importSuccessDescription": "已匯入 {{count}} 筆假日資料",
+      "importFailedTitle": "匯入國定假日失敗",
+      "importFailedFallback": "請確認 CSV 格式是否正確",
+      "createSuccess": "假日新增成功",
+      "createFailedTitle": "新增假日失敗",
+      "deleteSuccess": "假日已刪除",
+      "deleteFailedTitle": "刪除假日失敗"
+    }
   }
 }

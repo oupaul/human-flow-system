@@ -43,7 +43,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Plus, FileText, CheckCircle2, XCircle, Loader2, RefreshCcw, Upload, Trash2, Clock, Paperclip } from "lucide-react";
+import { Plus, FileText, CheckCircle2, XCircle, Loader2, RefreshCcw, Upload, Trash2, Clock, Paperclip } from "lucide-react";
+import { Calendar as HolidayCalendar } from "@/components/ui/calendar";
+import { zhTW, ja as jaLocale, enUS } from "date-fns/locale";
 import { useLeaveManagement } from "@/hooks/useLeaveManagement";
 import { useOvertimeApplications } from "@/hooks/useOvertimeApplications";
 import { useHolidays } from "@/hooks/useHolidays";
@@ -61,7 +63,8 @@ import { employeeApi } from "@/services/employeeApi";
 import { Employee } from "@/types/employee";
 
 const LeaveManagement = () => {
-  const { t } = useTranslation(["leaveManagement", "common"]);
+  const { t, i18n } = useTranslation(["leaveManagement", "common"]);
+  const calendarLocale = { "zh-TW": zhTW, en: enUS, ja: jaLocale }[i18n.resolvedLanguage || "zh-TW"] || zhTW;
   const { user } = useAuth();
   const approverName = user?.employeeName || user?.username || t("leaveManagement:defaultApproverName");
 
@@ -120,6 +123,30 @@ const LeaveManagement = () => {
   const [holidayYear, setHolidayYear] = useState(currentYear);
   const { holidays, importHolidays, deleteHoliday } = useHolidays(holidayYear);
   const [holidayCsv, setHolidayCsv] = useState("");
+  const [holidayCalendarMonth, setHolidayCalendarMonth] = useState(new Date(holidayYear, 0, 1));
+
+  useEffect(() => {
+    setHolidayCalendarMonth(new Date(holidayYear, 0, 1));
+  }, [holidayYear]);
+
+  // 用本地時區的年月日組字串比對，避免 new Date(dateString) 依 UTC 解析造成的日期偏移
+  const toDateKey = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+  const holidayByDateKey = useMemo(() => {
+    const map = new Map<string, typeof holidays[number]>();
+    holidays.forEach((holiday) => map.set(holiday.date, holiday));
+    return map;
+  }, [holidays]);
+
+  const holidayDates = useMemo(
+    () => holidays.filter((h) => h.isHoliday).map((h) => { const [y, m, d] = h.date.split('-').map(Number); return new Date(y, m - 1, d); }),
+    [holidays]
+  );
+  const workdayDates = useMemo(
+    () => holidays.filter((h) => !h.isHoliday).map((h) => { const [y, m, d] = h.date.split('-').map(Number); return new Date(y, m - 1, d); }),
+    [holidays]
+  );
 
   const [isAddLeaveOpen, setIsAddLeaveOpen] = useState(false);
   const [selectedLeaveType, setSelectedLeaveType] = useState("");
@@ -1439,9 +1466,9 @@ const LeaveManagement = () => {
             <Card className="md:col-span-2">
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <div>
-                  <CardTitle>{t("leaveManagement:holidays.listTitle")}</CardTitle>
+                  <CardTitle>{t("leaveManagement:holidays.calendarTitle")}</CardTitle>
                   <CardDescription>
-                    {t("leaveManagement:holidays.listDescription")}
+                    {t("leaveManagement:holidays.calendarDescription")}
                   </CardDescription>
                 </div>
                 <Select value={String(holidayYear)} onValueChange={(value) => setHolidayYear(Number(value))}>
@@ -1455,49 +1482,90 @@ const LeaveManagement = () => {
                   </SelectContent>
                 </Select>
               </CardHeader>
-              <CardContent>
-                <div className="rounded-md border max-h-[420px] overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("leaveManagement:holidays.columns.date")}</TableHead>
-                        <TableHead>{t("leaveManagement:holidays.columns.description")}</TableHead>
-                        <TableHead>{t("leaveManagement:holidays.columns.type")}</TableHead>
-                        <TableHead className="text-right">{t("leaveManagement:holidays.columns.actions")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {holidays.map((holiday) => (
-                        <TableRow key={holiday.id}>
-                          <TableCell>{holiday.date}</TableCell>
-                          <TableCell>{holiday.name || "-"}</TableCell>
-                          <TableCell>
-                            {holiday.isHoliday ? (
-                              <span className="text-green-600">{t("leaveManagement:holidays.isHoliday")}</span>
-                            ) : (
-                              <span className="text-orange-600">{t("leaveManagement:holidays.isWorkday")}</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="icon" onClick={() => deleteHoliday(holiday.id)}>
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {holidays.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
-                            {t("leaveManagement:holidays.empty", { year: holidayYear })}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+              <CardContent className="flex flex-col items-center gap-3">
+                <HolidayCalendar
+                  locale={calendarLocale}
+                  month={holidayCalendarMonth}
+                  onMonthChange={setHolidayCalendarMonth}
+                  fromDate={new Date(holidayYear, 0, 1)}
+                  toDate={new Date(holidayYear, 11, 31)}
+                  modifiers={{ holiday: holidayDates, workday: workdayDates }}
+                  modifiersClassNames={{
+                    holiday: "bg-green-100 text-green-700 hover:bg-green-200",
+                    workday: "bg-orange-100 text-orange-700 hover:bg-orange-200",
+                  }}
+                  components={{
+                    DayContent: ({ date }) => {
+                      const holiday = holidayByDateKey.get(toDateKey(date));
+                      return (
+                        <span title={holiday?.name || undefined}>{date.getDate()}</span>
+                      );
+                    },
+                  }}
+                  className="rounded-md border"
+                />
+                <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-sm bg-green-100" /> {t("leaveManagement:holidays.isHoliday")}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-3 w-3 rounded-sm bg-orange-100" /> {t("leaveManagement:holidays.isWorkday")}
+                  </span>
+                  <span>{t("leaveManagement:holidays.calendarHoverHint")}</span>
                 </div>
               </CardContent>
             </Card>
           </div>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>{t("leaveManagement:holidays.listTitle")}</CardTitle>
+              <CardDescription>
+                {t("leaveManagement:holidays.listDescription")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border max-h-[420px] overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("leaveManagement:holidays.columns.date")}</TableHead>
+                      <TableHead>{t("leaveManagement:holidays.columns.description")}</TableHead>
+                      <TableHead>{t("leaveManagement:holidays.columns.type")}</TableHead>
+                      <TableHead className="text-right">{t("leaveManagement:holidays.columns.actions")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {holidays.map((holiday) => (
+                      <TableRow key={holiday.id}>
+                        <TableCell>{holiday.date}</TableCell>
+                        <TableCell>{holiday.name || "-"}</TableCell>
+                        <TableCell>
+                          {holiday.isHoliday ? (
+                            <span className="text-green-600">{t("leaveManagement:holidays.isHoliday")}</span>
+                          ) : (
+                            <span className="text-orange-600">{t("leaveManagement:holidays.isWorkday")}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" onClick={() => deleteHoliday(holiday.id)}>
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {holidays.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                          {t("leaveManagement:holidays.empty", { year: holidayYear })}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
