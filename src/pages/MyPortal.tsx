@@ -80,6 +80,11 @@ const MyPortal = () => {
   const selectedLeaveTypeNeedsProof = selectedLeaveTypeInfo?.needProof;
   const selectedLeaveTypeIsComp = selectedLeaveTypeInfo?.code === "COMP";
 
+  // 生理假僅限女性員工可選；未填寫性別時不過濾，避免資料不完整時誤擋
+  const availableLeaveTypesForApplication = leaveTypes.filter(
+    (t) => t.code !== "MSL" || user?.gender !== "male"
+  );
+
   const [isOvertimeDialogOpen, setIsOvertimeDialogOpen] = useState(false);
   const [overtimeForm, setOvertimeForm] = useState<Partial<OvertimeApplicationFormData>>({ compensationType: "pay" });
 
@@ -243,7 +248,7 @@ const MyPortal = () => {
                       <SelectValue placeholder={t("myPortal:leaveDialog.leaveTypePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {leaveTypes.map((type) => (
+                      {availableLeaveTypesForApplication.map((type) => (
                         <SelectItem key={type.id} value={type.id.toString()}>
                           {type.name}
                         </SelectItem>

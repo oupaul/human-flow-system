@@ -241,14 +241,14 @@ async function getOrCreateActivePeriod(employeeId, joinDate, initialUsedDays = 0
 // 新增一位員工：建立員工紀錄、第一期特休週年紀錄、假別餘額預設值、登入帳號。
 // 供單筆新增（POST /employees）與批次匯入（POST /employees/import）共用
 async function createEmployeeRecord(data) {
-  const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, initialAnnualLeaveUsed } = data;
+  const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, initialAnnualLeaveUsed } = data;
   if (!name || !employeeId || !department || !position || !email || !joinDate) {
     throw new Error('所有必填欄位皆需填寫（姓名、員工編號、部門、職位、電子郵件、到職日）');
   }
 
   const [result] = await pool.execute(
-    'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, monthlySalary || null]
+    'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, monthlySalary || null, gender || null]
   );
 
   await getOrCreateActivePeriod(employeeId, joinDate, Number(initialAnnualLeaveUsed) || 0);
@@ -279,6 +279,7 @@ function parseEmployeeCsv(csvText) {
     address: findColumn(['地址']),
     notes: findColumn(['備註']),
     monthlySalary: findColumn(['月薪']),
+    gender: findColumn(['性別']),
     initialAnnualLeaveUsed: findColumn(['已用特休', '特休已用']),
   };
 
@@ -289,6 +290,12 @@ function parseEmployeeCsv(csvText) {
 
   const normalizeDate = (raw) => (raw ? raw.replace(/\//g, '-') : '');
   const pick = (cells, key) => (columns[key] === -1 ? '' : (cells[columns[key]] || ''));
+  const normalizeGender = (raw) => {
+    const value = (raw || '').trim().toLowerCase();
+    if (['男', 'm', 'male'].includes(value)) return 'male';
+    if (['女', 'f', 'female'].includes(value)) return 'female';
+    return null;
+  };
 
   return lines.slice(1).map((line) => {
     const cells = splitRow(line);
@@ -303,6 +310,7 @@ function parseEmployeeCsv(csvText) {
       address: pick(cells, 'address') || null,
       notes: pick(cells, 'notes') || null,
       monthlySalary: pick(cells, 'monthlySalary') || null,
+      gender: normalizeGender(pick(cells, 'gender')),
       initialAnnualLeaveUsed: pick(cells, 'initialAnnualLeaveUsed') || 0,
     };
   });
@@ -372,7 +380,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     const [rows] = await pool.execute(
-      `SELECT u.*, e.name as employeeName FROM users u
+      `SELECT u.*, e.name as employeeName, e.gender FROM users u
        LEFT JOIN employees e ON u.employee_id = e.employeeId
        WHERE u.username = ? AND u.active = TRUE`,
       [username]
@@ -401,6 +409,7 @@ app.post('/api/auth/login', async (req, res) => {
         role: user.role,
         employeeId: user.employee_id,
         employeeName: user.employeeName || null,
+        gender: user.gender || null,
       },
     });
   } catch (error) {
@@ -446,7 +455,7 @@ api.use(authMiddleware);
 api.get('/auth/me', async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      `SELECT u.id, u.username, u.role, u.employee_id, e.name as employeeName
+      `SELECT u.id, u.username, u.role, u.employee_id, e.name as employeeName, e.gender
        FROM users u
        LEFT JOIN employees e ON u.employee_id = e.employeeId
        WHERE u.id = ?`,
@@ -463,6 +472,7 @@ api.get('/auth/me', async (req, res) => {
         role: user.role,
         employeeId: user.employee_id,
         employeeName: user.employeeName || null,
+        gender: user.gender || null,
       },
     });
   } catch (error) {
@@ -717,14 +727,14 @@ api.post('/employees/import', requireRole(...STAFF_ROLES), async (req, res) => {
 api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary } = req.body;
+    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender } = req.body;
 
     const [beforeRows] = await pool.execute('SELECT employeeId FROM employees WHERE id = ?', [id]);
     const previousEmployeeId = beforeRows[0]?.employeeId;
 
     await pool.execute(
-      'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, monthlySalary = ? WHERE id = ?',
-      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', monthlySalary || null, id]
+      'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, monthlySalary = ?, gender = ? WHERE id = ?',
+      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', monthlySalary || null, gender || null, id]
     );
 
     // 同步登入帳號：email 異動時登入帳號一併更新
@@ -953,6 +963,15 @@ api.post('/leave-applications', async (req, res) => {
 
     const [leaveTypeRows] = await pool.execute('SELECT code FROM leave_types WHERE id = ?', [leaveTypeId]);
     const leaveTypeCode = leaveTypeRows[0]?.code;
+
+    // 生理假依性別工作平等法第 14 條僅限女性受僱者申請；未填寫性別的員工不擋下，
+    // 避免資料不完整時誤擋合理申請，請 HR 之後補上性別資料
+    if (leaveTypeCode === 'MSL') {
+      const [employeeRows] = await pool.execute('SELECT gender FROM employees WHERE employeeId = ?', [employeeId]);
+      if (employeeRows[0]?.gender === 'male') {
+        return res.status(400).json({ error: '生理假僅限女性員工申請' });
+      }
+    }
 
     let daysDiff;
     if (leaveTypeCode === 'COMP') {

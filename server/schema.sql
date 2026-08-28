@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS employees (
   address TEXT,
   notes TEXT,
   monthlySalary DECIMAL(10,0) NULL,
+  gender ENUM('male', 'female') NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

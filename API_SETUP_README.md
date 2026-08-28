@@ -58,6 +58,8 @@ mysql -u root -p hrms_database < server/migrations/005_comp_time.sql   # 補休�
 
 mysql -u root -p hrms_database < server/migrations/006_menstrual_leave.sql   # 補上生理假假別
 
+mysql -u root -p hrms_database < server/migrations/007_employee_gender.sql   # 員工新增性別欄位（用於限制生理假僅女性員工可請）
+
 npm run fix:leave-periods   # 修正舊版 bug 造成的錯誤特休週年紀錄（到職日回填多年前時發放天數算錯），可重複執行
 ```
 
@@ -152,7 +154,7 @@ npm run dev
 ### 員工管理（僅 HR/主管）
 - `GET /api/employees`
 - `POST /api/employees` — 新增員工時會自動建立對應的員工登入帳號與第一期特休週年紀錄；可選帶 `initialAnnualLeaveUsed`，登記系統上線前該員工已休掉的特休天數（預設 0）
-- `POST /api/employees/import` — `{ csv }` 批次匯入，標題列需含姓名/員工編號/部門/職位/電子郵件/到職日（電話/地址/備註/月薪/已用特休天數選填，欄位可任意排序），逐列處理、單列失敗不影響其他列，回傳 `{ created, failed: [{ row, employeeId, error }] }`
+- `POST /api/employees/import` — `{ csv }` 批次匯入，標題列需含姓名/員工編號/部門/職位/電子郵件/到職日（電話/地址/備註/月薪/性別/已用特休天數選填，欄位可任意排序；性別填「男」或「女」，用於限制生理假等性別限定的假別），逐列處理、單列失敗不影響其他列，回傳 `{ created, failed: [{ row, employeeId, error }] }`
 - `PUT /api/employees/:id`
 - `DELETE /api/employees/:id`
 - `PUT /api/employees/:id/terminate` — 員工離職時會一併停用其登入帳號
@@ -162,7 +164,7 @@ npm run dev
 - `GET /api/leave-types` — 所有登入者皆可查詢
 - `POST /api/leave-types`（僅 HR/主管）
 - `GET /api/leave-applications` — 員工只會看到自己的申請，HR/主管看到全公司
-- `POST /api/leave-applications` — 員工角色送出時會強制以自己的 employeeId 覆蓋，無法代他人申請；假別為「補休」時以 `startTime`/`endTime`（需同一天）精確計算小時數，其餘假別仍以 `startDate`/`endDate` 計算日曆天數
+- `POST /api/leave-applications` — 員工角色送出時會強制以自己的 employeeId 覆蓋，無法代他人申請；假別為「補休」時以 `startTime`/`endTime`（需同一天）精確計算小時數並自動扣除中午 12:00–13:00 午休時段，其餘假別仍以 `startDate`/`endDate` 計算日曆天數；假別為「生理假」時，若該員工性別為男性會回傳 400（性別未填寫則不擋）
 - `POST /api/leave-applications/:id/attachment` — 上傳證明文件（`multipart/form-data`，欄位名 `file`，僅接受 JPG/PNG/WEBP/PDF，5MB 以內），本人或 HR/主管可上傳，重複上傳會覆蓋舊檔
 - `GET /api/leave-applications/:id/attachment` — 下載證明文件，本人或 HR/主管可下載
 - `PUT /api/leave-applications/:id/status`（僅 HR/主管審核）— `{ status, approver, days, reviewNote }`，`days` 可選，用於核准時依證明文件調整實際核准天數（例如喪假依親屬關係核定 3/6/8 天），不帶則沿用申請時的天數；`reviewNote` 可選，核准或拒絕都可填寫審核備註，員工自助頁看得到

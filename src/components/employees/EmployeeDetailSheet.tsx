@@ -70,6 +70,13 @@ const EmployeeDetailSheet = ({
               </div>
             </div>
 
+            {employee.gender && (
+              <div>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-1">{t("common:gender.label")}</h4>
+                <p>{t(`common:gender.${employee.gender}`)}</p>
+              </div>
+            )}
+
             <div>
               <h4 className="text-sm font-semibold text-muted-foreground mb-1">{t("employees:detail.fields.email")}</h4>
               <p>{employee.email}</p>

@@ -179,6 +179,13 @@ const LeaveManagement = () => {
   const selectedLeaveTypeNeedsProof = selectedLeaveTypeInfo?.needProof;
   const selectedLeaveTypeIsComp = selectedLeaveTypeInfo?.code === 'COMP';
 
+  // 生理假僅限女性員工可選：依目前輸入的員工編號比對性別，未填寫員工編號或
+  // 性別時不過濾（避免資料不完整時誤擋，實際核准前後端仍會再檢查一次）
+  const enteredEmployeeForLeave = employees.find((e) => e.employeeId === formData.employeeId);
+  const availableLeaveTypesForApplication = leaveTypes.filter(
+    (lt) => lt.code !== 'MSL' || enteredEmployeeForLeave?.gender !== 'male'
+  );
+
   const [isAddOvertimeOpen, setIsAddOvertimeOpen] = useState(false);
   const [overtimeFormData, setOvertimeFormData] = useState<Partial<OvertimeApplicationFormData>>({ compensationType: 'pay' });
 
@@ -479,7 +486,7 @@ const LeaveManagement = () => {
                       <SelectValue placeholder={t("leaveManagement:applications.applyDialog.leaveTypePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {leaveTypes.map((type) => (
+                      {availableLeaveTypesForApplication.map((type) => (
                         <SelectItem key={type.id} value={type.id.toString()}>
                           {type.name}
                         </SelectItem>

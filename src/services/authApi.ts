@@ -8,6 +8,7 @@ export interface AuthUser {
   role: string;
   employeeId: string | null;
   employeeName: string | null;
+  gender: "male" | "female" | null;
 }
 
 export function isStaffRole(role: string): boolean {

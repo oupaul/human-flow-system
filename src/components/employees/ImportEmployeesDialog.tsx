@@ -21,7 +21,7 @@ interface ImportEmployeesDialogProps {
   onImport: (csv: string) => Promise<ImportEmployeesResult | null>;
 }
 
-const SAMPLE_CSV = "姓名,員工編號,部門,職位,電子郵件,電話,到職日,地址,備註,月薪,已用特休天數\n王小明,EMP101,資訊部,工程師,wang@example.com,0912345678,2020/03/01,,,50000,2";
+const SAMPLE_CSV = "姓名,員工編號,部門,職位,電子郵件,電話,到職日,地址,備註,月薪,性別,已用特休天數\n王小明,EMP101,資訊部,工程師,wang@example.com,0912345678,2020/03/01,,,50000,男,2";
 
 const ImportEmployeesDialog = ({ open, onOpenChange, onImport }: ImportEmployeesDialogProps) => {
   const { t } = useTranslation(["employees", "common"]);

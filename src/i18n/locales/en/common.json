@@ -48,6 +48,12 @@
     "manager": "Manager",
     "employee": "Employee"
   },
+  "gender": {
+    "label": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "unset": "Not set"
+  },
   "table": {
     "employeeId": "Employee ID",
     "name": "Name",
