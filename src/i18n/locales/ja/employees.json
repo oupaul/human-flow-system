@@ -1,0 +1,115 @@
+{
+  "page": {
+    "bulkImport": "一括インポート",
+    "addEmployee": "従業員を追加"
+  },
+  "filters": {
+    "searchPlaceholder": "氏名・社員番号・メールアドレスで検索",
+    "departmentLabel": "部門:",
+    "departmentPlaceholder": "部門を選択",
+    "allDepartments": "全部門",
+    "statusLabel": "ステータス:",
+    "statusPlaceholder": "ステータスを選択"
+  },
+  "table": {
+    "title": "従業員一覧",
+    "count": "全 {{count}} 名",
+    "headers": {
+      "email": "メールアドレス"
+    },
+    "joinDateHover": "入社日: {{date}}",
+    "joinTerminationHover": "入社: {{joinDate}} | 退職: {{terminationDate}}",
+    "actions": {
+      "viewDetail": "詳細を見る",
+      "editData": "情報を編集",
+      "resetPassword": "ログインパスワードをリセット",
+      "terminate": "退職としてマークする",
+      "delete": "従業員を削除"
+    },
+    "empty": "条件に一致する従業員が見つかりません"
+  },
+  "status": {
+    "active": "在職中",
+    "inactive": "退職済み"
+  },
+  "detail": {
+    "title": "従業員詳細情報",
+    "description": "従業員の詳細情報を確認できます",
+    "fields": {
+      "name": "氏名",
+      "employeeId": "社員番号",
+      "department": "部門",
+      "position": "職位",
+      "email": "メールアドレス",
+      "phone": "電話番号",
+      "joinDate": "入社日",
+      "terminationDate": "退職日",
+      "terminationReason": "退職理由",
+      "status": "在職ステータス",
+      "address": "住所",
+      "notes": "備考"
+    }
+  },
+  "form": {
+    "name": "氏名 *",
+    "namePlaceholder": "氏名を入力",
+    "employeeId": "社員番号 *",
+    "employeeIdPlaceholder": "例: EMP001",
+    "department": "部門 *",
+    "departmentPlaceholder": "部門を選択",
+    "noDepartments": "部門がまだありません",
+    "position": "職位 *",
+    "positionPlaceholder": "職位を入力",
+    "email": "メールアドレス *",
+    "emailPlaceholder": "name@example.com",
+    "phone": "電話番号",
+    "phonePlaceholder": "例: 0912-345-678",
+    "joinDate": "入社日 *",
+    "address": "住所",
+    "addressPlaceholder": "住所を入力",
+    "monthlySalary": "月給（任意、未消化有給の買い取り試算に使用）",
+    "monthlySalaryPlaceholder": "月給を入力",
+    "initialAnnualLeaveUsed": "取得済み有給日数（任意、本システム導入前から在職し、すでに有給を取得している従業員のみ）",
+    "notes": "備考",
+    "notesPlaceholder": "備考を入力"
+  },
+  "addDialog": {
+    "title": "従業員を追加",
+    "description": "新しい従業員の基本情報を入力してください。* の付いた項目は必須です。"
+  },
+  "editDialog": {
+    "title": "従業員情報を編集",
+    "description": "従業員の基本情報を変更してください。* の付いた項目は必須です。",
+    "activeStatus": "在職ステータス",
+    "terminationDate": "退職日",
+    "terminationReason": "退職理由",
+    "terminationReasonPlaceholder": "退職理由を入力"
+  },
+  "confirmDialogs": {
+    "delete": {
+      "title": "従業員の削除を確認",
+      "message": "従業員 <1>{{name}}（{{employeeId}}）</1> を削除してもよろしいですか？この操作は元に戻せません。"
+    },
+    "terminate": {
+      "title": "従業員の退職登録を確認",
+      "message": "従業員 <1>{{name}}（{{employeeId}}）</1> を退職としてマークしてもよろしいですか？"
+    }
+  },
+  "import": {
+    "title": "従業員の一括インポート",
+    "description": "CSVファイルをアップロードするか、内容を直接貼り付けてください。ヘッダー行には「姓名、員工編號、部門、職位、電子郵件、到職日」（氏名、社員番号、部門、職位、メールアドレス、入社日）を含める必要があります。電話番号／住所／備考／月給／取得済み有給日数は任意項目です。各従業員のログインアカウントは自動的に作成されます（アカウント＝メールアドレス、初期パスワード＝社員番号）。",
+    "uploadLabel": "CSVファイルをアップロード",
+    "pasteLabel": "またはCSV内容を貼り付け",
+    "result": {
+      "created": "<1>{{count}}</1> 件を追加しました",
+      "failed": "、<1>{{count}}</1> 件が失敗しました"
+    },
+    "resultTable": {
+      "row": "CSV行番号",
+      "employeeId": "社員番号",
+      "reason": "失敗理由"
+    },
+    "importing": "インポート中...",
+    "startImport": "インポート開始"
+  }
+}

@@ -1,4 +1,5 @@
 
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,27 +25,29 @@ const DepartmentConfirmDialog = ({
   department,
   onConfirm,
 }: DepartmentConfirmDialogProps) => {
+  const { t } = useTranslation(["departments", "common"]);
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>確認刪除部門</AlertDialogTitle>
+          <AlertDialogTitle>{t("departments:confirmDialog.title")}</AlertDialogTitle>
           <AlertDialogDescription>
             {department && (
               <>
-                您確定要刪除「{department.name}」部門嗎？<br />
-                只有無員工和無子部門的部門才能被刪除。此操作無法撤銷。
+                {t("departments:confirmDialog.description", { name: department.name })}<br />
+                {t("departments:confirmDialog.note")}
               </>
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>取消</AlertDialogCancel>
-          <AlertDialogAction 
-            className="bg-hrms-danger" 
+          <AlertDialogCancel>{t("common:actions.cancel")}</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-hrms-danger"
             onClick={onConfirm}
           >
-            確認刪除
+            {t("departments:confirmDialog.confirmButton")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

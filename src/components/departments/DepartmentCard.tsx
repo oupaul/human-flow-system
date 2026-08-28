@@ -1,5 +1,6 @@
 
 import { Users, UserCircle, Edit, Trash } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
   Card,
   CardContent,
@@ -26,6 +27,8 @@ const DepartmentCard = ({
   onEdit, 
   onDelete 
 }: DepartmentCardProps) => {
+  const { t } = useTranslation(["departments", "common"]);
+
   return (
     <Card className={`overflow-hidden ${isSubDepartment ? 'border-l-4 border-l-hrms-accent' : ''}`}>
       <CardHeader className={`pb-3 ${isSubDepartment ? 'bg-gray-100' : 'bg-hrms-primary text-white'}`}>
@@ -33,15 +36,15 @@ const DepartmentCard = ({
         <CardDescription className={`mt-1 ${isSubDepartment ? 'text-gray-600' : 'text-gray-200'}`}>
           <div className="flex items-center">
             <UserCircle className="h-4 w-4 mr-1" />
-            主管: {department.leadName}
+            {t("departments:shared.lead", { name: department.leadName })}
           </div>
           <div className="flex items-center mt-1">
             <Users className="h-4 w-4 mr-1" />
-            {department.employeeCount} 位員工
+            {t("departments:shared.employeeCount", { count: department.employeeCount })}
           </div>
           {department.parentId && department.parentName && (
             <div className={`mt-1 ${isSubDepartment ? 'text-xs text-gray-500' : 'text-gray-200'}`}>
-              上級部門: {department.parentName}
+              {t("departments:shared.parentDepartment", { name: department.parentName })}
             </div>
           )}
         </CardDescription>
@@ -50,13 +53,13 @@ const DepartmentCard = ({
         <p className="text-sm text-gray-600">{department.description}</p>
       </CardContent>
       <CardFooter className="flex justify-between border-t bg-gray-50 px-6 py-3">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="sm"
           onClick={() => onView(department)}
         >
           <Users className="mr-2 h-4 w-4" />
-          檢視部門
+          {t("departments:card.viewDepartment")}
         </Button>
         <div className="flex gap-2">
           <Button 

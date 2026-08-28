@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
   Users,
@@ -18,8 +19,10 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import ChangePasswordDialog from "@/components/ChangePasswordDialog";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Layout = () => {
+  const { t } = useTranslation("common");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -42,13 +45,13 @@ const Layout = () => {
   };
 
   const menuItems = [
-    { to: "/", icon: <LayoutDashboard className="h-5 w-5" />, label: "儀表板" },
-    { to: "/employees", icon: <Users className="h-5 w-5" />, label: "員工管理" },
-    { to: "/departments", icon: <Building2 className="h-5 w-5" />, label: "部門管理" },
-    { to: "/leave-management", icon: <Calendar className="h-5 w-5" />, label: "假別管理" },
-    { to: "/reports", icon: <BarChart3 className="h-5 w-5" />, label: "報表分析" },
+    { to: "/", icon: <LayoutDashboard className="h-5 w-5" />, label: t("nav.dashboard") },
+    { to: "/employees", icon: <Users className="h-5 w-5" />, label: t("nav.employees") },
+    { to: "/departments", icon: <Building2 className="h-5 w-5" />, label: t("nav.departments") },
+    { to: "/leave-management", icon: <Calendar className="h-5 w-5" />, label: t("nav.leaveManagement") },
+    { to: "/reports", icon: <BarChart3 className="h-5 w-5" />, label: t("nav.reports") },
     ...(user?.role === "admin"
-      ? [{ to: "/settings", icon: <SettingsIcon className="h-5 w-5" />, label: "系統設定" }]
+      ? [{ to: "/settings", icon: <SettingsIcon className="h-5 w-5" />, label: t("nav.settings") }]
       : []),
   ];
 
@@ -70,7 +73,7 @@ const Layout = () => {
         )}
       >
         <div className="flex h-16 items-center justify-between px-4">
-          <h1 className="text-xl font-bold">HR管理系統</h1>
+          <h1 className="text-xl font-bold">{t("appName")}</h1>
           {isMobile && (
             <Button variant="ghost" size="icon" onClick={toggleSidebar} className="text-white">
               <X className="h-6 w-6" />
@@ -110,7 +113,7 @@ const Layout = () => {
               onClick={() => setIsChangePasswordOpen(true)}
             >
               <KeyRound className="mr-2 h-5 w-5" />
-              修改密碼
+              {t("actions.changePassword")}
             </Button>
             <Button
               variant="ghost"
@@ -118,7 +121,7 @@ const Layout = () => {
               onClick={handleLogout}
             >
               <LogOut className="mr-2 h-5 w-5" />
-              登出
+              {t("actions.logout")}
             </Button>
           </div>
         </div>
@@ -137,7 +140,8 @@ const Layout = () => {
             <Menu className="h-6 w-6" />
           </Button>
 
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             <div className="relative">
               <Button variant="ghost" size="sm" className="flex items-center">
                 <img

@@ -1,4 +1,5 @@
 
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart,
@@ -39,6 +40,7 @@ interface LeaveDistribution {
 }
 
 const Dashboard = () => {
+  const { t } = useTranslation(["dashboard", "common"]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [departmentAttendance, setDepartmentAttendance] = useState<DepartmentAttendance[]>([]);
   const [leaveDistribution, setLeaveDistribution] = useState<LeaveDistribution[]>([]);
@@ -62,8 +64,8 @@ const Dashboard = () => {
       setLeaveDistribution(leaveData);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
-      toast.error("載入 Dashboard 資料失敗", {
-        description: "請檢查網路連線或聯繫系統管理員",
+      toast.error(t("dashboard:loadErrorTitle"), {
+        description: t("common:common.networkErrorHint"),
       });
     } finally {
       setLoading(false);
@@ -82,12 +84,12 @@ const Dashboard = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">儀表板</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("dashboard:title")}</h1>
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-hrms-accent mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">載入中...</p>
+            <p className="mt-2 text-muted-foreground">{t("common:common.loading")}</p>
           </div>
         </div>
       </div>
@@ -97,9 +99,9 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">儀表板</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("dashboard:title")}</h1>
         <div className="text-sm text-muted-foreground">
-          資料更新時間: {new Date().toLocaleString('zh-TW')}
+          {t("dashboard:updatedAt", { time: new Date().toLocaleString('zh-TW') })}
         </div>
       </div>
 
@@ -112,7 +114,7 @@ const Dashboard = () => {
                 <Users className="h-6 w-6 text-hrms-accent" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">總員工數</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("dashboard:stats.totalEmployees")}</p>
                 <h3 className="text-2xl font-bold">{stats?.totalEmployees || 0}</h3>
               </div>
             </CardContent>
@@ -126,7 +128,7 @@ const Dashboard = () => {
                 <Calendar className="h-6 w-6 text-hrms-success" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">本月請假數</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("dashboard:stats.monthlyLeaves")}</p>
                 <h3 className="text-2xl font-bold">{stats?.monthlyLeaves || 0}</h3>
               </div>
             </CardContent>
@@ -140,7 +142,7 @@ const Dashboard = () => {
                 <Clock className="h-6 w-6 text-hrms-warning" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">平均出勤率</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("dashboard:stats.averageAttendance")}</p>
                 <h3 className="text-2xl font-bold">{stats?.averageAttendance || 0}%</h3>
               </div>
             </CardContent>
@@ -154,7 +156,7 @@ const Dashboard = () => {
                 <Briefcase className="h-6 w-6 text-purple-500" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-muted-foreground">待審核申請</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("dashboard:stats.pendingRequests")}</p>
                 <h3 className="text-2xl font-bold">{stats?.pendingRequests || 0}</h3>
               </div>
             </CardContent>
@@ -167,8 +169,8 @@ const Dashboard = () => {
         <Link to="/reports" className="block">
           <Card className="cursor-pointer transition-shadow hover:shadow-md">
             <CardHeader>
-              <CardTitle>部門出勤率</CardTitle>
-              <CardDescription>各部門本月平均出勤率分析</CardDescription>
+              <CardTitle>{t("dashboard:charts.departmentAttendance.title")}</CardTitle>
+              <CardDescription>{t("dashboard:charts.departmentAttendance.description")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-80">
@@ -197,8 +199,8 @@ const Dashboard = () => {
         <Link to="/reports" className="block">
           <Card className="cursor-pointer transition-shadow hover:shadow-md">
             <CardHeader>
-              <CardTitle>請假類型分布</CardTitle>
-              <CardDescription>本月各類請假使用比例</CardDescription>
+              <CardTitle>{t("dashboard:charts.leaveDistribution.title")}</CardTitle>
+              <CardDescription>{t("dashboard:charts.leaveDistribution.description")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-80">

@@ -1,0 +1,93 @@
+{
+  "appName": "人事管理システム",
+  "nav": {
+    "dashboard": "ダッシュボード",
+    "employees": "従業員管理",
+    "departments": "部門管理",
+    "leaveManagement": "休暇管理",
+    "reports": "レポート分析",
+    "settings": "システム設定",
+    "myPortal": "マイポータル"
+  },
+  "actions": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "add": "追加",
+    "edit": "編集",
+    "delete": "削除",
+    "approve": "承認",
+    "reject": "却下",
+    "import": "インポート",
+    "export": "エクスポート",
+    "submit": "申請する",
+    "close": "閉じる",
+    "search": "検索",
+    "reset": "リセット",
+    "resetPassword": "パスワードをリセット",
+    "view": "表示",
+    "back": "戻る",
+    "logout": "ログアウト",
+    "changePassword": "パスワード変更",
+    "settle": "精算",
+    "adjust": "調整",
+    "recalculate": "再計算",
+    "sendTest": "テスト通知を送信",
+    "downloadTemplate": "テンプレートをダウンロード"
+  },
+  "status": {
+    "pending": "承認待ち",
+    "approved": "承認済み",
+    "rejected": "却下",
+    "active": "在職中",
+    "inactive": "退職済み"
+  },
+  "role": {
+    "admin": "管理者",
+    "hr": "人事",
+    "manager": "マネージャー",
+    "employee": "従業員"
+  },
+  "table": {
+    "employeeId": "社員番号",
+    "name": "氏名",
+    "department": "部門",
+    "position": "役職",
+    "status": "ステータス",
+    "note": "備考",
+    "reviewNote": "審査コメント",
+    "actions": "操作",
+    "days": "日数",
+    "hours": "時間",
+    "date": "日付",
+    "startDate": "開始日",
+    "endDate": "終了日",
+    "deadline": "期限",
+    "createdAt": "作成日時"
+  },
+  "common": {
+    "loading": "読み込み中...",
+    "yes": "はい",
+    "no": "いいえ",
+    "none": "なし",
+    "noData": "データがありません",
+    "optional": "任意",
+    "required": "必須",
+    "unset": "未設定",
+    "setKeepBlank": "設定済み（空欄のままにすると変更されません）",
+    "confirmDelete": "削除してもよろしいですか？",
+    "operationFailed": "操作に失敗しました",
+    "networkErrorHint": "ネットワーク接続を確認するか、システム管理者にお問い合わせください",
+    "loadFailed": "データの読み込みに失敗しました",
+    "saveSuccess": "保存しました",
+    "saveFailed": "保存に失敗しました",
+    "deleteSuccess": "削除しました",
+    "deleteFailed": "削除に失敗しました"
+  },
+  "language": {
+    "label": "言語",
+    "zhTW": "正體中文",
+    "en": "English",
+    "ja": "日本語"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "updatedAt": "データ更新時刻: {{time}}",
+  "tabs": {
+    "attendance": "出勤分析",
+    "leave": "休暇分析",
+    "department": "部門比較"
+  },
+  "attendance": {
+    "title": "年間出勤率の推移",
+    "description": "月ごとの会社全体の出勤率の変化",
+    "featureUnavailable": "現時点では出勤打刻機能が未実装のため、月次の出勤率データはまだご利用いただけません。"
+  },
+  "leave": {
+    "title": "休暇種別分布",
+    "description": "休暇種別ごとの利用比率統計",
+    "dateTo": "〜",
+    "seriesName": "休暇日数",
+    "noData": "休暇分布データがありません"
+  },
+  "department": {
+    "title": "部門データ比較",
+    "description": "各部門の出勤・休暇・残業状況の比較",
+    "rangePlaceholder": "期間を選択",
+    "range": {
+      "currentMonth": "今月",
+      "lastMonth": "先月",
+      "currentQuarter": "今四半期",
+      "lastQuarter": "前四半期",
+      "currentYear": "今年",
+      "lastYear": "昨年"
+    },
+    "axis": {
+      "percentage": "割合 (%)",
+      "hours": "時間"
+    },
+    "series": {
+      "attendance": "出勤率 (%)",
+      "leave": "休暇取得率 (%)",
+      "overtime": "平均残業時間"
+    },
+    "noData": "部門比較データがありません"
+  }
+}

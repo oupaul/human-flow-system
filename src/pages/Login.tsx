@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
@@ -7,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Login = () => {
+  const { t } = useTranslation(["auth", "common"]);
   const { user, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,23 +36,26 @@ const Login = () => {
       const loggedInUser = await login(username, password);
       navigate(loggedInUser.role === "employee" ? "/my" : "/", { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "登入失敗，請稍後再試");
+      setError(err instanceof ApiError ? err.message : t("auth:login.defaultError"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-gray-100 px-4">
+      <div className="absolute right-4 top-4">
+        <LanguageSwitcher className="border-input bg-background" />
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>HR管理系統</CardTitle>
-          <CardDescription>請輸入帳號密碼登入</CardDescription>
+          <CardTitle>{t("auth:login.title")}</CardTitle>
+          <CardDescription>{t("auth:login.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">帳號</Label>
+              <Label htmlFor="username">{t("auth:login.usernameLabel")}</Label>
               <Input
                 id="username"
                 autoComplete="username"
@@ -59,7 +65,7 @@ const Login = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">密碼</Label>
+              <Label htmlFor="password">{t("auth:login.passwordLabel")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -75,7 +81,7 @@ const Login = () => {
               </Alert>
             )}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "登入中..." : "登入"}
+              {isSubmitting ? t("auth:login.loggingIn") : t("auth:login.loginButton")}
             </Button>
           </form>
         </CardContent>

@@ -1,0 +1,268 @@
+{
+  "applyLeaveButton": "休暇を申請",
+  "applyOvertimeButton": "残業を申請",
+  "defaultApproverName": "システム管理者",
+  "tabs": {
+    "applications": "休暇申請",
+    "overtime": "残業申請",
+    "balance": "休暇残高",
+    "settlement": "年次有給休暇精算",
+    "grants": "休暇付与",
+    "types": "休暇種別設定",
+    "holidays": "祝日"
+  },
+  "applications": {
+    "applyDialog": {
+      "title": "休暇申請",
+      "description": "休暇申請書を入力してください。提出後、上長の承認に回されます。",
+      "employeeId": "社員番号",
+      "employeeIdPlaceholder": "社員番号を入力してください",
+      "leaveType": "休暇種別",
+      "leaveTypePlaceholder": "休暇種別を選択",
+      "compBalance": "現在利用可能な代休：{{hours}} 時間",
+      "compBalanceDeadline": "（最も早い分は {{date}} に失効します）",
+      "compDate": "代休取得日",
+      "startTime": "開始時刻",
+      "endTime": "終了時刻",
+      "unit": "休暇単位",
+      "unitPlaceholder": "単位を選択",
+      "unitDay": "日",
+      "unitHalfDay": "半日",
+      "unitHour": "時間",
+      "startDate": "開始日",
+      "endDate": "終了日",
+      "reason": "休暇理由",
+      "reasonPlaceholder": "休暇の理由を簡潔にご記入ください",
+      "deputy": "代理担当者",
+      "deputyPlaceholder": "代理担当者を入力してください",
+      "attachment": "証明書類（この休暇種別では証明書類の添付を推奨します）"
+    },
+    "listTitle": "休暇申請一覧",
+    "listDescription": "全社員の休暇申請記録と審査状況",
+    "columns": {
+      "employeeId": "社員番号",
+      "name": "氏名",
+      "leaveType": "休暇種別",
+      "startDate": "開始日",
+      "endDate": "終了日",
+      "days": "日数",
+      "status": "状態",
+      "attachment": "添付ファイル",
+      "actions": "操作"
+    },
+    "hoursUnit": " 時間",
+    "daysUnit": " 日",
+    "noteLine": "備考：{{note}}",
+    "viewAttachment": "添付ファイルを見る",
+    "noAttachment": "なし",
+    "reviewDialog": {
+      "titleApprove": "休暇申請を承認",
+      "titleReject": "休暇申請を却下",
+      "descriptionLine": "{{employee}}（{{employeeId}}）・{{type}}・{{startDate}} ～ {{endDate}}",
+      "reasonLine": "申請理由：{{reason}}",
+      "viewAttachment": "添付ファイルを見る",
+      "grantHintBefore": "この申請は付与記録に関連付けられています。残り",
+      "grantHintAfter": "日（付与 {{total}} 日、期限 {{deadline}}）。承認日数は残日数を超えることはできません。",
+      "compHintBefore": "現在利用可能な代休は",
+      "compHintAfter": "時間です。承認時間は残時間を超えることはできません（期限が近い順に自動で消化されます）。",
+      "approvedHoursLabel": "承認時間（時間）",
+      "approvedDaysLabel": "承認日数（証明書類に応じて調整可能。例：忌引休暇は続柄に応じて日数を決定）",
+      "reviewNoteLabel": "審査備考（任意）",
+      "reviewNotePlaceholderApprove": "例：証明書類を確認済み",
+      "reviewNotePlaceholderReject": "却下理由をご記入ください。社員に表示されます",
+      "confirmApprove": "承認を確定",
+      "confirmReject": "却下を確定"
+    }
+  },
+  "overtime": {
+    "applyDialog": {
+      "title": "残業申請",
+      "description": "残業申請書を入力してください。提出後、上長の承認に回されます。",
+      "employeeId": "社員番号",
+      "employeeIdPlaceholder": "社員番号を入力してください",
+      "date": "残業日",
+      "startTime": "開始時刻",
+      "endTime": "終了時刻",
+      "reason": "残業理由",
+      "reasonPlaceholder": "残業の理由を簡潔にご記入ください",
+      "compensationType": "受取方法",
+      "compensationTypePay": "残業代を受け取る",
+      "compensationTypeComp": "代休に交換する",
+      "compHint": "労働基準法第32条の1に基づき、代休時間は労働時間と1:1で換算されます（残業した時間数分だけ代休を取得できます）。残業日から6か月以内に取得する必要があり、期限内に取得できなかった分は残業代に換算されます。"
+    },
+    "listTitle": "残業申請一覧",
+    "listDescription": "全社員の残業申請記録と審査状況",
+    "columns": {
+      "employeeId": "社員番号",
+      "name": "氏名",
+      "date": "日付",
+      "period": "時間帯",
+      "hours": "時間数",
+      "onHoliday": "休日残業",
+      "compensationType": "受取方法",
+      "status": "状態",
+      "actions": "操作"
+    },
+    "compensationPay": "残業代を受け取る",
+    "compensationComp": "代休に交換する",
+    "compensationCompWithHours": "代休に交換する（{{hours}} 時間）",
+    "noteLine": "備考：{{note}}",
+    "reviewDialog": {
+      "titleApprove": "残業申請を承認",
+      "titleReject": "残業申請を却下",
+      "descriptionLine": "{{employee}}（{{employeeId}}）・{{date}} {{startTime}}～{{endTime}}（{{hours}} 時間）",
+      "reasonLine": "残業理由：{{reason}}",
+      "reviewNoteLabel": "審査備考（任意）",
+      "reviewNotePlaceholderApprove": "例：残業理由を確認済み",
+      "reviewNotePlaceholderReject": "却下理由をご記入ください。社員に表示されます",
+      "confirmApprove": "承認を確定",
+      "confirmReject": "却下を確定"
+    }
+  },
+  "balance": {
+    "title": "社員別休暇残高",
+    "description": "各社員の休暇残日数を確認",
+    "recalculate": "入社日に基づいて年次有給休暇を再計算",
+    "columns": {
+      "employeeId": "社員番号",
+      "name": "氏名",
+      "annualAvailable": "年休残日数",
+      "annualUsed": "年休使用日数",
+      "sickAvailable": "病気休暇残日数",
+      "sickUsed": "病気休暇使用日数",
+      "compAvailable": "代休残時間",
+      "compUsed": "代休使用時間",
+      "actions": "操作"
+    },
+    "compLedgerButton": "代休明細",
+    "adjustButton": "調整",
+    "adjustDialog": {
+      "title": "休暇残高を調整",
+      "descriptionLine": "{{employee}}（{{employeeId}}）",
+      "annualUsedLabel": "年次有給休暇の使用日数（利用可能日数 {{days}} 日は入社年数から自動計算されます。ここでは「使用済み」のみ調整できます）",
+      "noActivePeriod": "この社員には年次有給休暇の年度記録がまだないため、調整できません",
+      "sickAvailable": "病気休暇残日数",
+      "sickUsed": "病気休暇使用日数",
+      "compHint": "代休の残時間／使用時間は、残業の承認と休暇取得に基づき自動計算されるようになり、手動調整はできません。詳細は「代休明細」をご確認ください。"
+    },
+    "compLedgerDialog": {
+      "title": "代休明細",
+      "descriptionLine": "{{employee}}（{{employeeId}}）",
+      "columns": {
+        "overtimeDate": "残業日",
+        "convertedHours": "換算時間",
+        "used": "使用済み",
+        "remaining": "残り",
+        "deadline": "取得期限",
+        "status": "状態"
+      },
+      "statusSettled": "精算済み（{{hours}} 時間分を買い取り）",
+      "statusOverdue": "期限超過、HRによる精算待ち",
+      "statusAvailable": "利用可能",
+      "empty": "代休記録がまだありません"
+    }
+  },
+  "settlement": {
+    "title": "年次有給休暇の精算",
+    "description": "期限が到来したが未精算の年次有給休暇の年度区間です。労働基準法第38条に基づき、今期新たに付与され未消化の日数は繰越または買い取りを1回選択でき、前期から繰り越され未消化のままの日数はすべて買い取る必要があります。",
+    "columns": {
+      "employee": "社員",
+      "period": "年度区間",
+      "currentGrant": "今期付与",
+      "carriedIn": "前期繰越",
+      "used": "使用済み",
+      "mandatoryCashOut": "強制買い取り",
+      "optionalCarryOrCashOut": "繰越または買い取り選択可",
+      "actions": "操作"
+    },
+    "empty": "現在、精算待ちの年度区間はありません",
+    "settleButton": "精算",
+    "settleDialog": {
+      "title": "年次有給休暇の精算",
+      "descriptionLine": "{{employee}}（{{employeeId}}）{{start}} ～ {{end}}",
+      "mandatoryLabel": "強制買い取り（前期繰越の未消化分）：",
+      "optionalLabel": "今期の繰越または買い取り選択可分：",
+      "carryOverLabel": "次期に繰り越す日数（残りは自動的に買い取りになります）",
+      "cashOutLabel": "買い取り日数：",
+      "cashOutAmountLabel": "買い取り見込み額：",
+      "noSalary": "月給が未設定のため試算できません",
+      "confirm": "精算を確定"
+    }
+  },
+  "compSettlement": {
+    "title": "代休精算",
+    "description": "期限超過（残業日から6か月以上経過）で未消化の代休枠です。残り時間はすべて残業代に換算して支給する必要があります。",
+    "columns": {
+      "employee": "社員",
+      "overtimeDate": "残業日",
+      "grantedHours": "付与時間",
+      "used": "使用済み",
+      "remainingPending": "残り（買い取り待ち）",
+      "deadline": "取得期限",
+      "actions": "操作"
+    },
+    "empty": "現在、精算待ちの代休枠はありません",
+    "settleButton": "精算"
+  },
+  "grants": {
+    "formTitle": "休暇付与を新規作成",
+    "formDescription": "忌引休暇や結婚休暇など、「同一の事由で複数回に分けて休暇を取得する」休暇種別に適用します。社員から提出された証明書類を確認のうえ、合計日数と取得期限を直接付与します。以降、同一社員・同一休暇種別の休暇申請はこの付与から自動的に消化され、残日数を超える申請はブロックされます。",
+    "employeeLabel": "社員",
+    "employeePlaceholder": "社員を選択",
+    "leaveTypeLabel": "休暇種別",
+    "leaveTypePlaceholder": "休暇種別を選択",
+    "totalDaysLabel": "付与日数",
+    "deadlineLabel": "取得期限（任意）",
+    "noteLabel": "備考（任意）",
+    "notePlaceholder": "例：父親の忌引のため、続柄に応じて8日付与",
+    "confirmButton": "付与を確定",
+    "recordsTitle": "付与記録",
+    "recordsDescription": "付与済みの休暇枠と使用状況",
+    "columns": {
+      "employee": "社員",
+      "leaveType": "休暇種別",
+      "granted": "付与",
+      "used": "使用済み",
+      "remaining": "残り",
+      "deadline": "期限",
+      "note": "備考",
+      "actions": "操作"
+    },
+    "noDeadline": "期限なし",
+    "empty": "付与記録がまだありません"
+  },
+  "types": {
+    "title": "休暇種別設定",
+    "description": "システム内の休暇種別とルールを管理",
+    "columns": {
+      "name": "休暇種別名",
+      "code": "休暇種別コード",
+      "unit": "計算単位",
+      "needProof": "証明書類が必要",
+      "affectAttendance": "皆勤に影響",
+      "paidStatus": "給与計算",
+      "maxDays": "最大日数",
+      "advanceApply": "事前申請"
+    },
+    "paid": "有給",
+    "unpaid": "無給"
+  },
+  "holidays": {
+    "importTitle": "祝日をインポート",
+    "importDescription": "人事行政総処「政府機関執務カレンダー」のCSV内容を貼り付けてください（台湾政府データ公開プラットフォームからダウンロード可能）。列見出しは台湾政府が公開している元の中国語表記のままにしてください。システムはその中国語の見出しで列を判別します（下記の例を参照）。",
+    "csvPlaceholder": "西元日期,星期,是否放假,備註\n20260101,四,2,中華民國開國紀念日",
+    "importButton": "インポート",
+    "listTitle": "祝日一覧",
+    "listDescription": "インポート済みの祝日と振替出勤日",
+    "yearOption": "{{year}}年",
+    "columns": {
+      "date": "日付",
+      "description": "説明",
+      "type": "種別",
+      "actions": "操作"
+    },
+    "isHoliday": "休日",
+    "isWorkday": "振替出勤",
+    "empty": "{{year}}年の祝日データはまだありません。左側からインポートしてください"
+  }
+}

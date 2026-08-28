@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Card,
   CardContent,
@@ -43,26 +44,27 @@ import { LeaveApplicationFormData } from "@/types/leave";
 import { OvertimeApplicationFormData } from "@/types/overtime";
 import { leaveApi } from "@/services/leaveApi";
 
-const getStatusDisplay = (status: string) => {
+const getStatusDisplay = (status: string, t: (key: string) => string) => {
   switch (status) {
     case "approved":
       return (
         <span className="flex items-center text-green-600">
-          <CheckCircle2 className="mr-1 h-4 w-4" /> 已核准
+          <CheckCircle2 className="mr-1 h-4 w-4" /> {t("common:status.approved")}
         </span>
       );
     case "rejected":
       return (
         <span className="flex items-center text-red-600">
-          <XCircle className="mr-1 h-4 w-4" /> 已拒絕
+          <XCircle className="mr-1 h-4 w-4" /> {t("common:status.rejected")}
         </span>
       );
     default:
-      return <span className="text-yellow-600">待審核</span>;
+      return <span className="text-yellow-600">{t("common:status.pending")}</span>;
   }
 };
 
 const MyPortal = () => {
+  const { t } = useTranslation(["myPortal", "common"]);
   const { user } = useAuth();
   const { leaveTypes, leaveApplications, leaveBalances, loading: loadingLeave, createLeaveApplication } =
     useLeaveManagement();
@@ -123,7 +125,7 @@ const MyPortal = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">載入中...</span>
+        <span className="ml-2">{t("common:common.loading")}</span>
       </div>
     );
   }
@@ -132,23 +134,23 @@ const MyPortal = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">
-          歡迎，{user?.employeeName || user?.username}
+          {t("myPortal:welcome", { name: user?.employeeName || user?.username })}
         </h1>
         <div className="flex gap-2">
           <Dialog open={isOvertimeDialogOpen} onOpenChange={setIsOvertimeDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
-                <Clock className="mr-2 h-4 w-4" /> 申請加班
+                <Clock className="mr-2 h-4 w-4" /> {t("myPortal:overtimeDialog.trigger")}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>加班申請</DialogTitle>
-                <DialogDescription>填寫加班申請表，提交後將送交主管審核。</DialogDescription>
+                <DialogTitle>{t("myPortal:overtimeDialog.title")}</DialogTitle>
+                <DialogDescription>{t("myPortal:overtimeDialog.description")}</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="overtimeDate">加班日期</Label>
+                  <Label htmlFor="overtimeDate">{t("myPortal:overtimeDialog.dateLabel")}</Label>
                   <Input
                     id="overtimeDate"
                     type="date"
@@ -158,7 +160,7 @@ const MyPortal = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="overtimeStart">開始時間</Label>
+                    <Label htmlFor="overtimeStart">{t("myPortal:startTimeLabel")}</Label>
                     <Input
                       id="overtimeStart"
                       type="time"
@@ -167,7 +169,7 @@ const MyPortal = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="overtimeEnd">結束時間</Label>
+                    <Label htmlFor="overtimeEnd">{t("myPortal:endTimeLabel")}</Label>
                     <Input
                       id="overtimeEnd"
                       type="time"
@@ -177,7 +179,7 @@ const MyPortal = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="overtimeReason">加班事由</Label>
+                  <Label htmlFor="overtimeReason">{t("myPortal:overtimeDialog.reasonLabel")}</Label>
                   <Textarea
                     id="overtimeReason"
                     rows={3}
@@ -186,7 +188,7 @@ const MyPortal = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="overtimeCompensationType">領取方式</Label>
+                  <Label htmlFor="overtimeCompensationType">{t("myPortal:compensationTypeLabel")}</Label>
                   <Select
                     value={overtimeForm.compensationType || "pay"}
                     onValueChange={(value: "pay" | "comp") => setOvertimeForm({ ...overtimeForm, compensationType: value })}
@@ -195,22 +197,22 @@ const MyPortal = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pay">領加班費</SelectItem>
-                      <SelectItem value="comp">換補休</SelectItem>
+                      <SelectItem value="pay">{t("myPortal:overtimeDialog.payOption")}</SelectItem>
+                      <SelectItem value="comp">{t("myPortal:overtimeDialog.compOption")}</SelectItem>
                     </SelectContent>
                   </Select>
                   {overtimeForm.compensationType === "comp" && (
                     <p className="text-xs text-muted-foreground">
-                      依勞基法第 32-1 條，補休時數以工作時數 1:1 換算（加班多少小時、補休多少小時）。需在加班日起 6 個月內休畢，逾期未休完的部分會折算加班費。
+                      {t("myPortal:overtimeDialog.compHint")}
                     </p>
                   )}
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsOvertimeDialogOpen(false)}>
-                  取消
+                  {t("common:actions.cancel")}
                 </Button>
-                <Button onClick={handleSubmitOvertime}>提交申請</Button>
+                <Button onClick={handleSubmitOvertime}>{t("common:actions.submit")}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -218,17 +220,17 @@ const MyPortal = () => {
           <Dialog open={isLeaveDialogOpen} onOpenChange={setIsLeaveDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-hrms-accent">
-                <Plus className="mr-2 h-4 w-4" /> 申請請假
+                <Plus className="mr-2 h-4 w-4" /> {t("myPortal:leaveDialog.trigger")}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>請假申請</DialogTitle>
-                <DialogDescription>填寫請假申請表，提交後將送交主管審核。</DialogDescription>
+                <DialogTitle>{t("myPortal:leaveDialog.title")}</DialogTitle>
+                <DialogDescription>{t("myPortal:leaveDialog.description")}</DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="leaveType">假別</Label>
+                  <Label htmlFor="leaveType">{t("myPortal:leaveTypeLabel")}</Label>
                   <Select
                     value={selectedLeaveType}
                     onValueChange={(value) => {
@@ -237,7 +239,7 @@ const MyPortal = () => {
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="選擇假別" />
+                      <SelectValue placeholder={t("myPortal:leaveDialog.leaveTypePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {leaveTypes.map((type) => (
@@ -252,12 +254,12 @@ const MyPortal = () => {
                   <>
                     {balance && (
                       <p className="text-sm text-muted-foreground">
-                        目前可用補休：{(balance.compensatoryLeave - balance.compensatoryLeaveUsed).toFixed(1)} 小時
-                        {balance.compensatoryLeaveDeadline && `（最近一筆將於 ${balance.compensatoryLeaveDeadline} 到期）`}
+                        {t("myPortal:leaveDialog.compBalance", { hours: (balance.compensatoryLeave - balance.compensatoryLeaveUsed).toFixed(1) })}
+                        {balance.compensatoryLeaveDeadline && t("myPortal:leaveDialog.compBalanceDeadline", { date: balance.compensatoryLeaveDeadline })}
                       </p>
                     )}
                     <div className="space-y-2">
-                      <Label htmlFor="compDate">補休日期</Label>
+                      <Label htmlFor="compDate">{t("myPortal:leaveDialog.compDateLabel")}</Label>
                       <Input
                         id="compDate"
                         type="date"
@@ -267,7 +269,7 @@ const MyPortal = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="compStartTime">開始時間</Label>
+                        <Label htmlFor="compStartTime">{t("myPortal:startTimeLabel")}</Label>
                         <Input
                           id="compStartTime"
                           type="time"
@@ -276,7 +278,7 @@ const MyPortal = () => {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="compEndTime">結束時間</Label>
+                        <Label htmlFor="compEndTime">{t("myPortal:endTimeLabel")}</Label>
                         <Input
                           id="compEndTime"
                           type="time"
@@ -289,7 +291,7 @@ const MyPortal = () => {
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="startDate">開始日期</Label>
+                      <Label htmlFor="startDate">{t("myPortal:leaveDialog.startDateLabel")}</Label>
                       <Input
                         id="startDate"
                         type="date"
@@ -298,7 +300,7 @@ const MyPortal = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="endDate">結束日期</Label>
+                      <Label htmlFor="endDate">{t("myPortal:leaveDialog.endDateLabel")}</Label>
                       <Input
                         id="endDate"
                         type="date"
@@ -309,7 +311,7 @@ const MyPortal = () => {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="reason">請假事由</Label>
+                  <Label htmlFor="reason">{t("myPortal:leaveDialog.reasonLabel")}</Label>
                   <Textarea
                     id="reason"
                     rows={3}
@@ -318,7 +320,7 @@ const MyPortal = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="deputy">職務代理人</Label>
+                  <Label htmlFor="deputy">{t("myPortal:leaveDialog.deputyLabel")}</Label>
                   <Input
                     id="deputy"
                     value={leaveForm.deputy || ""}
@@ -327,7 +329,7 @@ const MyPortal = () => {
                 </div>
                 {selectedLeaveTypeNeedsProof && (
                   <div className="space-y-2">
-                    <Label htmlFor="leaveAttachment">證明文件（此假別建議檢附證明文件）</Label>
+                    <Label htmlFor="leaveAttachment">{t("myPortal:leaveDialog.attachmentLabel")}</Label>
                     <Input
                       id="leaveAttachment"
                       type="file"
@@ -339,9 +341,9 @@ const MyPortal = () => {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsLeaveDialogOpen(false)}>
-                  取消
+                  {t("common:actions.cancel")}
                 </Button>
-                <Button onClick={handleSubmitLeave}>提交申請</Button>
+                <Button onClick={handleSubmitLeave}>{t("common:actions.submit")}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -351,23 +353,23 @@ const MyPortal = () => {
       {balance && (
         <Card>
           <CardHeader>
-            <CardTitle>我的假別餘額</CardTitle>
+            <CardTitle>{t("myPortal:balanceCard.title")}</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-sm text-muted-foreground">特休</p>
+              <p className="text-sm text-muted-foreground">{t("myPortal:balanceCard.annualLeave")}</p>
               <p className="text-xl font-bold">
                 {balance.annualLeave - balance.annualLeaveUsed} / {balance.annualLeave}
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">病假</p>
+              <p className="text-sm text-muted-foreground">{t("myPortal:balanceCard.sickLeave")}</p>
               <p className="text-xl font-bold">
                 {balance.sickLeave - balance.sickLeaveUsed} / {balance.sickLeave}
               </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">補休</p>
+              <p className="text-sm text-muted-foreground">{t("myPortal:balanceCard.compensatoryLeave")}</p>
               <p className="text-xl font-bold">
                 {balance.compensatoryLeave - balance.compensatoryLeaveUsed} / {balance.compensatoryLeave}
               </p>
@@ -379,19 +381,19 @@ const MyPortal = () => {
       {leaveGrants.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>我的假別核給</CardTitle>
-            <CardDescription>喪假、婚假等由 HR 核給的假別額度與使用狀況</CardDescription>
+            <CardTitle>{t("myPortal:grantsTable.title")}</CardTitle>
+            <CardDescription>{t("myPortal:grantsTable.description")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>假別</TableHead>
-                    <TableHead>核給</TableHead>
-                    <TableHead>已用</TableHead>
-                    <TableHead>剩餘</TableHead>
-                    <TableHead>應休畢期限</TableHead>
+                    <TableHead>{t("myPortal:leaveTypeLabel")}</TableHead>
+                    <TableHead>{t("myPortal:grantsTable.granted")}</TableHead>
+                    <TableHead>{t("myPortal:grantsTable.used")}</TableHead>
+                    <TableHead>{t("myPortal:grantsTable.remaining")}</TableHead>
+                    <TableHead>{t("myPortal:grantsTable.deadline")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -401,7 +403,7 @@ const MyPortal = () => {
                       <TableCell>{grant.totalDays}</TableCell>
                       <TableCell>{grant.usedDays}</TableCell>
                       <TableCell>{grant.totalDays - grant.usedDays}</TableCell>
-                      <TableCell>{grant.deadline || "無期限"}</TableCell>
+                      <TableCell>{grant.deadline || t("myPortal:grantsTable.noDeadline")}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -413,20 +415,20 @@ const MyPortal = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>我的請假紀錄</CardTitle>
-          <CardDescription>你所提交的請假申請與審核狀態</CardDescription>
+          <CardTitle>{t("myPortal:leaveHistory.title")}</CardTitle>
+          <CardDescription>{t("myPortal:leaveHistory.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>假別</TableHead>
-                  <TableHead>開始日期</TableHead>
-                  <TableHead>結束日期</TableHead>
-                  <TableHead>天數</TableHead>
-                  <TableHead>狀態</TableHead>
-                  <TableHead>附件</TableHead>
+                  <TableHead>{t("myPortal:leaveTypeLabel")}</TableHead>
+                  <TableHead>{t("common:table.startDate")}</TableHead>
+                  <TableHead>{t("common:table.endDate")}</TableHead>
+                  <TableHead>{t("common:table.days")}</TableHead>
+                  <TableHead>{t("common:table.status")}</TableHead>
+                  <TableHead>{t("myPortal:leaveHistory.attachmentColumn")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -436,20 +438,20 @@ const MyPortal = () => {
                       <TableCell>{application.type}</TableCell>
                       <TableCell>{application.startDate}</TableCell>
                       <TableCell>{application.endDate}</TableCell>
-                      <TableCell>{application.days}{application.type === '補休' ? ' 小時' : ' 天'}</TableCell>
+                      <TableCell>{application.days}{application.type === '補休' ? t("myPortal:leaveHistory.hoursUnit") : t("myPortal:leaveHistory.daysUnit")}</TableCell>
                       <TableCell>
-                        {getStatusDisplay(application.status)}
+                        {getStatusDisplay(application.status, t)}
                         {application.reviewNote && (
-                          <p className="mt-1 text-xs text-muted-foreground">備註：{application.reviewNote}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{t("myPortal:reviewNotePrefix", { note: application.reviewNote })}</p>
                         )}
                       </TableCell>
                       <TableCell>
                         {application.attachment ? (
-                          <Button variant="ghost" size="icon" onClick={() => handleViewAttachment(application.id)} title="查看附件">
+                          <Button variant="ghost" size="icon" onClick={() => handleViewAttachment(application.id)} title={t("myPortal:leaveHistory.viewAttachment")}>
                             <Paperclip className="h-4 w-4" />
                           </Button>
                         ) : (
-                          <span className="text-muted-foreground text-xs">無</span>
+                          <span className="text-muted-foreground text-xs">{t("common:common.none")}</span>
                         )}
                       </TableCell>
                     </TableRow>
@@ -457,7 +459,7 @@ const MyPortal = () => {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
-                      尚無請假紀錄
+                      {t("myPortal:leaveHistory.empty")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -469,19 +471,19 @@ const MyPortal = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>我的加班紀錄</CardTitle>
-          <CardDescription>你所提交的加班申請與審核狀態</CardDescription>
+          <CardTitle>{t("myPortal:overtimeHistory.title")}</CardTitle>
+          <CardDescription>{t("myPortal:overtimeHistory.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>日期</TableHead>
-                  <TableHead>時段</TableHead>
-                  <TableHead>時數</TableHead>
-                  <TableHead>領取方式</TableHead>
-                  <TableHead>狀態</TableHead>
+                  <TableHead>{t("common:table.date")}</TableHead>
+                  <TableHead>{t("myPortal:overtimeHistory.period")}</TableHead>
+                  <TableHead>{t("myPortal:overtimeHistory.hoursColumn")}</TableHead>
+                  <TableHead>{t("myPortal:compensationTypeLabel")}</TableHead>
+                  <TableHead>{t("common:table.status")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -495,13 +497,15 @@ const MyPortal = () => {
                       <TableCell>{application.hours}</TableCell>
                       <TableCell>
                         {application.compensationType === "comp"
-                          ? `換補休${application.compHours ? `（${application.compHours} 小時）` : ""}`
-                          : "領加班費"}
+                          ? application.compHours
+                            ? t("myPortal:overtimeHistory.compWithHours", { hours: application.compHours })
+                            : t("myPortal:overtimeHistory.compNoHours")
+                          : t("myPortal:overtimeHistory.payOption")}
                       </TableCell>
                       <TableCell>
-                        {getStatusDisplay(application.status)}
+                        {getStatusDisplay(application.status, t)}
                         {application.reviewNote && (
-                          <p className="mt-1 text-xs text-muted-foreground">備註：{application.reviewNote}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{t("myPortal:reviewNotePrefix", { note: application.reviewNote })}</p>
                         )}
                       </TableCell>
                     </TableRow>
@@ -509,7 +513,7 @@ const MyPortal = () => {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                      尚無加班紀錄
+                      {t("myPortal:overtimeHistory.empty")}
                     </TableCell>
                   </TableRow>
                 )}

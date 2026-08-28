@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Card,
   CardContent,
@@ -39,6 +40,7 @@ import { Download, Calendar } from "lucide-react";
 import { dashboardApi } from "@/services/dashboardApi";
 
 const Reports = () => {
+  const { t } = useTranslation(["reports", "common"]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [departmentComparison, setDepartmentComparison] = useState([]);
@@ -79,42 +81,42 @@ const Reports = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">報表分析</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("common:nav.reports")}</h1>
         <div className="text-sm text-muted-foreground">
-          資料更新時間: {new Date().toLocaleString('zh-TW')}
+          {t("reports:updatedAt", { time: new Date().toLocaleString('zh-TW') })}
         </div>
       </div>
 
       <Tabs defaultValue="attendance">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="attendance">出勤分析</TabsTrigger>
-          <TabsTrigger value="leave">請假分析</TabsTrigger>
-          <TabsTrigger value="department">部門比較</TabsTrigger>
+          <TabsTrigger value="attendance">{t("reports:tabs.attendance")}</TabsTrigger>
+          <TabsTrigger value="leave">{t("reports:tabs.leave")}</TabsTrigger>
+          <TabsTrigger value="department">{t("reports:tabs.department")}</TabsTrigger>
         </TabsList>
-        
+
         {/* 出勤分析 Tab */}
         <TabsContent value="attendance">
           <Card>
             <CardHeader>
-              <CardTitle>年度出勤率趨勢</CardTitle>
-              <CardDescription>各月份公司整體出勤率變化</CardDescription>
+              <CardTitle>{t("reports:attendance.title")}</CardTitle>
+              <CardDescription>{t("reports:attendance.description")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center text-muted-foreground py-12">
-                系統目前尚未建置出勤打卡紀錄功能，暫無月度出勤率資料可供分析。
+                {t("reports:attendance.featureUnavailable")}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* 請假分析 Tab */}
         <TabsContent value="leave">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>請假類型分布</CardTitle>
-                  <CardDescription>各類請假使用比例統計</CardDescription>
+                  <CardTitle>{t("reports:leave.title")}</CardTitle>
+                  <CardDescription>{t("reports:leave.description")}</CardDescription>
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
@@ -131,7 +133,7 @@ const Reports = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <Label htmlFor="date-to" className="text-sm font-medium">
-                      到
+                      {t("reports:leave.dateTo")}
                     </Label>
                     <Input
                       id="date-to"
@@ -187,10 +189,10 @@ const Reports = () => {
                       <XAxis type="number" />
                       <YAxis dataKey="name" type="category" />
                       <Tooltip />
-                      <Bar 
-                        dataKey="value" 
-                        name="請假天數" 
-                        fill="#3b82f6" 
+                      <Bar
+                        dataKey="value"
+                        name={t("reports:leave.seriesName")}
+                        fill="#3b82f6"
                         radius={[0, 4, 4, 0]}
                       >
                         {leaveDistribution.map((entry, index) => (
@@ -202,7 +204,7 @@ const Reports = () => {
                 </div>
               </div>
               {!loadingLeave && leaveDistribution.length === 0 && (
-                <div className="text-center text-muted-foreground mt-4">無請假分布資料</div>
+                <div className="text-center text-muted-foreground mt-4">{t("reports:leave.noData")}</div>
               )}
             </CardContent>
           </Card>
@@ -214,21 +216,21 @@ const Reports = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>部門數據比較</CardTitle>
-                  <CardDescription>各部門出勤、請假與加班情況比較</CardDescription>
+                  <CardTitle>{t("reports:department.title")}</CardTitle>
+                  <CardDescription>{t("reports:department.description")}</CardDescription>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Select defaultValue="currentMonth">
                     <SelectTrigger className="w-40">
-                      <SelectValue placeholder="選擇時間範圍" />
+                      <SelectValue placeholder={t("reports:department.rangePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="currentMonth">本月</SelectItem>
-                      <SelectItem value="lastMonth">上個月</SelectItem>
-                      <SelectItem value="currentQuarter">本季</SelectItem>
-                      <SelectItem value="lastQuarter">上季</SelectItem>
-                      <SelectItem value="currentYear">今年</SelectItem>
-                      <SelectItem value="lastYear">去年</SelectItem>
+                      <SelectItem value="currentMonth">{t("reports:department.range.currentMonth")}</SelectItem>
+                      <SelectItem value="lastMonth">{t("reports:department.range.lastMonth")}</SelectItem>
+                      <SelectItem value="currentQuarter">{t("reports:department.range.currentQuarter")}</SelectItem>
+                      <SelectItem value="lastQuarter">{t("reports:department.range.lastQuarter")}</SelectItem>
+                      <SelectItem value="currentYear">{t("reports:department.range.currentYear")}</SelectItem>
+                      <SelectItem value="lastYear">{t("reports:department.range.lastYear")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button variant="outline" size="icon">
@@ -251,18 +253,18 @@ const Reports = () => {
                   >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
-                    <YAxis yAxisId="left" orientation="left" label={{ value: '百分比 (%)', angle: -90, position: 'insideLeft' }} />
-                    <YAxis yAxisId="right" orientation="right" label={{ value: '小時', angle: 90, position: 'insideRight' }} />
+                    <YAxis yAxisId="left" orientation="left" label={{ value: t("reports:department.axis.percentage"), angle: -90, position: 'insideLeft' }} />
+                    <YAxis yAxisId="right" orientation="right" label={{ value: t("reports:department.axis.hours"), angle: 90, position: 'insideRight' }} />
                     <Tooltip />
                     <Legend />
-                    <Bar yAxisId="left" dataKey="attendance" name="出勤率 (%)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                    <Bar yAxisId="left" dataKey="leave" name="請假率 (%)" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                    <Bar yAxisId="right" dataKey="overtime" name="平均加班時數" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                    <Bar yAxisId="left" dataKey="attendance" name={t("reports:department.series.attendance")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar yAxisId="left" dataKey="leave" name={t("reports:department.series.leave")} fill="#ef4444" radius={[4, 4, 0, 0]} />
+                    <Bar yAxisId="right" dataKey="overtime" name={t("reports:department.series.overtime")} fill="#f59e0b" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
               {!loadingDepartment && departmentComparison.length === 0 && (
-                <div className="text-center text-muted-foreground mt-4">無部門比較資料</div>
+                <div className="text-center text-muted-foreground mt-4">{t("reports:department.noData")}</div>
               )}
             </CardContent>
           </Card>

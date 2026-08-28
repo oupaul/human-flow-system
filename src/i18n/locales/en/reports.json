@@ -1,0 +1,43 @@
+{
+  "updatedAt": "Last updated: {{time}}",
+  "tabs": {
+    "attendance": "Attendance Analysis",
+    "leave": "Leave Analysis",
+    "department": "Department Comparison"
+  },
+  "attendance": {
+    "title": "Annual Attendance Rate Trend",
+    "description": "Monthly changes in overall company attendance rate",
+    "featureUnavailable": "Attendance clock-in tracking has not been implemented yet, so no monthly attendance data is available for analysis."
+  },
+  "leave": {
+    "title": "Leave Type Distribution",
+    "description": "Statistics on the proportion of each leave type used",
+    "dateTo": "to",
+    "seriesName": "Leave Days",
+    "noData": "No leave distribution data"
+  },
+  "department": {
+    "title": "Department Data Comparison",
+    "description": "Comparison of attendance, leave, and overtime across departments",
+    "rangePlaceholder": "Select time range",
+    "range": {
+      "currentMonth": "This Month",
+      "lastMonth": "Last Month",
+      "currentQuarter": "This Quarter",
+      "lastQuarter": "Last Quarter",
+      "currentYear": "This Year",
+      "lastYear": "Last Year"
+    },
+    "axis": {
+      "percentage": "Percentage (%)",
+      "hours": "Hours"
+    },
+    "series": {
+      "attendance": "Attendance Rate (%)",
+      "leave": "Leave Rate (%)",
+      "overtime": "Average Overtime Hours"
+    },
+    "noData": "No department comparison data"
+  }
+}

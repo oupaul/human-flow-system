@@ -1,0 +1,44 @@
+{
+  "loadErrorTitle": "載入通知設定失敗",
+  "saveSuccess": "通知設定已儲存",
+  "testSuccessTitle": "測試通知已送出",
+  "testSuccessDescription": "請確認是否實際收到（email 請檢查垃圾郵件匣）。",
+  "testErrorTitle": "測試通知發送失敗",
+  "testErrorFallback": "請檢查設定內容是否正確",
+  "card": {
+    "title": "通知設定",
+    "description": "員工送出請假或加班申請時，主動通知 HR/主管去審核。可選擇不發送、寄送 email（支援一般帳密或 OAuth2），或發到 Microsoft Teams 頻道。"
+  },
+  "channel": {
+    "label": "通知通道",
+    "none": "不發送",
+    "smtp": "Email（SMTP）",
+    "teams": "Microsoft Teams"
+  },
+  "smtp": {
+    "toEmails": "收通知的信箱（多個以逗號分隔）",
+    "host": "SMTP 主機",
+    "port": "連接埠",
+    "secure": "使用 SSL/TLS（465 埠通常需要開啟）",
+    "from": "寄件人信箱",
+    "authMethod": "驗證方式",
+    "authBasic": "帳號密碼",
+    "authOauth2": "OAuth2（Microsoft 365 / Google Workspace 等）",
+    "user": "SMTP 帳號",
+    "password": "SMTP 密碼",
+    "oauthUser": "信箱帳號",
+    "oauthClientId": "OAuth Client ID",
+    "oauthClientSecret": "OAuth Client Secret",
+    "oauthRefreshToken": "Refresh Token",
+    "oauthHelp": "需先到信箱服務商後台（如 Microsoft Entra ID、Google Cloud Console）申請應用程式並取得 refresh token，這是一次性設定，本系統不提供 OAuth 授權頁面。"
+  },
+  "teams": {
+    "webhookUrl": "Teams Webhook 網址",
+    "webhookHelp": "在目標頻道設定「傳入 Webhook」連接器取得網址。若貴組織改用較新的 Power Automate 工作流程 Webhook，格式可能不相容。"
+  },
+  "actions": {
+    "sending": "發送中...",
+    "saveSettings": "儲存設定",
+    "saving": "儲存中..."
+  }
+}

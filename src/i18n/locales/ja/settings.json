@@ -1,0 +1,44 @@
+{
+  "loadErrorTitle": "通知設定の読み込みに失敗しました",
+  "saveSuccess": "通知設定を保存しました",
+  "testSuccessTitle": "テスト通知を送信しました",
+  "testSuccessDescription": "実際に届いているかご確認ください（メールの場合は迷惑メールフォルダもご確認ください）。",
+  "testErrorTitle": "テスト通知の送信に失敗しました",
+  "testErrorFallback": "設定内容が正しいかご確認ください",
+  "card": {
+    "title": "通知設定",
+    "description": "従業員が休暇または残業を申請した際に、HR／マネージャーへ審査を促す通知を自動送信します。送信しない、メール送信（通常認証またはOAuth2に対応）、またはMicrosoft Teamsチャンネルへの送信から選択できます。"
+  },
+  "channel": {
+    "label": "通知チャネル",
+    "none": "送信しない",
+    "smtp": "メール（SMTP）",
+    "teams": "Microsoft Teams"
+  },
+  "smtp": {
+    "toEmails": "通知先メールアドレス（複数はカンマ区切り）",
+    "host": "SMTPホスト",
+    "port": "ポート番号",
+    "secure": "SSL/TLSを使用する（465番ポートでは通常必要です）",
+    "from": "送信元メールアドレス",
+    "authMethod": "認証方式",
+    "authBasic": "アカウント・パスワード",
+    "authOauth2": "OAuth2（Microsoft 365 / Google Workspace など）",
+    "user": "SMTPアカウント",
+    "password": "SMTPパスワード",
+    "oauthUser": "メールアカウント",
+    "oauthClientId": "OAuth クライアントID",
+    "oauthClientSecret": "OAuth クライアントシークレット",
+    "oauthRefreshToken": "リフレッシュトークン",
+    "oauthHelp": "事前にメールサービス提供元の管理コンソール（Microsoft Entra ID、Google Cloud Consoleなど）でアプリケーションを登録し、リフレッシュトークンを取得しておく必要があります。これは一度限りの設定であり、本システムはOAuth認証画面を提供していません。"
+  },
+  "teams": {
+    "webhookUrl": "Teams Webhook URL",
+    "webhookHelp": "対象チャンネルで「着信Webhook」コネクタを設定してURLを取得してください。組織で新しいPower Automateワークフロー Webhookを使用している場合、形式が互換しないことがあります。"
+  },
+  "actions": {
+    "sending": "送信中...",
+    "saveSettings": "設定を保存",
+    "saving": "保存中..."
+  }
+}

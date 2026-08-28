@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Card,
   CardContent
@@ -34,6 +35,7 @@ const EmployeeFilters = ({
   onDepartmentChange,
   onStatusChange
 }: EmployeeFiltersProps) => {
+  const { t } = useTranslation(["employees", "common"]);
   const [departments, setDepartments] = useState<Department[]>([]);
 
   useEffect(() => {
@@ -47,7 +49,7 @@ const EmployeeFilters = ({
           <div className="relative w-full md:w-80">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="搜尋員工姓名、編號或電子郵件"
+              placeholder={t("employees:filters.searchPlaceholder")}
               className="pl-8"
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
@@ -57,17 +59,17 @@ const EmployeeFilters = ({
             <Filter className="h-4 w-4 text-muted-foreground" />
             <div className="flex items-center gap-2">
               <Label htmlFor="department-filter" className="whitespace-nowrap">
-                部門:
+                {t("employees:filters.departmentLabel")}
               </Label>
               <Select
                 value={selectedDepartment}
                 onValueChange={onDepartmentChange}
               >
                 <SelectTrigger id="department-filter" className="w-[140px]">
-                  <SelectValue placeholder="選擇部門" />
+                  <SelectValue placeholder={t("employees:filters.departmentPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">全部部門</SelectItem>
+                  <SelectItem value="all">{t("employees:filters.allDepartments")}</SelectItem>
                   {departments.map((dept) => (
                     <SelectItem key={dept.id} value={dept.name}>
                       {dept.name}
@@ -78,14 +80,14 @@ const EmployeeFilters = ({
             </div>
             <div className="flex items-center gap-2">
               <Label htmlFor="status-filter" className="whitespace-nowrap">
-                狀態:
+                {t("employees:filters.statusLabel")}
               </Label>
               <Select
                 value={selectedStatus}
                 onValueChange={onStatusChange}
               >
                 <SelectTrigger id="status-filter" className="w-[100px]">
-                  <SelectValue placeholder="選擇狀態" />
+                  <SelectValue placeholder={t("employees:filters.statusPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {statusOptions.map((status) => (

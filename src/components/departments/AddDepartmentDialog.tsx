@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UseFormReturn } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { DepartmentFormData, ParentDepartmentOption } from "@/types/department";
 
 interface AddDepartmentDialogProps {
@@ -43,16 +44,18 @@ const AddDepartmentDialog = ({
   parentOptions,
   onSubmit,
 }: AddDepartmentDialogProps) => {
+  const { t } = useTranslation(["departments", "common"]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>新增部門</DialogTitle>
+          <DialogTitle>{t("departments:addDialog.title")}</DialogTitle>
           <DialogDescription>
-            建立新的部門並指派部門主管。
+            {t("departments:addDialog.description")}
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -60,46 +63,46 @@ const AddDepartmentDialog = ({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>部門名稱</FormLabel>
+                  <FormLabel>{t("departments:form.nameLabel")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="輸入部門名稱" {...field} />
+                    <Input placeholder={t("departments:form.namePlaceholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="leadName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>部門主管</FormLabel>
+                  <FormLabel>{t("departments:form.leadLabel")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="輸入部門主管姓名" {...field} />
+                    <Input placeholder={t("departments:form.leadPlaceholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="parentId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>上級部門</FormLabel>
+                  <FormLabel>{t("departments:form.parentLabel")}</FormLabel>
                   <Select
                     onValueChange={(value) => field.onChange(value === "none" ? undefined : Number(value))}
                     value={field.value ? field.value.toString() : "none"}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="選擇上級部門（可選）" />
+                        <SelectValue placeholder={t("departments:form.parentPlaceholder")} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="none">無上級部門</SelectItem>
+                      <SelectItem value="none">{t("departments:form.noParent")}</SelectItem>
                       {parentOptions.map((dept) => (
                         <SelectItem key={dept.id} value={dept.id.toString()}>
                           {dept.name}
@@ -111,26 +114,26 @@ const AddDepartmentDialog = ({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>部門描述</FormLabel>
+                  <FormLabel>{t("departments:form.descriptionLabel")}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="簡要描述部門職責" {...field} />
+                    <Textarea placeholder={t("departments:form.descriptionPlaceholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                取消
+                {t("common:actions.cancel")}
               </Button>
-              <Button type="submit">儲存</Button>
+              <Button type="submit">{t("common:actions.save")}</Button>
             </DialogFooter>
           </form>
         </Form>

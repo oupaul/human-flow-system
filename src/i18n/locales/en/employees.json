@@ -1,0 +1,115 @@
+{
+  "page": {
+    "bulkImport": "Bulk Import",
+    "addEmployee": "Add Employee"
+  },
+  "filters": {
+    "searchPlaceholder": "Search by employee name, ID, or email",
+    "departmentLabel": "Department:",
+    "departmentPlaceholder": "Select department",
+    "allDepartments": "All Departments",
+    "statusLabel": "Status:",
+    "statusPlaceholder": "Select status"
+  },
+  "table": {
+    "title": "Employee List",
+    "count": "{{count}} employees total",
+    "headers": {
+      "email": "Email"
+    },
+    "joinDateHover": "Join date: {{date}}",
+    "joinTerminationHover": "Joined: {{joinDate}} | Terminated: {{terminationDate}}",
+    "actions": {
+      "viewDetail": "View details",
+      "editData": "Edit details",
+      "resetPassword": "Reset login password",
+      "terminate": "Mark as terminated",
+      "delete": "Delete employee"
+    },
+    "empty": "No employees match the current filters"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Terminated"
+  },
+  "detail": {
+    "title": "Employee Details",
+    "description": "View the employee's complete information",
+    "fields": {
+      "name": "Name",
+      "employeeId": "Employee ID",
+      "department": "Department",
+      "position": "Position",
+      "email": "Email",
+      "phone": "Phone Number",
+      "joinDate": "Join Date",
+      "terminationDate": "Termination Date",
+      "terminationReason": "Termination Reason",
+      "status": "Employment Status",
+      "address": "Address",
+      "notes": "Notes"
+    }
+  },
+  "form": {
+    "name": "Name *",
+    "namePlaceholder": "Enter name",
+    "employeeId": "Employee ID *",
+    "employeeIdPlaceholder": "e.g. EMP001",
+    "department": "Department *",
+    "departmentPlaceholder": "Select department",
+    "noDepartments": "No departments yet",
+    "position": "Position *",
+    "positionPlaceholder": "Enter position",
+    "email": "Email *",
+    "emailPlaceholder": "name@example.com",
+    "phone": "Phone Number",
+    "phonePlaceholder": "e.g. 0912-345-678",
+    "joinDate": "Join Date *",
+    "address": "Address",
+    "addressPlaceholder": "Enter address",
+    "monthlySalary": "Monthly Salary (optional, used to estimate unused annual leave payout)",
+    "monthlySalaryPlaceholder": "Enter monthly salary",
+    "initialAnnualLeaveUsed": "Annual Leave Days Used (optional, only for employees who joined before this system and already used annual leave)",
+    "notes": "Notes",
+    "notesPlaceholder": "Enter notes"
+  },
+  "addDialog": {
+    "title": "Add Employee",
+    "description": "Fill in the new employee's basic information. Fields marked with * are required."
+  },
+  "editDialog": {
+    "title": "Edit Employee",
+    "description": "Update the employee's basic information. Fields marked with * are required.",
+    "activeStatus": "Employment Status",
+    "terminationDate": "Termination Date",
+    "terminationReason": "Termination Reason",
+    "terminationReasonPlaceholder": "Enter termination reason"
+  },
+  "confirmDialogs": {
+    "delete": {
+      "title": "Confirm Delete Employee",
+      "message": "Are you sure you want to delete employee <1>{{name}} ({{employeeId}})</1>? This action cannot be undone."
+    },
+    "terminate": {
+      "title": "Confirm Mark Employee as Terminated",
+      "message": "Are you sure you want to mark employee <1>{{name}} ({{employeeId}})</1> as terminated?"
+    }
+  },
+  "import": {
+    "title": "Bulk Import Employees",
+    "description": "Upload a CSV file, or paste the content directly. The header row must include \"姓名、員工編號、部門、職位、電子郵件、到職日\" (name, employee ID, department, position, email, join date); phone, address, notes, monthly salary, and annual leave days used are optional. A login account is created automatically for each employee (username = email, default password = employee ID).",
+    "uploadLabel": "Upload CSV File",
+    "pasteLabel": "Or paste CSV content",
+    "result": {
+      "created": "Successfully added <1>{{count}}</1>",
+      "failed": ", <1>{{count}}</1> failed"
+    },
+    "resultTable": {
+      "row": "CSV Row",
+      "employeeId": "Employee ID",
+      "reason": "Failure Reason"
+    },
+    "importing": "Importing...",
+    "startImport": "Start Import"
+  }
+}

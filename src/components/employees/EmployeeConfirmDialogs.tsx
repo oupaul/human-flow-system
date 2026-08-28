@@ -1,4 +1,5 @@
 
+import { Trans, useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,50 +31,60 @@ const EmployeeConfirmDialogs = ({
   onConfirmDelete,
   onConfirmTerminate
 }: EmployeeConfirmDialogsProps) => {
+  const { t } = useTranslation(["employees", "common"]);
+
   return (
     <>
       {/* 刪除員工確認對話框 */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={onDeleteDialogChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>確認刪除員工</AlertDialogTitle>
+            <AlertDialogTitle>{t("employees:confirmDialogs.delete.title")}</AlertDialogTitle>
             <AlertDialogDescription>
               {selectedEmployee && (
                 <p>
-                  您確定要刪除員工 <strong>{selectedEmployee.name} ({selectedEmployee.employeeId})</strong> 嗎？此操作無法復原。
+                  <Trans
+                    i18nKey="employees:confirmDialogs.delete.message"
+                    values={{ name: selectedEmployee.name, employeeId: selectedEmployee.employeeId }}
+                    components={{ 1: <strong /> }}
+                  />
                 </p>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogCancel>{t("common:actions.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
               onClick={onConfirmDelete}
             >
-              刪除
+              {t("common:actions.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* 標記員工離職確認對話框 */}
       <AlertDialog open={terminateDialogOpen} onOpenChange={onTerminateDialogChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>確認標記員工為離職</AlertDialogTitle>
+            <AlertDialogTitle>{t("employees:confirmDialogs.terminate.title")}</AlertDialogTitle>
             <AlertDialogDescription>
               {selectedEmployee && (
                 <p>
-                  您確定要將員工 <strong>{selectedEmployee.name} ({selectedEmployee.employeeId})</strong> 標記為已離職嗎？
+                  <Trans
+                    i18nKey="employees:confirmDialogs.terminate.message"
+                    values={{ name: selectedEmployee.name, employeeId: selectedEmployee.employeeId }}
+                    components={{ 1: <strong /> }}
+                  />
                 </p>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t("common:actions.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={onConfirmTerminate}>
-              確認
+              {t("common:actions.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

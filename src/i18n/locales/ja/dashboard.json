@@ -1,0 +1,21 @@
+{
+  "title": "ダッシュボード",
+  "updatedAt": "データ更新時刻: {{time}}",
+  "loadErrorTitle": "ダッシュボードデータの読み込みに失敗しました",
+  "stats": {
+    "totalEmployees": "総従業員数",
+    "monthlyLeaves": "今月の休暇件数",
+    "averageAttendance": "平均出勤率",
+    "pendingRequests": "承認待ちの申請"
+  },
+  "charts": {
+    "departmentAttendance": {
+      "title": "部門出勤率",
+      "description": "各部門の今月の平均出勤率分析"
+    },
+    "leaveDistribution": {
+      "title": "休暇種別分布",
+      "description": "今月の休暇種別ごとの利用比率"
+    }
+  }
+}

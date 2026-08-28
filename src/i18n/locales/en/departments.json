@@ -1,0 +1,56 @@
+{
+  "page": {
+    "addDepartment": "Add Department",
+    "addFirstDepartment": "Add First Department",
+    "loadingDepartments": "Loading department data...",
+    "noSearchResults": "No departments match your search",
+    "noDepartments": "No departments yet"
+  },
+  "filters": {
+    "searchPlaceholder": "Search department or head..."
+  },
+  "shared": {
+    "employeeCount": "{{count}} employees",
+    "lead": "Head: {{name}}",
+    "parentDepartment": "Parent department: {{name}}"
+  },
+  "card": {
+    "viewDepartment": "View Department"
+  },
+  "view": {
+    "title": "Department Details",
+    "subDepartment": "Sub-department",
+    "mainDepartment": "Main Department",
+    "leadLabel": "Department Head",
+    "parentDepartmentLabel": "Parent Department",
+    "employeeCountLabel": "Employee Count",
+    "employeeCountValue": "{{count}} people",
+    "descriptionLabel": "Description"
+  },
+  "confirmDialog": {
+    "title": "Confirm Department Deletion",
+    "description": "Are you sure you want to delete the department \"{{name}}\"?",
+    "note": "Only departments with no employees and no sub-departments can be deleted. This action cannot be undone.",
+    "confirmButton": "Confirm Deletion"
+  },
+  "form": {
+    "nameLabel": "Department Name",
+    "namePlaceholder": "Enter department name",
+    "leadLabel": "Department Head",
+    "leadPlaceholder": "Enter department head's name",
+    "parentLabel": "Parent Department",
+    "parentPlaceholder": "Select parent department (optional)",
+    "noParent": "No parent department",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Briefly describe the department's responsibilities"
+  },
+  "addDialog": {
+    "title": "Add Department",
+    "description": "Create a new department and assign a department head."
+  },
+  "editDialog": {
+    "title": "Edit Department",
+    "description": "Modify the department's information and structure.",
+    "submitButton": "Update"
+  }
+}

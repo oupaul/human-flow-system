@@ -1,0 +1,268 @@
+{
+  "applyLeaveButton": "Apply for Leave",
+  "applyOvertimeButton": "Apply for Overtime",
+  "defaultApproverName": "System Administrator",
+  "tabs": {
+    "applications": "Leave Applications",
+    "overtime": "Overtime Applications",
+    "balance": "Leave Balance",
+    "settlement": "Annual Leave Settlement",
+    "grants": "Leave Grants",
+    "types": "Leave Type Settings",
+    "holidays": "Public Holidays"
+  },
+  "applications": {
+    "applyDialog": {
+      "title": "Leave Application",
+      "description": "Fill out the leave application form. It will be submitted to your supervisor for approval.",
+      "employeeId": "Employee ID",
+      "employeeIdPlaceholder": "Enter employee ID",
+      "leaveType": "Leave Type",
+      "leaveTypePlaceholder": "Select leave type",
+      "compBalance": "Available comp time: {{hours}} hours",
+      "compBalanceDeadline": " (the earliest entry expires on {{date}})",
+      "compDate": "Comp Time Date",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "unit": "Leave Unit",
+      "unitPlaceholder": "Select unit",
+      "unitDay": "Day",
+      "unitHalfDay": "Half Day",
+      "unitHour": "Hour",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "reason": "Reason for Leave",
+      "reasonPlaceholder": "Briefly describe the reason for leave",
+      "deputy": "Deputy",
+      "deputyPlaceholder": "Enter deputy",
+      "attachment": "Supporting Document (recommended for this leave type)"
+    },
+    "listTitle": "Leave Application List",
+    "listDescription": "Leave application records and review status for all employees",
+    "columns": {
+      "employeeId": "Employee ID",
+      "name": "Name",
+      "leaveType": "Leave Type",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "days": "Days",
+      "status": "Status",
+      "attachment": "Attachment",
+      "actions": "Actions"
+    },
+    "hoursUnit": " hours",
+    "daysUnit": " days",
+    "noteLine": "Note: {{note}}",
+    "viewAttachment": "View Attachment",
+    "noAttachment": "None",
+    "reviewDialog": {
+      "titleApprove": "Approve Leave Application",
+      "titleReject": "Reject Leave Application",
+      "descriptionLine": "{{employee}} ({{employeeId}}) · {{type}} · {{startDate}} ~ {{endDate}}",
+      "reasonLine": "Reason: {{reason}}",
+      "viewAttachment": "View Attachment",
+      "grantHintBefore": "This application is linked to a leave grant. Remaining: ",
+      "grantHintAfter": " days (granted {{total}} days, deadline {{deadline}}). Approved days cannot exceed the remaining balance.",
+      "compHintBefore": "Available comp time: ",
+      "compHintAfter": " hours. Approved hours cannot exceed the remaining balance (deducted automatically starting from the nearest deadline).",
+      "approvedHoursLabel": "Approved Hours",
+      "approvedDaysLabel": "Approved Days (adjustable based on supporting documents, e.g. bereavement leave days based on relationship)",
+      "reviewNoteLabel": "Review Note (optional)",
+      "reviewNotePlaceholderApprove": "e.g. Supporting documents confirmed",
+      "reviewNotePlaceholderReject": "Explain the reason for rejection; the employee will see this note",
+      "confirmApprove": "Confirm Approval",
+      "confirmReject": "Confirm Rejection"
+    }
+  },
+  "overtime": {
+    "applyDialog": {
+      "title": "Overtime Application",
+      "description": "Fill out the overtime application form. It will be submitted to your supervisor for approval.",
+      "employeeId": "Employee ID",
+      "employeeIdPlaceholder": "Enter employee ID",
+      "date": "Overtime Date",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "reason": "Reason for Overtime",
+      "reasonPlaceholder": "Briefly describe the reason for overtime",
+      "compensationType": "Compensation Type",
+      "compensationTypePay": "Overtime Pay",
+      "compensationTypeComp": "Comp Time",
+      "compHint": "Per Article 32-1 of the Labor Standards Act, comp time is converted 1:1 with hours worked. It must be used within 6 months of the overtime date; any portion not used by then will be converted to overtime pay."
+    },
+    "listTitle": "Overtime Application List",
+    "listDescription": "Overtime application records and review status for all employees",
+    "columns": {
+      "employeeId": "Employee ID",
+      "name": "Name",
+      "date": "Date",
+      "period": "Time Period",
+      "hours": "Hours",
+      "onHoliday": "Holiday Overtime",
+      "compensationType": "Compensation Type",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "compensationPay": "Overtime Pay",
+    "compensationComp": "Comp Time",
+    "compensationCompWithHours": "Comp Time ({{hours}} hours)",
+    "noteLine": "Note: {{note}}",
+    "reviewDialog": {
+      "titleApprove": "Approve Overtime Application",
+      "titleReject": "Reject Overtime Application",
+      "descriptionLine": "{{employee}} ({{employeeId}}) · {{date}} {{startTime}}-{{endTime}} ({{hours}} hours)",
+      "reasonLine": "Reason: {{reason}}",
+      "reviewNoteLabel": "Review Note (optional)",
+      "reviewNotePlaceholderApprove": "e.g. Reason for overtime confirmed",
+      "reviewNotePlaceholderReject": "Explain the reason for rejection; the employee will see this note",
+      "confirmApprove": "Confirm Approval",
+      "confirmReject": "Confirm Rejection"
+    }
+  },
+  "balance": {
+    "title": "Employee Leave Balance",
+    "description": "View each employee's remaining leave days",
+    "recalculate": "Recalculate Annual Leave by Join Date",
+    "columns": {
+      "employeeId": "Employee ID",
+      "name": "Name",
+      "annualAvailable": "Annual Leave Available",
+      "annualUsed": "Annual Leave Used",
+      "sickAvailable": "Sick Leave Available",
+      "sickUsed": "Sick Leave Used",
+      "compAvailable": "Comp Time Available",
+      "compUsed": "Comp Time Used",
+      "actions": "Actions"
+    },
+    "compLedgerButton": "Comp Time Details",
+    "adjustButton": "Adjust",
+    "adjustDialog": {
+      "title": "Adjust Leave Balance",
+      "descriptionLine": "{{employee}} ({{employeeId}})",
+      "annualUsedLabel": "Annual Leave Used Days (available days ({{days}}) are calculated automatically from the join date; only \"used\" can be adjusted here)",
+      "noActivePeriod": "This employee has no annual leave anniversary record yet, so it cannot be adjusted",
+      "sickAvailable": "Sick Leave Available",
+      "sickUsed": "Sick Leave Used",
+      "compHint": "Comp time available/used hours are now calculated automatically from approved overtime and leave usage, and can no longer be adjusted manually. See \"Comp Time Details\" for the source."
+    },
+    "compLedgerDialog": {
+      "title": "Comp Time Details",
+      "descriptionLine": "{{employee}} ({{employeeId}})",
+      "columns": {
+        "overtimeDate": "Overtime Date",
+        "convertedHours": "Converted Hours",
+        "used": "Used",
+        "remaining": "Remaining",
+        "deadline": "Deadline to Use",
+        "status": "Status"
+      },
+      "statusSettled": "Settled (cashed out {{hours}} hours)",
+      "statusOverdue": "Overdue, pending HR settlement",
+      "statusAvailable": "Available",
+      "empty": "No comp time records yet"
+    }
+  },
+  "settlement": {
+    "title": "Annual Leave Settlement",
+    "description": "Annual leave anniversary periods that are due but not yet settled. Per Article 38 of the Labor Standards Act, unused days newly granted this period may be carried over once or cashed out; days carried over from the previous period that remain unused must be cashed out in full.",
+    "columns": {
+      "employee": "Employee",
+      "period": "Anniversary Period",
+      "currentGrant": "This Period's Grant",
+      "carriedIn": "Carried Over from Last Period",
+      "used": "Used",
+      "mandatoryCashOut": "Mandatory Cash-Out",
+      "optionalCarryOrCashOut": "Optional Carry-Over or Cash-Out",
+      "actions": "Actions"
+    },
+    "empty": "No pending anniversary periods to settle",
+    "settleButton": "Settle",
+    "settleDialog": {
+      "title": "Settle Annual Leave Anniversary",
+      "descriptionLine": "{{employee}} ({{employeeId}}) {{start}} ~ {{end}}",
+      "mandatoryLabel": "Mandatory cash-out (unused carry-over from last period): ",
+      "optionalLabel": "Optional carry-over or cash-out this period: ",
+      "carryOverLabel": "Days to carry over to the next period (the rest will be cashed out automatically)",
+      "cashOutLabel": "Days to be cashed out: ",
+      "cashOutAmountLabel": "Estimated cash-out amount: ",
+      "noSalary": "Monthly salary not set; cannot estimate",
+      "confirm": "Confirm Settlement"
+    }
+  },
+  "compSettlement": {
+    "title": "Comp Time Settlement",
+    "description": "Comp time entitlements that are overdue (more than 6 months past the overtime date) and still unused. The remaining hours must be fully cashed out as overtime pay.",
+    "columns": {
+      "employee": "Employee",
+      "overtimeDate": "Overtime Date",
+      "grantedHours": "Granted Hours",
+      "used": "Used",
+      "remainingPending": "Remaining (Pending Cash-Out)",
+      "deadline": "Deadline to Use",
+      "actions": "Actions"
+    },
+    "empty": "No pending comp time entitlements to settle",
+    "settleButton": "Settle"
+  },
+  "grants": {
+    "formTitle": "New Leave Grant",
+    "formDescription": "For leave types such as bereavement or marriage leave that involve \"multiple leave requests for the same event.\" After verifying the employee's supporting documents, grant the total days and deadline directly. Subsequent leave applications from the same employee for the same leave type will automatically be deducted from this grant, and applications exceeding the remaining balance will be blocked.",
+    "employeeLabel": "Employee",
+    "employeePlaceholder": "Select employee",
+    "leaveTypeLabel": "Leave Type",
+    "leaveTypePlaceholder": "Select leave type",
+    "totalDaysLabel": "Granted Days",
+    "deadlineLabel": "Deadline to Use (optional)",
+    "noteLabel": "Note (optional)",
+    "notePlaceholder": "e.g. Father's passing, 8 days granted based on relationship",
+    "confirmButton": "Confirm Grant",
+    "recordsTitle": "Grant Records",
+    "recordsDescription": "Granted leave entitlements and usage status",
+    "columns": {
+      "employee": "Employee",
+      "leaveType": "Leave Type",
+      "granted": "Granted",
+      "used": "Used",
+      "remaining": "Remaining",
+      "deadline": "Deadline",
+      "note": "Note",
+      "actions": "Actions"
+    },
+    "noDeadline": "No Deadline",
+    "empty": "No grant records yet"
+  },
+  "types": {
+    "title": "Leave Type Settings",
+    "description": "Manage the leave types and rules in the system",
+    "columns": {
+      "name": "Leave Type Name",
+      "code": "Leave Type Code",
+      "unit": "Calculation Unit",
+      "needProof": "Requires Proof",
+      "affectAttendance": "Affects Full Attendance",
+      "paidStatus": "Pay Calculation",
+      "maxDays": "Max Days",
+      "advanceApply": "Advance Notice"
+    },
+    "paid": "Paid",
+    "unpaid": "Unpaid"
+  },
+  "holidays": {
+    "importTitle": "Import Public Holidays",
+    "importDescription": "Paste the CSV content of the Directorate-General of Personnel Administration's official calendar (downloadable from Taiwan's government open data platform). The file's column headers must stay in the original Chinese as published by the government — the system matches them by those exact Chinese labels, e.g. below.",
+    "csvPlaceholder": "西元日期,星期,是否放假,備註\n20260101,四,2,中華民國開國紀念日",
+    "importButton": "Import",
+    "listTitle": "Holiday List",
+    "listDescription": "Imported public holidays and make-up workdays",
+    "yearOption": "{{year}}",
+    "columns": {
+      "date": "Date",
+      "description": "Description",
+      "type": "Type",
+      "actions": "Actions"
+    },
+    "isHoliday": "Holiday",
+    "isWorkday": "Make-up Workday",
+    "empty": "No holiday data for {{year}} yet; import on the left"
+  }
+}

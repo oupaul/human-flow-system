@@ -1,0 +1,44 @@
+{
+  "loadErrorTitle": "Failed to load notification settings",
+  "saveSuccess": "Notification settings saved",
+  "testSuccessTitle": "Test notification sent",
+  "testSuccessDescription": "Please confirm you actually received it (check your spam folder for email).",
+  "testErrorTitle": "Failed to send test notification",
+  "testErrorFallback": "Please check that your settings are correct",
+  "card": {
+    "title": "Notification Settings",
+    "description": "Proactively notify HR/managers to review when an employee submits a leave or overtime application. Choose not to send, send an email (basic auth or OAuth2 supported), or post to a Microsoft Teams channel."
+  },
+  "channel": {
+    "label": "Notification Channel",
+    "none": "Do not send",
+    "smtp": "Email (SMTP)",
+    "teams": "Microsoft Teams"
+  },
+  "smtp": {
+    "toEmails": "Recipient emails (comma-separated for multiple)",
+    "host": "SMTP Host",
+    "port": "Port",
+    "secure": "Use SSL/TLS (usually required for port 465)",
+    "from": "From Email Address",
+    "authMethod": "Authentication Method",
+    "authBasic": "Username & Password",
+    "authOauth2": "OAuth2 (Microsoft 365 / Google Workspace, etc.)",
+    "user": "SMTP Username",
+    "password": "SMTP Password",
+    "oauthUser": "Mailbox Account",
+    "oauthClientId": "OAuth Client ID",
+    "oauthClientSecret": "OAuth Client Secret",
+    "oauthRefreshToken": "Refresh Token",
+    "oauthHelp": "You'll need to register an application in your mail provider's admin console (e.g. Microsoft Entra ID, Google Cloud Console) to obtain a refresh token first. This is a one-time setup — this system does not provide an OAuth authorization page."
+  },
+  "teams": {
+    "webhookUrl": "Teams Webhook URL",
+    "webhookHelp": "Set up an \"Incoming Webhook\" connector on the target channel to get the URL. If your organization uses the newer Power Automate workflow webhook instead, the format may not be compatible."
+  },
+  "actions": {
+    "sending": "Sending...",
+    "saveSettings": "Save Settings",
+    "saving": "Saving..."
+  }
+}

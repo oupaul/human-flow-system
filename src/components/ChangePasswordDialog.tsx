@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ interface ChangePasswordDialogProps {
 }
 
 const ChangePasswordDialog = ({ open, onOpenChange }: ChangePasswordDialogProps) => {
+  const { t } = useTranslation(["auth", "common"]);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -42,25 +44,25 @@ const ChangePasswordDialog = ({ open, onOpenChange }: ChangePasswordDialogProps)
   const handleSubmit = async () => {
     setError(null);
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setError("請填寫所有欄位");
+      setError(t("auth:changePassword.errors.fillAll"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("兩次輸入的新密碼不一致");
+      setError(t("auth:changePassword.errors.mismatch"));
       return;
     }
     if (newPassword.length < 4) {
-      setError("新密碼長度至少 4 碼");
+      setError(t("auth:changePassword.errors.tooShort"));
       return;
     }
 
     setIsSubmitting(true);
     try {
       await authApi.changePassword(currentPassword, newPassword);
-      toast.success("密碼已更新，下次登入請使用新密碼");
+      toast.success(t("auth:changePassword.successToast"));
       handleOpenChange(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "修改密碼失敗，請稍後再試");
+      setError(err instanceof ApiError ? err.message : t("auth:changePassword.errors.default"));
     } finally {
       setIsSubmitting(false);
     }
@@ -70,12 +72,12 @@ const ChangePasswordDialog = ({ open, onOpenChange }: ChangePasswordDialogProps)
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>修改密碼</DialogTitle>
-          <DialogDescription>請輸入目前密碼以驗證身份，再設定新密碼。</DialogDescription>
+          <DialogTitle>{t("auth:changePassword.title")}</DialogTitle>
+          <DialogDescription>{t("auth:changePassword.description")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="currentPassword">目前密碼</Label>
+            <Label htmlFor="currentPassword">{t("auth:changePassword.currentPasswordLabel")}</Label>
             <Input
               id="currentPassword"
               type="password"
@@ -85,7 +87,7 @@ const ChangePasswordDialog = ({ open, onOpenChange }: ChangePasswordDialogProps)
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="newPassword">新密碼</Label>
+            <Label htmlFor="newPassword">{t("auth:changePassword.newPasswordLabel")}</Label>
             <Input
               id="newPassword"
               type="password"
@@ -95,7 +97,7 @@ const ChangePasswordDialog = ({ open, onOpenChange }: ChangePasswordDialogProps)
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">確認新密碼</Label>
+            <Label htmlFor="confirmPassword">{t("auth:changePassword.confirmPasswordLabel")}</Label>
             <Input
               id="confirmPassword"
               type="password"
@@ -112,10 +114,10 @@ const ChangePasswordDialog = ({ open, onOpenChange }: ChangePasswordDialogProps)
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            取消
+            {t("common:actions.cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "更新中..." : "確認修改"}
+            {isSubmitting ? t("auth:changePassword.updating") : t("auth:changePassword.confirmButton")}
           </Button>
         </DialogFooter>
       </DialogContent>

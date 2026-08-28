@@ -1,0 +1,268 @@
+{
+  "applyLeaveButton": "申請請假",
+  "applyOvertimeButton": "申請加班",
+  "defaultApproverName": "系統管理員",
+  "tabs": {
+    "applications": "請假申請",
+    "overtime": "加班申請",
+    "balance": "假別餘額",
+    "settlement": "特休結算",
+    "grants": "假別核給",
+    "types": "假別設定",
+    "holidays": "國定假日"
+  },
+  "applications": {
+    "applyDialog": {
+      "title": "請假申請",
+      "description": "填寫請假申請表，提交後將送交主管審核。",
+      "employeeId": "員工編號",
+      "employeeIdPlaceholder": "請輸入員工編號",
+      "leaveType": "假別",
+      "leaveTypePlaceholder": "選擇假別",
+      "compBalance": "目前可用補休：{{hours}} 小時",
+      "compBalanceDeadline": "（最近一筆將於 {{date}} 到期）",
+      "compDate": "補休日期",
+      "startTime": "開始時間",
+      "endTime": "結束時間",
+      "unit": "請假單位",
+      "unitPlaceholder": "選擇單位",
+      "unitDay": "天",
+      "unitHalfDay": "半天",
+      "unitHour": "小時",
+      "startDate": "開始日期",
+      "endDate": "結束日期",
+      "reason": "請假事由",
+      "reasonPlaceholder": "請簡要說明請假原因",
+      "deputy": "職務代理人",
+      "deputyPlaceholder": "請輸入職務代理人",
+      "attachment": "證明文件（此假別建議檢附證明文件）"
+    },
+    "listTitle": "請假申請列表",
+    "listDescription": "所有員工的請假申請紀錄和審核狀態",
+    "columns": {
+      "employeeId": "員工編號",
+      "name": "姓名",
+      "leaveType": "假別",
+      "startDate": "開始日期",
+      "endDate": "結束日期",
+      "days": "天數",
+      "status": "狀態",
+      "attachment": "附件",
+      "actions": "操作"
+    },
+    "hoursUnit": " 小時",
+    "daysUnit": " 天",
+    "noteLine": "備註：{{note}}",
+    "viewAttachment": "查看附件",
+    "noAttachment": "無",
+    "reviewDialog": {
+      "titleApprove": "核准請假申請",
+      "titleReject": "拒絕請假申請",
+      "descriptionLine": "{{employee}}（{{employeeId}}）· {{type}} · {{startDate}} ~ {{endDate}}",
+      "reasonLine": "申請事由：{{reason}}",
+      "viewAttachment": "查看附件",
+      "grantHintBefore": "此申請已關聯核給紀錄，剩餘 ",
+      "grantHintAfter": " 天（核給 {{total}} 天，期限 {{deadline}}），核准天數不可超過剩餘天數。",
+      "compHintBefore": "目前可用補休 ",
+      "compHintAfter": " 小時，核准時數不可超過剩餘時數（依到期日近到遠自動扣抵）。",
+      "approvedHoursLabel": "核准時數（小時）",
+      "approvedDaysLabel": "核准天數（可依證明文件調整，例如喪假依親屬關係核定天數）",
+      "reviewNoteLabel": "審核備註（選填）",
+      "reviewNotePlaceholderApprove": "例如：已確認證明文件",
+      "reviewNotePlaceholderReject": "請說明拒絕原因，員工會看到這則備註",
+      "confirmApprove": "確認核准",
+      "confirmReject": "確認拒絕"
+    }
+  },
+  "overtime": {
+    "applyDialog": {
+      "title": "加班申請",
+      "description": "填寫加班申請表，提交後將送交主管審核。",
+      "employeeId": "員工編號",
+      "employeeIdPlaceholder": "請輸入員工編號",
+      "date": "加班日期",
+      "startTime": "開始時間",
+      "endTime": "結束時間",
+      "reason": "加班事由",
+      "reasonPlaceholder": "請簡要說明加班原因",
+      "compensationType": "領取方式",
+      "compensationTypePay": "領加班費",
+      "compensationTypeComp": "換補休",
+      "compHint": "依勞基法第 32-1 條，補休時數以工作時數 1:1 換算（加班多少小時、補休多少小時）。需在加班日起 6 個月內休畢，逾期未休完的部分會折算加班費。"
+    },
+    "listTitle": "加班申請列表",
+    "listDescription": "所有員工的加班申請紀錄和審核狀態",
+    "columns": {
+      "employeeId": "員工編號",
+      "name": "姓名",
+      "date": "日期",
+      "period": "時段",
+      "hours": "時數",
+      "onHoliday": "假日加班",
+      "compensationType": "領取方式",
+      "status": "狀態",
+      "actions": "操作"
+    },
+    "compensationPay": "領加班費",
+    "compensationComp": "換補休",
+    "compensationCompWithHours": "換補休（{{hours}} 小時）",
+    "noteLine": "備註：{{note}}",
+    "reviewDialog": {
+      "titleApprove": "核准加班申請",
+      "titleReject": "拒絕加班申請",
+      "descriptionLine": "{{employee}}（{{employeeId}}）· {{date}} {{startTime}}-{{endTime}}（{{hours}} 小時）",
+      "reasonLine": "加班事由：{{reason}}",
+      "reviewNoteLabel": "審核備註（選填）",
+      "reviewNotePlaceholderApprove": "例如：已確認加班事由",
+      "reviewNotePlaceholderReject": "請說明拒絕原因，員工會看到這則備註",
+      "confirmApprove": "確認核准",
+      "confirmReject": "確認拒絕"
+    }
+  },
+  "balance": {
+    "title": "員工假別餘額",
+    "description": "查看各員工剩餘假別天數",
+    "recalculate": "依到職日重新計算特休",
+    "columns": {
+      "employeeId": "員工編號",
+      "name": "姓名",
+      "annualAvailable": "特休可用",
+      "annualUsed": "特休已用",
+      "sickAvailable": "病假可用",
+      "sickUsed": "病假已用",
+      "compAvailable": "補休可用",
+      "compUsed": "補休已用",
+      "actions": "操作"
+    },
+    "compLedgerButton": "補休明細",
+    "adjustButton": "調整",
+    "adjustDialog": {
+      "title": "調整假別餘額",
+      "descriptionLine": "{{employee}}（{{employeeId}}）",
+      "annualUsedLabel": "特休已用天數（可用天數 {{days}} 天由到職年資自動計算，這裡只能調整「已用」）",
+      "noActivePeriod": "此員工尚無特休週年紀錄，無法調整",
+      "sickAvailable": "病假可用",
+      "sickUsed": "病假已用",
+      "compHint": "補休可用／已用時數改由加班核准與請假使用自動計算，不再開放手動調整；請至「補休明細」查看來源。"
+    },
+    "compLedgerDialog": {
+      "title": "補休明細",
+      "descriptionLine": "{{employee}}（{{employeeId}}）",
+      "columns": {
+        "overtimeDate": "加班日期",
+        "convertedHours": "換算時數",
+        "used": "已用",
+        "remaining": "剩餘",
+        "deadline": "應休畢期限",
+        "status": "狀態"
+      },
+      "statusSettled": "已結算（折算 {{hours}} 小時）",
+      "statusOverdue": "已逾期，待 HR 結算",
+      "statusAvailable": "可使用",
+      "empty": "尚無補休紀錄"
+    }
+  },
+  "settlement": {
+    "title": "特休週年結算",
+    "description": "已到期但尚未結算的特休週年期間。依勞基法第 38 條，本期新發放且尚未休完的天數可選擇遞延一次或折現；上一期遞延進來仍未休完的天數則必須全數折現。",
+    "columns": {
+      "employee": "員工",
+      "period": "週年區間",
+      "currentGrant": "本期發放",
+      "carriedIn": "上期遞延",
+      "used": "已用",
+      "mandatoryCashOut": "應強制折現",
+      "optionalCarryOrCashOut": "可選遞延/折現",
+      "actions": "操作"
+    },
+    "empty": "目前沒有待結算的週年期間",
+    "settleButton": "結算",
+    "settleDialog": {
+      "title": "結算特休週年",
+      "descriptionLine": "{{employee}}（{{employeeId}}）{{start}} ~ {{end}}",
+      "mandatoryLabel": "應強制折現（上期遞延未休完）：",
+      "optionalLabel": "本期可選遞延或折現：",
+      "carryOverLabel": "選擇遞延到下一期的天數（其餘自動折現）",
+      "cashOutLabel": "將折現天數：",
+      "cashOutAmountLabel": "預估折現金額：",
+      "noSalary": "尚未設定月薪，無法試算",
+      "confirm": "確認結算"
+    }
+  },
+  "compSettlement": {
+    "title": "補休結算",
+    "description": "已逾期（超過加班日起 6 個月）但尚未休完的補休額度，剩餘時數需全數折算加班費發放。",
+    "columns": {
+      "employee": "員工",
+      "overtimeDate": "加班日期",
+      "grantedHours": "核給時數",
+      "used": "已用",
+      "remainingPending": "剩餘（待折現）",
+      "deadline": "應休畢期限",
+      "actions": "操作"
+    },
+    "empty": "目前沒有待結算的補休額度",
+    "settleButton": "結算"
+  },
+  "grants": {
+    "formTitle": "新增假別核給",
+    "formDescription": "適用喪假、婚假等「同一事由分次請假」的假別。審核過員工提供的證明文件後，直接核給總天數與應休畢期限，之後同一員工、同一假別的請假申請會自動從這筆核給扣抵，超過剩餘天數會被擋下。",
+    "employeeLabel": "員工",
+    "employeePlaceholder": "選擇員工",
+    "leaveTypeLabel": "假別",
+    "leaveTypePlaceholder": "選擇假別",
+    "totalDaysLabel": "核給天數",
+    "deadlineLabel": "應休畢期限（選填）",
+    "noteLabel": "備註（選填）",
+    "notePlaceholder": "如：父喪，依親屬關係核給 8 天",
+    "confirmButton": "確認核給",
+    "recordsTitle": "核給紀錄",
+    "recordsDescription": "已核給的假別額度與使用狀況",
+    "columns": {
+      "employee": "員工",
+      "leaveType": "假別",
+      "granted": "核給",
+      "used": "已用",
+      "remaining": "剩餘",
+      "deadline": "期限",
+      "note": "備註",
+      "actions": "操作"
+    },
+    "noDeadline": "無期限",
+    "empty": "尚無核給紀錄"
+  },
+  "types": {
+    "title": "假別設定",
+    "description": "管理系統中的假別類型和規則",
+    "columns": {
+      "name": "假別名稱",
+      "code": "假別代碼",
+      "unit": "計算單位",
+      "needProof": "需要證明",
+      "affectAttendance": "影響全勤",
+      "paidStatus": "薪資計算",
+      "maxDays": "最大天數",
+      "advanceApply": "提前申請"
+    },
+    "paid": "有薪",
+    "unpaid": "無薪"
+  },
+  "holidays": {
+    "importTitle": "匯入國定假日",
+    "importDescription": "貼上人事行政總處「政府行政機關辦公日曆表」CSV 內容（可至政府資料開放平台下載）",
+    "csvPlaceholder": "西元日期,星期,是否放假,備註\n20260101,四,2,中華民國開國紀念日",
+    "importButton": "匯入",
+    "listTitle": "假日列表",
+    "listDescription": "已匯入的國定假日與補班日",
+    "yearOption": "{{year}} 年",
+    "columns": {
+      "date": "日期",
+      "description": "說明",
+      "type": "類型",
+      "actions": "操作"
+    },
+    "isHoliday": "放假",
+    "isWorkday": "補班",
+    "empty": "{{year}} 年尚無假日資料，請於左側匯入"
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "appName": "HR管理系統",
+  "nav": {
+    "dashboard": "儀表板",
+    "employees": "員工管理",
+    "departments": "部門管理",
+    "leaveManagement": "假別管理",
+    "reports": "報表分析",
+    "settings": "系統設定",
+    "myPortal": "我的入口"
+  },
+  "actions": {
+    "save": "儲存",
+    "cancel": "取消",
+    "confirm": "確認",
+    "add": "新增",
+    "edit": "編輯",
+    "delete": "刪除",
+    "approve": "核准",
+    "reject": "拒絕",
+    "import": "匯入",
+    "export": "匯出",
+    "submit": "提交申請",
+    "close": "關閉",
+    "search": "搜尋",
+    "reset": "重設",
+    "resetPassword": "重設密碼",
+    "view": "查看",
+    "back": "返回",
+    "logout": "登出",
+    "changePassword": "修改密碼",
+    "settle": "結算",
+    "adjust": "調整",
+    "recalculate": "重新計算",
+    "sendTest": "傳送測試通知",
+    "downloadTemplate": "下載範本"
+  },
+  "status": {
+    "pending": "待審核",
+    "approved": "已核准",
+    "rejected": "已拒絕",
+    "active": "在職",
+    "inactive": "已離職"
+  },
+  "role": {
+    "admin": "管理者",
+    "hr": "人資",
+    "manager": "主管",
+    "employee": "員工"
+  },
+  "table": {
+    "employeeId": "員工編號",
+    "name": "姓名",
+    "department": "部門",
+    "position": "職位",
+    "status": "狀態",
+    "note": "備註",
+    "reviewNote": "審核備註",
+    "actions": "操作",
+    "days": "天數",
+    "hours": "小時",
+    "date": "日期",
+    "startDate": "開始日期",
+    "endDate": "結束日期",
+    "deadline": "期限",
+    "createdAt": "建立時間"
+  },
+  "common": {
+    "loading": "載入中...",
+    "yes": "是",
+    "no": "否",
+    "none": "無",
+    "noData": "尚無資料",
+    "optional": "選填",
+    "required": "必填",
+    "unset": "尚未設定",
+    "setKeepBlank": "已設定，留空表示不變更",
+    "confirmDelete": "確定要刪除嗎？",
+    "operationFailed": "操作失敗",
+    "networkErrorHint": "請檢查網路連線或聯繫系統管理員",
+    "loadFailed": "載入資料失敗",
+    "saveSuccess": "儲存成功",
+    "saveFailed": "儲存失敗",
+    "deleteSuccess": "刪除成功",
+    "deleteFailed": "刪除失敗"
+  },
+  "language": {
+    "label": "語言",
+    "zhTW": "正體中文",
+    "en": "English",
+    "ja": "日本語"
+  }
+}

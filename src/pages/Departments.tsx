@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useTranslation } from "react-i18next";
 import DepartmentFilters from "@/components/departments/DepartmentFilters";
 import DepartmentCard from "@/components/departments/DepartmentCard";
 import AddDepartmentDialog from "@/components/departments/AddDepartmentDialog";
@@ -14,6 +15,7 @@ import DepartmentConfirmDialog from "@/components/departments/DepartmentConfirmD
 import { useDepartments } from "@/hooks/useDepartments";
 
 const Departments = () => {
+  const { t } = useTranslation(["departments", "common"]);
   const {
     searchTerm,
     setSearchTerm,
@@ -59,12 +61,12 @@ const Departments = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">部門管理</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("common:nav.departments")}</h1>
         </div>
         <div className="flex items-center justify-center py-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-hrms-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">載入部門資料中...</p>
+            <p className="text-gray-600">{t("departments:page.loadingDepartments")}</p>
           </div>
         </div>
       </div>
@@ -74,9 +76,9 @@ const Departments = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">部門管理</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("common:nav.departments")}</h1>
         <Button onClick={handleAddClick} className="bg-hrms-accent">
-          <Plus className="mr-2 h-4 w-4" /> 新增部門
+          <Plus className="mr-2 h-4 w-4" /> {t("departments:page.addDepartment")}
         </Button>
       </div>
       
@@ -93,7 +95,7 @@ const Departments = () => {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredDepartments.length === 0 ? (
               <div className="col-span-full text-center py-8">
-                <p className="text-gray-500">找不到符合條件的部門</p>
+                <p className="text-gray-500">{t("departments:page.noSearchResults")}</p>
               </div>
             ) : (
               filteredDepartments.map((department) => (
@@ -111,9 +113,9 @@ const Departments = () => {
           // 常規顯示（層次結構）
           departmentHierarchy.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">尚無部門資料</p>
+              <p className="text-gray-500 mb-4">{t("departments:page.noDepartments")}</p>
               <Button onClick={() => setIsAddDialogOpen(true)} className="bg-hrms-accent">
-                <Plus className="mr-2 h-4 w-4" /> 新增第一個部門
+                <Plus className="mr-2 h-4 w-4" /> {t("departments:page.addFirstDepartment")}
               </Button>
             </div>
           ) : (
@@ -122,7 +124,7 @@ const Departments = () => {
                 <div className="flex items-center">
                   <h2 className="text-lg font-semibold">{hierarchy.main.name}</h2>
                   <span className="ml-2 rounded-full bg-hrms-primary px-2.5 py-0.5 text-xs text-white">
-                    {hierarchy.main.employeeCount} 位員工
+                    {t("departments:shared.employeeCount", { count: hierarchy.main.employeeCount })}
                   </span>
                 </div>
                 

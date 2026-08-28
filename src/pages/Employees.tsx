@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Plus, Upload } from "lucide-react";
 import {
@@ -19,6 +20,7 @@ import EmployeeConfirmDialogs from "@/components/employees/EmployeeConfirmDialog
 import ImportEmployeesDialog from "@/components/employees/ImportEmployeesDialog";
 
 const Employees = () => {
+  const { t } = useTranslation(["employees", "common"]);
   const { employees, loading, addEmployee, updateEmployee, deleteEmployee, terminateEmployee, resetPassword, importEmployees } = useEmployees();
   const {
     searchTerm,
@@ -140,12 +142,12 @@ const Employees = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">員工管理</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("common:nav.employees")}</h1>
         </div>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-hrms-accent mx-auto"></div>
-            <p className="mt-2 text-muted-foreground">載入中...</p>
+            <p className="mt-2 text-muted-foreground">{t("common:common.loading")}</p>
           </div>
         </div>
       </div>
@@ -155,16 +157,16 @@ const Employees = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">員工管理</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("common:nav.employees")}</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsImportEmployeesOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" /> 批次匯入
+            <Upload className="mr-2 h-4 w-4" /> {t("employees:page.bulkImport")}
           </Button>
           <Button className="bg-hrms-accent" onClick={() => {
             setFormData(emptyFormData);
             setIsAddEmployeeOpen(true);
           }}>
-            <Plus className="mr-2 h-4 w-4" /> 新增員工
+            <Plus className="mr-2 h-4 w-4" /> {t("employees:page.addEmployee")}
           </Button>
         </div>
       </div>

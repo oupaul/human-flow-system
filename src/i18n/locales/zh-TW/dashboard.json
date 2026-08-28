@@ -1,0 +1,21 @@
+{
+  "title": "儀表板",
+  "updatedAt": "資料更新時間: {{time}}",
+  "loadErrorTitle": "載入 Dashboard 資料失敗",
+  "stats": {
+    "totalEmployees": "總員工數",
+    "monthlyLeaves": "本月請假數",
+    "averageAttendance": "平均出勤率",
+    "pendingRequests": "待審核申請"
+  },
+  "charts": {
+    "departmentAttendance": {
+      "title": "部門出勤率",
+      "description": "各部門本月平均出勤率分析"
+    },
+    "leaveDistribution": {
+      "title": "請假類型分布",
+      "description": "本月各類請假使用比例"
+    }
+  }
+}

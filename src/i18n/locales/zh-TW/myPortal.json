@@ -1,0 +1,67 @@
+{
+  "title": "員工自助服務",
+  "welcome": "歡迎，{{name}}",
+  "leaveTypeLabel": "假別",
+  "startTimeLabel": "開始時間",
+  "endTimeLabel": "結束時間",
+  "compensationTypeLabel": "領取方式",
+  "reviewNotePrefix": "備註：{{note}}",
+  "overtimeDialog": {
+    "trigger": "申請加班",
+    "title": "加班申請",
+    "description": "填寫加班申請表，提交後將送交主管審核。",
+    "dateLabel": "加班日期",
+    "reasonLabel": "加班事由",
+    "payOption": "領加班費",
+    "compOption": "換補休",
+    "compHint": "依勞基法第 32-1 條，補休時數以工作時數 1:1 換算（加班多少小時、補休多少小時）。需在加班日起 6 個月內休畢，逾期未休完的部分會折算加班費。"
+  },
+  "leaveDialog": {
+    "trigger": "申請請假",
+    "title": "請假申請",
+    "description": "填寫請假申請表，提交後將送交主管審核。",
+    "leaveTypePlaceholder": "選擇假別",
+    "compBalance": "目前可用補休：{{hours}} 小時",
+    "compBalanceDeadline": "（最近一筆將於 {{date}} 到期）",
+    "compDateLabel": "補休日期",
+    "startDateLabel": "開始日期",
+    "endDateLabel": "結束日期",
+    "reasonLabel": "請假事由",
+    "deputyLabel": "職務代理人",
+    "attachmentLabel": "證明文件（此假別建議檢附證明文件）"
+  },
+  "balanceCard": {
+    "title": "我的假別餘額",
+    "annualLeave": "特休",
+    "sickLeave": "病假",
+    "compensatoryLeave": "補休"
+  },
+  "grantsTable": {
+    "title": "我的假別核給",
+    "description": "喪假、婚假等由 HR 核給的假別額度與使用狀況",
+    "granted": "核給",
+    "used": "已用",
+    "remaining": "剩餘",
+    "deadline": "應休畢期限",
+    "noDeadline": "無期限"
+  },
+  "leaveHistory": {
+    "title": "我的請假紀錄",
+    "description": "你所提交的請假申請與審核狀態",
+    "attachmentColumn": "附件",
+    "hoursUnit": " 小時",
+    "daysUnit": " 天",
+    "viewAttachment": "查看附件",
+    "empty": "尚無請假紀錄"
+  },
+  "overtimeHistory": {
+    "title": "我的加班紀錄",
+    "description": "你所提交的加班申請與審核狀態",
+    "period": "時段",
+    "hoursColumn": "時數",
+    "compWithHours": "換補休（{{hours}} 小時）",
+    "compNoHours": "換補休",
+    "payOption": "領加班費",
+    "empty": "尚無加班紀錄"
+  }
+}

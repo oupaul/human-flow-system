@@ -1,0 +1,67 @@
+{
+  "title": "Employee Self-Service",
+  "welcome": "Welcome, {{name}}",
+  "leaveTypeLabel": "Leave Type",
+  "startTimeLabel": "Start Time",
+  "endTimeLabel": "End Time",
+  "compensationTypeLabel": "Compensation Type",
+  "reviewNotePrefix": "Note: {{note}}",
+  "overtimeDialog": {
+    "trigger": "Apply for Overtime",
+    "title": "Overtime Application",
+    "description": "Fill out the overtime application form. It will be sent to your manager for approval after submission.",
+    "dateLabel": "Overtime Date",
+    "reasonLabel": "Reason for Overtime",
+    "payOption": "Overtime Pay",
+    "compOption": "Comp Time",
+    "compHint": "Under Article 32-1 of the Labor Standards Act, comp time is calculated 1:1 with hours worked (one hour of overtime earns one hour of comp time). It must be used within 6 months of the overtime date; any unused portion will be converted to overtime pay."
+  },
+  "leaveDialog": {
+    "trigger": "Apply for Leave",
+    "title": "Leave Application",
+    "description": "Fill out the leave application form. It will be sent to your manager for approval after submission.",
+    "leaveTypePlaceholder": "Select leave type",
+    "compBalance": "Available comp time: {{hours}} hours",
+    "compBalanceDeadline": " (the earliest batch expires on {{date}})",
+    "compDateLabel": "Comp Time Date",
+    "startDateLabel": "Start Date",
+    "endDateLabel": "End Date",
+    "reasonLabel": "Reason for Leave",
+    "deputyLabel": "Deputy",
+    "attachmentLabel": "Supporting Document (recommended for this leave type)"
+  },
+  "balanceCard": {
+    "title": "My Leave Balance",
+    "annualLeave": "Annual Leave",
+    "sickLeave": "Sick Leave",
+    "compensatoryLeave": "Comp Time"
+  },
+  "grantsTable": {
+    "title": "My Leave Grants",
+    "description": "Leave quotas granted by HR, such as bereavement and marriage leave, and their usage",
+    "granted": "Granted",
+    "used": "Used",
+    "remaining": "Remaining",
+    "deadline": "Deadline to Use",
+    "noDeadline": "No deadline"
+  },
+  "leaveHistory": {
+    "title": "My Leave History",
+    "description": "Leave applications you have submitted and their approval status",
+    "attachmentColumn": "Attachment",
+    "hoursUnit": " hours",
+    "daysUnit": " days",
+    "viewAttachment": "View attachment",
+    "empty": "No leave records yet"
+  },
+  "overtimeHistory": {
+    "title": "My Overtime History",
+    "description": "Overtime applications you have submitted and their approval status",
+    "period": "Time Period",
+    "hoursColumn": "Hours",
+    "compWithHours": "Comp Time ({{hours}} hours)",
+    "compNoHours": "Comp Time",
+    "payOption": "Overtime Pay",
+    "empty": "No overtime records yet"
+  }
+}

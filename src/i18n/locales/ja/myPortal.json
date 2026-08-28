@@ -1,0 +1,67 @@
+{
+  "title": "従業員セルフサービス",
+  "welcome": "ようこそ、{{name}}様",
+  "leaveTypeLabel": "休暇種別",
+  "startTimeLabel": "開始時刻",
+  "endTimeLabel": "終了時刻",
+  "compensationTypeLabel": "受取方法",
+  "reviewNotePrefix": "備考：{{note}}",
+  "overtimeDialog": {
+    "trigger": "残業を申請",
+    "title": "残業申請",
+    "description": "残業申請フォームにご記入ください。提出後、上長の承認に回されます。",
+    "dateLabel": "残業日",
+    "reasonLabel": "残業理由",
+    "payOption": "残業代を受け取る",
+    "compOption": "代休に交換する",
+    "compHint": "労働基準法第32条の1に基づき、代休時間は労働時間と1対1で換算されます（残業した時間数だけ代休を取得できます）。残業日から6か月以内に取得する必要があり、期限内に消化できなかった分は残業代に換算されます。"
+  },
+  "leaveDialog": {
+    "trigger": "休暇を申請",
+    "title": "休暇申請",
+    "description": "休暇申請フォームにご記入ください。提出後、上長の承認に回されます。",
+    "leaveTypePlaceholder": "休暇種別を選択",
+    "compBalance": "現在利用可能な代休：{{hours}} 時間",
+    "compBalanceDeadline": "（直近の分は {{date}} に失効します）",
+    "compDateLabel": "代休取得日",
+    "startDateLabel": "開始日",
+    "endDateLabel": "終了日",
+    "reasonLabel": "休暇理由",
+    "deputyLabel": "代理担当者",
+    "attachmentLabel": "証明書類（この休暇種別では証明書類の添付を推奨します）"
+  },
+  "balanceCard": {
+    "title": "休暇残高",
+    "annualLeave": "年次有給休暇",
+    "sickLeave": "病気休暇",
+    "compensatoryLeave": "代休"
+  },
+  "grantsTable": {
+    "title": "休暇付与状況",
+    "description": "忌引休暇・結婚休暇などHRが付与する休暇の残高と利用状況",
+    "granted": "付与",
+    "used": "使用済み",
+    "remaining": "残り",
+    "deadline": "取得期限",
+    "noDeadline": "期限なし"
+  },
+  "leaveHistory": {
+    "title": "休暇申請履歴",
+    "description": "提出した休暇申請とその承認状況",
+    "attachmentColumn": "添付ファイル",
+    "hoursUnit": "時間",
+    "daysUnit": "日",
+    "viewAttachment": "添付ファイルを表示",
+    "empty": "休暇の申請履歴はまだありません"
+  },
+  "overtimeHistory": {
+    "title": "残業申請履歴",
+    "description": "提出した残業申請とその承認状況",
+    "period": "時間帯",
+    "hoursColumn": "時間数",
+    "compWithHours": "代休に交換（{{hours}} 時間）",
+    "compNoHours": "代休に交換",
+    "payOption": "残業代を受け取る",
+    "empty": "残業の申請履歴はまだありません"
+  }
+}

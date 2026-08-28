@@ -1,0 +1,56 @@
+{
+  "page": {
+    "addDepartment": "新增部門",
+    "addFirstDepartment": "新增第一個部門",
+    "loadingDepartments": "載入部門資料中...",
+    "noSearchResults": "找不到符合條件的部門",
+    "noDepartments": "尚無部門資料"
+  },
+  "filters": {
+    "searchPlaceholder": "搜尋部門或主管..."
+  },
+  "shared": {
+    "employeeCount": "{{count}} 位員工",
+    "lead": "主管: {{name}}",
+    "parentDepartment": "上級部門: {{name}}"
+  },
+  "card": {
+    "viewDepartment": "檢視部門"
+  },
+  "view": {
+    "title": "部門詳情",
+    "subDepartment": "子部門",
+    "mainDepartment": "主要部門",
+    "leadLabel": "部門主管",
+    "parentDepartmentLabel": "上級部門",
+    "employeeCountLabel": "員工數量",
+    "employeeCountValue": "{{count}} 人",
+    "descriptionLabel": "部門描述"
+  },
+  "confirmDialog": {
+    "title": "確認刪除部門",
+    "description": "您確定要刪除「{{name}}」部門嗎？",
+    "note": "只有無員工和無子部門的部門才能被刪除。此操作無法撤銷。",
+    "confirmButton": "確認刪除"
+  },
+  "form": {
+    "nameLabel": "部門名稱",
+    "namePlaceholder": "輸入部門名稱",
+    "leadLabel": "部門主管",
+    "leadPlaceholder": "輸入部門主管姓名",
+    "parentLabel": "上級部門",
+    "parentPlaceholder": "選擇上級部門（可選）",
+    "noParent": "無上級部門",
+    "descriptionLabel": "部門描述",
+    "descriptionPlaceholder": "簡要描述部門職責"
+  },
+  "addDialog": {
+    "title": "新增部門",
+    "description": "建立新的部門並指派部門主管。"
+  },
+  "editDialog": {
+    "title": "編輯部門",
+    "description": "修改部門資料和結構。",
+    "submitButton": "更新"
+  }
+}

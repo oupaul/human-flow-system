@@ -1,0 +1,21 @@
+{
+  "title": "Dashboard",
+  "updatedAt": "Last updated: {{time}}",
+  "loadErrorTitle": "Failed to load dashboard data",
+  "stats": {
+    "totalEmployees": "Total Employees",
+    "monthlyLeaves": "Monthly Leaves",
+    "averageAttendance": "Average Attendance Rate",
+    "pendingRequests": "Pending Requests"
+  },
+  "charts": {
+    "departmentAttendance": {
+      "title": "Department Attendance Rate",
+      "description": "Average attendance rate by department this month"
+    },
+    "leaveDistribution": {
+      "title": "Leave Type Distribution",
+      "description": "Proportion of leave types used this month"
+    }
+  }
+}

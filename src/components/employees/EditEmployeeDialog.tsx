@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { EmployeeFormData } from "@/types/employee";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { departmentApi } from "@/services/departmentApi";
 
 interface EditEmployeeDialogProps {
@@ -41,6 +42,7 @@ const EditEmployeeDialog = ({
   onSwitchChange,
   onSave
 }: EditEmployeeDialogProps) => {
+  const { t } = useTranslation(["employees", "common"]);
   const [departments, setDepartments] = useState([]);
   useEffect(() => {
     if (open) {
@@ -52,29 +54,29 @@ const EditEmployeeDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>編輯員工資料</DialogTitle>
+          <DialogTitle>{t("employees:editDialog.title")}</DialogTitle>
           <DialogDescription>
-            修改員工的基本資料。所有帶*的欄位為必填。
+            {t("employees:editDialog.description")}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="editName">姓名 *</Label>
-              <Input 
-                id="editName" 
+              <Label htmlFor="editName">{t("employees:form.name")}</Label>
+              <Input
+                id="editName"
                 name="name"
-                placeholder="輸入姓名" 
+                placeholder={t("employees:form.namePlaceholder")}
                 value={formData.name}
                 onChange={onFormChange}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="editEmployeeId">員工編號 *</Label>
-              <Input 
-                id="editEmployeeId" 
+              <Label htmlFor="editEmployeeId">{t("employees:form.employeeId")}</Label>
+              <Input
+                id="editEmployeeId"
                 name="employeeId"
-                placeholder="如: EMP001" 
+                placeholder={t("employees:form.employeeIdPlaceholder")}
                 value={formData.employeeId}
                 onChange={onFormChange}
               />
@@ -82,17 +84,17 @@ const EditEmployeeDialog = ({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="editDepartment">部門 *</Label>
+              <Label htmlFor="editDepartment">{t("employees:form.department")}</Label>
               <Select
                 value={formData.department}
                 onValueChange={(value) => onSelectChange("department", value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="選擇部門" />
+                  <SelectValue placeholder={t("employees:form.departmentPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {departments.length === 0 ? (
-                    <SelectItem value="__no_departments__" disabled>尚無部門</SelectItem>
+                    <SelectItem value="__no_departments__" disabled>{t("employees:form.noDepartments")}</SelectItem>
                   ) : (
                     departments.map((dept) => (
                       <SelectItem key={dept.id} value={dept.name}>{dept.name}</SelectItem>
@@ -102,11 +104,11 @@ const EditEmployeeDialog = ({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="editPosition">職位 *</Label>
-              <Input 
-                id="editPosition" 
+              <Label htmlFor="editPosition">{t("employees:form.position")}</Label>
+              <Input
+                id="editPosition"
                 name="position"
-                placeholder="輸入職位" 
+                placeholder={t("employees:form.positionPlaceholder")}
                 value={formData.position}
                 onChange={onFormChange}
               />
@@ -114,22 +116,22 @@ const EditEmployeeDialog = ({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="editEmail">電子郵件 *</Label>
-              <Input 
-                id="editEmail" 
+              <Label htmlFor="editEmail">{t("employees:form.email")}</Label>
+              <Input
+                id="editEmail"
                 name="email"
-                type="email" 
-                placeholder="name@example.com" 
+                type="email"
+                placeholder={t("employees:form.emailPlaceholder")}
                 value={formData.email}
                 onChange={onFormChange}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="editPhone">電話號碼</Label>
-              <Input 
-                id="editPhone" 
+              <Label htmlFor="editPhone">{t("employees:form.phone")}</Label>
+              <Input
+                id="editPhone"
                 name="phone"
-                placeholder="如: 0912-345-678" 
+                placeholder={t("employees:form.phonePlaceholder")}
                 value={formData.phone}
                 onChange={onFormChange}
               />
@@ -137,67 +139,67 @@ const EditEmployeeDialog = ({
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="editJoinDate">到職日期 *</Label>
-              <Input 
-                id="editJoinDate" 
+              <Label htmlFor="editJoinDate">{t("employees:form.joinDate")}</Label>
+              <Input
+                id="editJoinDate"
                 name="joinDate"
-                type="date" 
+                type="date"
                 value={formData.joinDate}
                 onChange={onFormChange}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="editAddress">地址</Label>
+              <Label htmlFor="editAddress">{t("employees:form.address")}</Label>
               <Input
                 id="editAddress"
                 name="address"
-                placeholder="輸入地址"
+                placeholder={t("employees:form.addressPlaceholder")}
                 value={formData.address}
                 onChange={onFormChange}
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="editMonthlySalary">月薪（選填，用於特休未休折現試算）</Label>
+            <Label htmlFor="editMonthlySalary">{t("employees:form.monthlySalary")}</Label>
             <Input
               id="editMonthlySalary"
               name="monthlySalary"
               type="number"
               min="0"
-              placeholder="輸入月薪"
+              placeholder={t("employees:form.monthlySalaryPlaceholder")}
               value={formData.monthlySalary ?? ""}
               onChange={onFormChange}
             />
           </div>
           <div className="flex items-center space-x-2">
-            <Label htmlFor="active">在職狀態</Label>
-            <Switch 
-              id="active" 
-              checked={formData.active} 
+            <Label htmlFor="active">{t("employees:editDialog.activeStatus")}</Label>
+            <Switch
+              id="active"
+              checked={formData.active}
               onCheckedChange={(checked) => onSwitchChange("active", checked)}
             />
             <span className="text-sm text-muted-foreground">
-              {formData.active ? "在職中" : "已離職"}
+              {formData.active ? t("employees:status.active") : t("employees:status.inactive")}
             </span>
           </div>
           {!formData.active && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="editTerminationDate">離職日期</Label>
-                <Input 
-                  id="editTerminationDate" 
+                <Label htmlFor="editTerminationDate">{t("employees:editDialog.terminationDate")}</Label>
+                <Input
+                  id="editTerminationDate"
                   name="terminationDate"
-                  type="date" 
+                  type="date"
                   value={formData.terminationDate}
                   onChange={onFormChange}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editTerminationReason">離職原因</Label>
-                <Textarea 
-                  id="editTerminationReason" 
+                <Label htmlFor="editTerminationReason">{t("employees:editDialog.terminationReason")}</Label>
+                <Textarea
+                  id="editTerminationReason"
                   name="terminationReason"
-                  placeholder="輸入離職原因" 
+                  placeholder={t("employees:editDialog.terminationReasonPlaceholder")}
                   value={formData.terminationReason}
                   onChange={onFormChange}
                 />
@@ -205,11 +207,11 @@ const EditEmployeeDialog = ({
             </>
           )}
           <div className="space-y-2">
-            <Label htmlFor="editNotes">備註</Label>
-            <Textarea 
-              id="editNotes" 
+            <Label htmlFor="editNotes">{t("employees:form.notes")}</Label>
+            <Textarea
+              id="editNotes"
               name="notes"
-              placeholder="輸入備註" 
+              placeholder={t("employees:form.notesPlaceholder")}
               value={formData.notes}
               onChange={onFormChange}
             />
@@ -217,10 +219,10 @@ const EditEmployeeDialog = ({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            取消
+            {t("common:actions.cancel")}
           </Button>
           <Button onClick={onSave}>
-            儲存
+            {t("common:actions.save")}
           </Button>
         </DialogFooter>
       </DialogContent>

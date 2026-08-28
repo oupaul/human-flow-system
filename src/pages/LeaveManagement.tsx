@@ -1,6 +1,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Tabs,
   TabsContent,
@@ -60,8 +61,9 @@ import { employeeApi } from "@/services/employeeApi";
 import { Employee } from "@/types/employee";
 
 const LeaveManagement = () => {
+  const { t } = useTranslation(["leaveManagement", "common"]);
   const { user } = useAuth();
-  const approverName = user?.employeeName || user?.username || "系統管理員";
+  const approverName = user?.employeeName || user?.username || t("leaveManagement:defaultApproverName");
 
   const {
     leaveTypes,
@@ -125,7 +127,7 @@ const LeaveManagement = () => {
     unit: 'day'
   });
   const [leaveAttachment, setLeaveAttachment] = useState<File | null>(null);
-  const selectedLeaveTypeInfo = leaveTypes.find((t) => t.id.toString() === selectedLeaveType);
+  const selectedLeaveTypeInfo = leaveTypes.find((lt) => lt.id.toString() === selectedLeaveType);
   const selectedLeaveTypeNeedsProof = selectedLeaveTypeInfo?.needProof;
   const selectedLeaveTypeIsComp = selectedLeaveTypeInfo?.code === 'COMP';
 
@@ -269,18 +271,18 @@ const LeaveManagement = () => {
         return (
           <>
             <CheckCircle2 className="mr-1 h-4 w-4 text-green-500" />
-            <span className="text-green-500">已核准</span>
+            <span className="text-green-500">{t("common:status.approved")}</span>
           </>
         );
       case 'rejected':
         return (
           <>
             <XCircle className="mr-1 h-4 w-4 text-red-500" />
-            <span className="text-red-500">已拒絕</span>
+            <span className="text-red-500">{t("common:status.rejected")}</span>
           </>
         );
       default:
-        return <span className="text-yellow-500">待審核</span>;
+        return <span className="text-yellow-500">{t("common:status.pending")}</span>;
     }
   };
 
@@ -288,7 +290,7 @@ const LeaveManagement = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">載入中...</span>
+        <span className="ml-2">{t("common:common.loading")}</span>
       </div>
     );
   }
@@ -296,33 +298,33 @@ const LeaveManagement = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">假別管理</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t("common:nav.leaveManagement")}</h1>
         <div className="flex gap-2">
         <Dialog open={isAddOvertimeOpen} onOpenChange={setIsAddOvertimeOpen}>
           <DialogTrigger asChild>
             <Button variant="outline">
-              <Clock className="mr-2 h-4 w-4" /> 申請加班
+              <Clock className="mr-2 h-4 w-4" /> {t("leaveManagement:applyOvertimeButton")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>加班申請</DialogTitle>
+              <DialogTitle>{t("leaveManagement:overtime.applyDialog.title")}</DialogTitle>
               <DialogDescription>
-                填寫加班申請表，提交後將送交主管審核。
+                {t("leaveManagement:overtime.applyDialog.description")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="overtimeEmployeeId">員工編號</Label>
+                <Label htmlFor="overtimeEmployeeId">{t("leaveManagement:overtime.applyDialog.employeeId")}</Label>
                 <Input
                   id="overtimeEmployeeId"
                   value={overtimeFormData.employeeId || ''}
                   onChange={(e) => setOvertimeFormData({ ...overtimeFormData, employeeId: e.target.value })}
-                  placeholder="請輸入員工編號"
+                  placeholder={t("leaveManagement:overtime.applyDialog.employeeIdPlaceholder")}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="overtimeDate">加班日期</Label>
+                <Label htmlFor="overtimeDate">{t("leaveManagement:overtime.applyDialog.date")}</Label>
                 <Input
                   id="overtimeDate"
                   type="date"
@@ -332,7 +334,7 @@ const LeaveManagement = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="overtimeStart">開始時間</Label>
+                  <Label htmlFor="overtimeStart">{t("leaveManagement:overtime.applyDialog.startTime")}</Label>
                   <Input
                     id="overtimeStart"
                     type="time"
@@ -341,7 +343,7 @@ const LeaveManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="overtimeEnd">結束時間</Label>
+                  <Label htmlFor="overtimeEnd">{t("leaveManagement:overtime.applyDialog.endTime")}</Label>
                   <Input
                     id="overtimeEnd"
                     type="time"
@@ -351,17 +353,17 @@ const LeaveManagement = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="overtimeReason">加班事由</Label>
+                <Label htmlFor="overtimeReason">{t("leaveManagement:overtime.applyDialog.reason")}</Label>
                 <Textarea
                   id="overtimeReason"
-                  placeholder="請簡要說明加班原因"
+                  placeholder={t("leaveManagement:overtime.applyDialog.reasonPlaceholder")}
                   rows={3}
                   value={overtimeFormData.reason || ''}
                   onChange={(e) => setOvertimeFormData({ ...overtimeFormData, reason: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="overtimeCompensationType">領取方式</Label>
+                <Label htmlFor="overtimeCompensationType">{t("leaveManagement:overtime.applyDialog.compensationType")}</Label>
                 <Select
                   value={overtimeFormData.compensationType || 'pay'}
                   onValueChange={(value: 'pay' | 'comp') => setOvertimeFormData({ ...overtimeFormData, compensationType: value })}
@@ -370,23 +372,23 @@ const LeaveManagement = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pay">領加班費</SelectItem>
-                    <SelectItem value="comp">換補休</SelectItem>
+                    <SelectItem value="pay">{t("leaveManagement:overtime.applyDialog.compensationTypePay")}</SelectItem>
+                    <SelectItem value="comp">{t("leaveManagement:overtime.applyDialog.compensationTypeComp")}</SelectItem>
                   </SelectContent>
                 </Select>
                 {overtimeFormData.compensationType === 'comp' && (
                   <p className="text-xs text-muted-foreground">
-                    依勞基法第 32-1 條，補休時數以工作時數 1:1 換算（加班多少小時、補休多少小時）。需在加班日起 6 個月內休畢，逾期未休完的部分會折算加班費。
+                    {t("leaveManagement:overtime.applyDialog.compHint")}
                   </p>
                 )}
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddOvertimeOpen(false)}>
-                取消
+                {t("common:actions.cancel")}
               </Button>
               <Button onClick={handleSubmitOvertime}>
-                提交申請
+                {t("common:actions.submit")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -394,38 +396,38 @@ const LeaveManagement = () => {
         <Dialog open={isAddLeaveOpen} onOpenChange={setIsAddLeaveOpen}>
           <DialogTrigger asChild>
             <Button className="bg-hrms-accent">
-              <Plus className="mr-2 h-4 w-4" /> 申請請假
+              <Plus className="mr-2 h-4 w-4" /> {t("leaveManagement:applyLeaveButton")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[550px]">
             <DialogHeader>
-              <DialogTitle>請假申請</DialogTitle>
+              <DialogTitle>{t("leaveManagement:applications.applyDialog.title")}</DialogTitle>
               <DialogDescription>
-                填寫請假申請表，提交後將送交主管審核。
+                {t("leaveManagement:applications.applyDialog.description")}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="employeeId">員工編號</Label>
+                  <Label htmlFor="employeeId">{t("leaveManagement:applications.applyDialog.employeeId")}</Label>
                   <Input
                     id="employeeId"
                     value={formData.employeeId || ''}
                     onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
-                    placeholder="請輸入員工編號"
+                    placeholder={t("leaveManagement:applications.applyDialog.employeeIdPlaceholder")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="leaveType">假別</Label>
-                  <Select 
-                    value={selectedLeaveType} 
+                  <Label htmlFor="leaveType">{t("leaveManagement:applications.applyDialog.leaveType")}</Label>
+                  <Select
+                    value={selectedLeaveType}
                     onValueChange={(value) => {
                       setSelectedLeaveType(value);
                       setFormData({...formData, leaveTypeId: parseInt(value)});
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="選擇假別" />
+                      <SelectValue placeholder={t("leaveManagement:applications.applyDialog.leaveTypePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {leaveTypes.map((type) => (
@@ -444,13 +446,13 @@ const LeaveManagement = () => {
                     if (!enteredBalance) return null;
                     return (
                       <p className="text-sm text-muted-foreground">
-                        目前可用補休：{(enteredBalance.compensatoryLeave - enteredBalance.compensatoryLeaveUsed).toFixed(1)} 小時
-                        {enteredBalance.compensatoryLeaveDeadline && `（最近一筆將於 ${enteredBalance.compensatoryLeaveDeadline} 到期）`}
+                        {t("leaveManagement:applications.applyDialog.compBalance", { hours: (enteredBalance.compensatoryLeave - enteredBalance.compensatoryLeaveUsed).toFixed(1) })}
+                        {enteredBalance.compensatoryLeaveDeadline && t("leaveManagement:applications.applyDialog.compBalanceDeadline", { date: enteredBalance.compensatoryLeaveDeadline })}
                       </p>
                     );
                   })()}
                   <div className="space-y-2">
-                    <Label htmlFor="compDate">補休日期</Label>
+                    <Label htmlFor="compDate">{t("leaveManagement:applications.applyDialog.compDate")}</Label>
                     <Input
                       id="compDate"
                       type="date"
@@ -460,7 +462,7 @@ const LeaveManagement = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="compStartTime">開始時間</Label>
+                      <Label htmlFor="compStartTime">{t("leaveManagement:applications.applyDialog.startTime")}</Label>
                       <Input
                         id="compStartTime"
                         type="time"
@@ -469,7 +471,7 @@ const LeaveManagement = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="compEndTime">結束時間</Label>
+                      <Label htmlFor="compEndTime">{t("leaveManagement:applications.applyDialog.endTime")}</Label>
                       <Input
                         id="compEndTime"
                         type="time"
@@ -482,24 +484,24 @@ const LeaveManagement = () => {
               ) : (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="unit">請假單位</Label>
+                    <Label htmlFor="unit">{t("leaveManagement:applications.applyDialog.unit")}</Label>
                     <Select
                       value={formData.unit}
                       onValueChange={(value: 'day' | 'halfDay' | 'hour') => setFormData({...formData, unit: value})}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="選擇單位" />
+                        <SelectValue placeholder={t("leaveManagement:applications.applyDialog.unitPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="day">天</SelectItem>
-                        <SelectItem value="halfDay">半天</SelectItem>
-                        <SelectItem value="hour">小時</SelectItem>
+                        <SelectItem value="day">{t("leaveManagement:applications.applyDialog.unitDay")}</SelectItem>
+                        <SelectItem value="halfDay">{t("leaveManagement:applications.applyDialog.unitHalfDay")}</SelectItem>
+                        <SelectItem value="hour">{t("leaveManagement:applications.applyDialog.unitHour")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="startDate">開始日期</Label>
+                      <Label htmlFor="startDate">{t("leaveManagement:applications.applyDialog.startDate")}</Label>
                       <Input
                         id="startDate"
                         type="date"
@@ -508,7 +510,7 @@ const LeaveManagement = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="endDate">結束日期</Label>
+                      <Label htmlFor="endDate">{t("leaveManagement:applications.applyDialog.endDate")}</Label>
                       <Input
                         id="endDate"
                         type="date"
@@ -520,27 +522,27 @@ const LeaveManagement = () => {
                 </>
               )}
               <div className="space-y-2">
-                <Label htmlFor="reason">請假事由</Label>
+                <Label htmlFor="reason">{t("leaveManagement:applications.applyDialog.reason")}</Label>
                 <Textarea
                   id="reason"
-                  placeholder="請簡要說明請假原因"
+                  placeholder={t("leaveManagement:applications.applyDialog.reasonPlaceholder")}
                   rows={3}
                   value={formData.reason || ''}
                   onChange={(e) => setFormData({...formData, reason: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="deputy">職務代理人</Label>
+                <Label htmlFor="deputy">{t("leaveManagement:applications.applyDialog.deputy")}</Label>
                 <Input
                   id="deputy"
-                  placeholder="請輸入職務代理人"
+                  placeholder={t("leaveManagement:applications.applyDialog.deputyPlaceholder")}
                   value={formData.deputy || ''}
                   onChange={(e) => setFormData({...formData, deputy: e.target.value})}
                 />
               </div>
               {selectedLeaveTypeNeedsProof && (
                 <div className="space-y-2">
-                  <Label htmlFor="leaveAttachment">證明文件（此假別建議檢附證明文件）</Label>
+                  <Label htmlFor="leaveAttachment">{t("leaveManagement:applications.applyDialog.attachment")}</Label>
                   <Input
                     id="leaveAttachment"
                     type="file"
@@ -552,10 +554,10 @@ const LeaveManagement = () => {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddLeaveOpen(false)}>
-                取消
+                {t("common:actions.cancel")}
               </Button>
               <Button onClick={handleSubmitApplication}>
-                提交申請
+                {t("common:actions.submit")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -566,7 +568,7 @@ const LeaveManagement = () => {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="applications">
-            請假申請
+            {t("leaveManagement:tabs.applications")}
             {pendingLeaveCount > 0 && (
               <span className="ml-1.5 rounded-full bg-hrms-warning px-1.5 py-0.5 text-xs font-semibold text-white">
                 {pendingLeaveCount}
@@ -574,26 +576,26 @@ const LeaveManagement = () => {
             )}
           </TabsTrigger>
           <TabsTrigger value="overtime">
-            加班申請
+            {t("leaveManagement:tabs.overtime")}
             {pendingOvertimeCount > 0 && (
               <span className="ml-1.5 rounded-full bg-hrms-warning px-1.5 py-0.5 text-xs font-semibold text-white">
                 {pendingOvertimeCount}
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="balance">假別餘額</TabsTrigger>
-          <TabsTrigger value="settlement">特休結算</TabsTrigger>
-          <TabsTrigger value="grants">假別核給</TabsTrigger>
-          <TabsTrigger value="types">假別設定</TabsTrigger>
-          <TabsTrigger value="holidays">國定假日</TabsTrigger>
+          <TabsTrigger value="balance">{t("leaveManagement:tabs.balance")}</TabsTrigger>
+          <TabsTrigger value="settlement">{t("leaveManagement:tabs.settlement")}</TabsTrigger>
+          <TabsTrigger value="grants">{t("leaveManagement:tabs.grants")}</TabsTrigger>
+          <TabsTrigger value="types">{t("leaveManagement:tabs.types")}</TabsTrigger>
+          <TabsTrigger value="holidays">{t("leaveManagement:tabs.holidays")}</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="applications">
           <Card>
             <CardHeader>
-              <CardTitle>請假申請列表</CardTitle>
+              <CardTitle>{t("leaveManagement:applications.listTitle")}</CardTitle>
               <CardDescription>
-                所有員工的請假申請紀錄和審核狀態
+                {t("leaveManagement:applications.listDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -601,15 +603,15 @@ const LeaveManagement = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>員工編號</TableHead>
-                      <TableHead>姓名</TableHead>
-                      <TableHead>假別</TableHead>
-                      <TableHead>開始日期</TableHead>
-                      <TableHead>結束日期</TableHead>
-                      <TableHead>天數</TableHead>
-                      <TableHead>狀態</TableHead>
-                      <TableHead>附件</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
+                      <TableHead>{t("leaveManagement:applications.columns.employeeId")}</TableHead>
+                      <TableHead>{t("leaveManagement:applications.columns.name")}</TableHead>
+                      <TableHead>{t("leaveManagement:applications.columns.leaveType")}</TableHead>
+                      <TableHead>{t("leaveManagement:applications.columns.startDate")}</TableHead>
+                      <TableHead>{t("leaveManagement:applications.columns.endDate")}</TableHead>
+                      <TableHead>{t("leaveManagement:applications.columns.days")}</TableHead>
+                      <TableHead>{t("leaveManagement:applications.columns.status")}</TableHead>
+                      <TableHead>{t("leaveManagement:applications.columns.attachment")}</TableHead>
+                      <TableHead className="text-right">{t("leaveManagement:applications.columns.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -620,22 +622,22 @@ const LeaveManagement = () => {
                         <TableCell>{application.type}</TableCell>
                         <TableCell>{application.startDate}</TableCell>
                         <TableCell>{application.endDate}</TableCell>
-                        <TableCell>{application.days}{application.type === '補休' ? ' 小時' : ' 天'}</TableCell>
+                        <TableCell>{application.days}{application.type === '補休' ? t("leaveManagement:applications.hoursUnit") : t("leaveManagement:applications.daysUnit")}</TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             {getStatusDisplay(application.status)}
                           </div>
                           {application.reviewNote && (
-                            <p className="mt-1 text-xs text-muted-foreground">備註：{application.reviewNote}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{t("leaveManagement:applications.noteLine", { note: application.reviewNote })}</p>
                           )}
                         </TableCell>
                         <TableCell>
                           {application.attachment ? (
-                            <Button variant="ghost" size="icon" onClick={() => handleViewAttachment(application.id)} title="查看附件">
+                            <Button variant="ghost" size="icon" onClick={() => handleViewAttachment(application.id)} title={t("leaveManagement:applications.viewAttachment")}>
                               <Paperclip className="h-4 w-4" />
                             </Button>
                           ) : (
-                            <span className="text-muted-foreground text-xs">無</span>
+                            <span className="text-muted-foreground text-xs">{t("leaveManagement:applications.noAttachment")}</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -648,7 +650,7 @@ const LeaveManagement = () => {
                                   className="text-green-600 hover:bg-green-50"
                                   onClick={() => openReviewDialog(application, 'approved')}
                                 >
-                                  核准
+                                  {t("common:actions.approve")}
                                 </Button>
                                 <Button
                                   size="sm"
@@ -656,7 +658,7 @@ const LeaveManagement = () => {
                                   className="text-red-600 hover:bg-red-50"
                                   onClick={() => openReviewDialog(application, 'rejected')}
                                 >
-                                  拒絕
+                                  {t("common:actions.reject")}
                                 </Button>
                               </>
                             )}
@@ -674,18 +676,24 @@ const LeaveManagement = () => {
         <Dialog open={!!reviewingApplication} onOpenChange={(open) => !open && setReviewingApplication(null)}>
           <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
-              <DialogTitle>{reviewAction === 'approved' ? '核准' : '拒絕'}請假申請</DialogTitle>
+              <DialogTitle>{reviewAction === 'approved' ? t("leaveManagement:applications.reviewDialog.titleApprove") : t("leaveManagement:applications.reviewDialog.titleReject")}</DialogTitle>
               <DialogDescription>
-                {reviewingApplication && `${reviewingApplication.employee}（${reviewingApplication.employeeId}）· ${reviewingApplication.type} · ${reviewingApplication.startDate} ~ ${reviewingApplication.endDate}`}
+                {reviewingApplication && t("leaveManagement:applications.reviewDialog.descriptionLine", {
+                  employee: reviewingApplication.employee,
+                  employeeId: reviewingApplication.employeeId,
+                  type: reviewingApplication.type,
+                  startDate: reviewingApplication.startDate,
+                  endDate: reviewingApplication.endDate,
+                })}
               </DialogDescription>
             </DialogHeader>
             {reviewingApplication && (
               <div className="space-y-4 py-2">
                 <div className="rounded-md bg-muted p-3 text-sm space-y-1">
-                  <p>申請事由：{reviewingApplication.reason}</p>
+                  <p>{t("leaveManagement:applications.reviewDialog.reasonLine", { reason: reviewingApplication.reason })}</p>
                   {reviewingApplication.attachment && (
                     <Button variant="link" className="h-auto p-0" onClick={() => handleViewAttachment(reviewingApplication.id)}>
-                      <Paperclip className="mr-1 h-3 w-3" /> 查看附件
+                      <Paperclip className="mr-1 h-3 w-3" /> {t("leaveManagement:applications.reviewDialog.viewAttachment")}
                     </Button>
                   )}
                 </div>
@@ -693,7 +701,7 @@ const LeaveManagement = () => {
                   const grant = leaveGrants.find((g) => g.id === reviewingApplication.grantId);
                   return grant ? (
                     <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
-                      此申請已關聯核給紀錄，剩餘 <strong>{grant.totalDays - grant.usedDays}</strong> 天（核給 {grant.totalDays} 天，期限 {grant.deadline || "無"}），核准天數不可超過剩餘天數。
+                      {t("leaveManagement:applications.reviewDialog.grantHintBefore")}<strong>{grant.totalDays - grant.usedDays}</strong>{t("leaveManagement:applications.reviewDialog.grantHintAfter", { total: grant.totalDays, deadline: grant.deadline || t("common:common.none") })}
                     </div>
                   ) : null;
                 })()}
@@ -702,14 +710,14 @@ const LeaveManagement = () => {
                   if (!balance) return null;
                   return (
                     <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
-                      目前可用補休 <strong>{(balance.compensatoryLeave - balance.compensatoryLeaveUsed).toFixed(1)}</strong> 小時，核准時數不可超過剩餘時數（依到期日近到遠自動扣抵）。
+                      {t("leaveManagement:applications.reviewDialog.compHintBefore")}<strong>{(balance.compensatoryLeave - balance.compensatoryLeaveUsed).toFixed(1)}</strong>{t("leaveManagement:applications.reviewDialog.compHintAfter")}
                     </div>
                   );
                 })()}
                 {reviewAction === 'approved' && (
                   <div className="space-y-2">
                     <Label htmlFor="approvedDays">
-                      {reviewingApplication.type === '補休' ? '核准時數（小時）' : '核准天數（可依證明文件調整，例如喪假依親屬關係核定天數）'}
+                      {reviewingApplication.type === '補休' ? t("leaveManagement:applications.reviewDialog.approvedHoursLabel") : t("leaveManagement:applications.reviewDialog.approvedDaysLabel")}
                     </Label>
                     <Input
                       id="approvedDays"
@@ -722,11 +730,11 @@ const LeaveManagement = () => {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="reviewNote">審核備註（選填）</Label>
+                  <Label htmlFor="reviewNote">{t("leaveManagement:applications.reviewDialog.reviewNoteLabel")}</Label>
                   <Textarea
                     id="reviewNote"
                     rows={3}
-                    placeholder={reviewAction === 'approved' ? '例如：已確認證明文件' : '請說明拒絕原因，員工會看到這則備註'}
+                    placeholder={reviewAction === 'approved' ? t("leaveManagement:applications.reviewDialog.reviewNotePlaceholderApprove") : t("leaveManagement:applications.reviewDialog.reviewNotePlaceholderReject")}
                     value={reviewNote}
                     onChange={(e) => setReviewNote(e.target.value)}
                   />
@@ -735,13 +743,13 @@ const LeaveManagement = () => {
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setReviewingApplication(null)}>
-                取消
+                {t("common:actions.cancel")}
               </Button>
               <Button
                 onClick={handleConfirmReview}
                 className={reviewAction === 'rejected' ? 'bg-red-600 hover:bg-red-700' : undefined}
               >
-                確認{reviewAction === 'approved' ? '核准' : '拒絕'}
+                {reviewAction === 'approved' ? t("leaveManagement:applications.reviewDialog.confirmApprove") : t("leaveManagement:applications.reviewDialog.confirmReject")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -750,9 +758,9 @@ const LeaveManagement = () => {
         <TabsContent value="overtime">
           <Card>
             <CardHeader>
-              <CardTitle>加班申請列表</CardTitle>
+              <CardTitle>{t("leaveManagement:overtime.listTitle")}</CardTitle>
               <CardDescription>
-                所有員工的加班申請紀錄和審核狀態
+                {t("leaveManagement:overtime.listDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -760,15 +768,15 @@ const LeaveManagement = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>員工編號</TableHead>
-                      <TableHead>姓名</TableHead>
-                      <TableHead>日期</TableHead>
-                      <TableHead>時段</TableHead>
-                      <TableHead>時數</TableHead>
-                      <TableHead>假日加班</TableHead>
-                      <TableHead>領取方式</TableHead>
-                      <TableHead>狀態</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
+                      <TableHead>{t("leaveManagement:overtime.columns.employeeId")}</TableHead>
+                      <TableHead>{t("leaveManagement:overtime.columns.name")}</TableHead>
+                      <TableHead>{t("leaveManagement:overtime.columns.date")}</TableHead>
+                      <TableHead>{t("leaveManagement:overtime.columns.period")}</TableHead>
+                      <TableHead>{t("leaveManagement:overtime.columns.hours")}</TableHead>
+                      <TableHead>{t("leaveManagement:overtime.columns.onHoliday")}</TableHead>
+                      <TableHead>{t("leaveManagement:overtime.columns.compensationType")}</TableHead>
+                      <TableHead>{t("leaveManagement:overtime.columns.status")}</TableHead>
+                      <TableHead className="text-right">{t("leaveManagement:overtime.columns.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -788,15 +796,17 @@ const LeaveManagement = () => {
                         </TableCell>
                         <TableCell>
                           {application.compensationType === 'comp'
-                            ? `換補休${application.compHours ? `（${application.compHours} 小時）` : ''}`
-                            : '領加班費'}
+                            ? (application.compHours
+                                ? t("leaveManagement:overtime.compensationCompWithHours", { hours: application.compHours })
+                                : t("leaveManagement:overtime.compensationComp"))
+                            : t("leaveManagement:overtime.compensationPay")}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center">
                             {getStatusDisplay(application.status)}
                           </div>
                           {application.reviewNote && (
-                            <p className="mt-1 text-xs text-muted-foreground">備註：{application.reviewNote}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{t("leaveManagement:overtime.noteLine", { note: application.reviewNote })}</p>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
@@ -808,7 +818,7 @@ const LeaveManagement = () => {
                                 className="text-green-600 hover:bg-green-50"
                                 onClick={() => openOvertimeReviewDialog(application, 'approved')}
                               >
-                                核准
+                                {t("common:actions.approve")}
                               </Button>
                               <Button
                                 size="sm"
@@ -816,7 +826,7 @@ const LeaveManagement = () => {
                                 className="text-red-600 hover:bg-red-50"
                                 onClick={() => openOvertimeReviewDialog(application, 'rejected')}
                               >
-                                拒絕
+                                {t("common:actions.reject")}
                               </Button>
                             </div>
                           )}
@@ -833,22 +843,29 @@ const LeaveManagement = () => {
         <Dialog open={!!reviewingOvertime} onOpenChange={(open) => !open && setReviewingOvertime(null)}>
           <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
-              <DialogTitle>{overtimeReviewAction === 'approved' ? '核准' : '拒絕'}加班申請</DialogTitle>
+              <DialogTitle>{overtimeReviewAction === 'approved' ? t("leaveManagement:overtime.reviewDialog.titleApprove") : t("leaveManagement:overtime.reviewDialog.titleReject")}</DialogTitle>
               <DialogDescription>
-                {reviewingOvertime && `${reviewingOvertime.employee}（${reviewingOvertime.employeeId}）· ${reviewingOvertime.date} ${reviewingOvertime.startTime}-${reviewingOvertime.endTime}（${reviewingOvertime.hours} 小時）`}
+                {reviewingOvertime && t("leaveManagement:overtime.reviewDialog.descriptionLine", {
+                  employee: reviewingOvertime.employee,
+                  employeeId: reviewingOvertime.employeeId,
+                  date: reviewingOvertime.date,
+                  startTime: reviewingOvertime.startTime,
+                  endTime: reviewingOvertime.endTime,
+                  hours: reviewingOvertime.hours,
+                })}
               </DialogDescription>
             </DialogHeader>
             {reviewingOvertime && (
               <div className="space-y-4 py-2">
                 <div className="rounded-md bg-muted p-3 text-sm">
-                  <p>加班事由：{reviewingOvertime.reason}</p>
+                  <p>{t("leaveManagement:overtime.reviewDialog.reasonLine", { reason: reviewingOvertime.reason })}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="overtimeReviewNote">審核備註（選填）</Label>
+                  <Label htmlFor="overtimeReviewNote">{t("leaveManagement:overtime.reviewDialog.reviewNoteLabel")}</Label>
                   <Textarea
                     id="overtimeReviewNote"
                     rows={3}
-                    placeholder={overtimeReviewAction === 'approved' ? '例如：已確認加班事由' : '請說明拒絕原因，員工會看到這則備註'}
+                    placeholder={overtimeReviewAction === 'approved' ? t("leaveManagement:overtime.reviewDialog.reviewNotePlaceholderApprove") : t("leaveManagement:overtime.reviewDialog.reviewNotePlaceholderReject")}
                     value={overtimeReviewNote}
                     onChange={(e) => setOvertimeReviewNote(e.target.value)}
                   />
@@ -857,13 +874,13 @@ const LeaveManagement = () => {
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setReviewingOvertime(null)}>
-                取消
+                {t("common:actions.cancel")}
               </Button>
               <Button
                 onClick={handleConfirmOvertimeReview}
                 className={overtimeReviewAction === 'rejected' ? 'bg-red-600 hover:bg-red-700' : undefined}
               >
-                確認{overtimeReviewAction === 'approved' ? '核准' : '拒絕'}
+                {overtimeReviewAction === 'approved' ? t("leaveManagement:overtime.reviewDialog.confirmApprove") : t("leaveManagement:overtime.reviewDialog.confirmReject")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -873,13 +890,13 @@ const LeaveManagement = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div>
-                <CardTitle>員工假別餘額</CardTitle>
+                <CardTitle>{t("leaveManagement:balance.title")}</CardTitle>
                 <CardDescription>
-                  查看各員工剩餘假別天數
+                  {t("leaveManagement:balance.description")}
                 </CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={recalculateAnnualLeave}>
-                <RefreshCcw className="mr-2 h-4 w-4" /> 依到職日重新計算特休
+                <RefreshCcw className="mr-2 h-4 w-4" /> {t("leaveManagement:balance.recalculate")}
               </Button>
             </CardHeader>
             <CardContent>
@@ -887,15 +904,15 @@ const LeaveManagement = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>員工編號</TableHead>
-                      <TableHead>姓名</TableHead>
-                      <TableHead>特休可用</TableHead>
-                      <TableHead>特休已用</TableHead>
-                      <TableHead>病假可用</TableHead>
-                      <TableHead>病假已用</TableHead>
-                      <TableHead>補休可用</TableHead>
-                      <TableHead>補休已用</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
+                      <TableHead>{t("leaveManagement:balance.columns.employeeId")}</TableHead>
+                      <TableHead>{t("leaveManagement:balance.columns.name")}</TableHead>
+                      <TableHead>{t("leaveManagement:balance.columns.annualAvailable")}</TableHead>
+                      <TableHead>{t("leaveManagement:balance.columns.annualUsed")}</TableHead>
+                      <TableHead>{t("leaveManagement:balance.columns.sickAvailable")}</TableHead>
+                      <TableHead>{t("leaveManagement:balance.columns.sickUsed")}</TableHead>
+                      <TableHead>{t("leaveManagement:balance.columns.compAvailable")}</TableHead>
+                      <TableHead>{t("leaveManagement:balance.columns.compUsed")}</TableHead>
+                      <TableHead className="text-right">{t("leaveManagement:balance.columns.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -911,10 +928,10 @@ const LeaveManagement = () => {
                         <TableCell>{balance.compensatoryLeaveUsed}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => setViewingCompLedgerFor(balance)}>
-                            補休明細
+                            {t("leaveManagement:balance.compLedgerButton")}
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => openAdjustDialog(balance)}>
-                            調整
+                            {t("leaveManagement:balance.adjustButton")}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -929,16 +946,16 @@ const LeaveManagement = () => {
         <Dialog open={!!adjustingBalance} onOpenChange={(open) => !open && setAdjustingBalance(null)}>
           <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
-              <DialogTitle>調整假別餘額</DialogTitle>
+              <DialogTitle>{t("leaveManagement:balance.adjustDialog.title")}</DialogTitle>
               <DialogDescription>
-                {adjustingBalance && `${adjustingBalance.employee}（${adjustingBalance.employeeId}）`}
+                {adjustingBalance && t("leaveManagement:balance.adjustDialog.descriptionLine", { employee: adjustingBalance.employee, employeeId: adjustingBalance.employeeId })}
               </DialogDescription>
             </DialogHeader>
             {adjustingBalance && (
               <div className="space-y-4 py-2">
                 <div className="space-y-2">
                   <Label htmlFor="adjustAnnualUsed">
-                    特休已用天數（可用天數 {adjustingBalance.annualLeave} 天由到職年資自動計算，這裡只能調整「已用」）
+                    {t("leaveManagement:balance.adjustDialog.annualUsedLabel", { days: adjustingBalance.annualLeave })}
                   </Label>
                   <Input
                     id="adjustAnnualUsed"
@@ -950,12 +967,12 @@ const LeaveManagement = () => {
                     onChange={(e) => setAdjustForm({ ...adjustForm, annualLeaveUsed: Number(e.target.value) })}
                   />
                   {!adjustingBalance.activePeriodId && (
-                    <p className="text-xs text-muted-foreground">此員工尚無特休週年紀錄，無法調整</p>
+                    <p className="text-xs text-muted-foreground">{t("leaveManagement:balance.adjustDialog.noActivePeriod")}</p>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="adjustSick">病假可用</Label>
+                    <Label htmlFor="adjustSick">{t("leaveManagement:balance.adjustDialog.sickAvailable")}</Label>
                     <Input
                       id="adjustSick"
                       type="number"
@@ -965,7 +982,7 @@ const LeaveManagement = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="adjustSickUsed">病假已用</Label>
+                    <Label htmlFor="adjustSickUsed">{t("leaveManagement:balance.adjustDialog.sickUsed")}</Label>
                     <Input
                       id="adjustSickUsed"
                       type="number"
@@ -976,15 +993,15 @@ const LeaveManagement = () => {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  補休可用／已用時數改由加班核准與請假使用自動計算，不再開放手動調整；請至「補休明細」查看來源。
+                  {t("leaveManagement:balance.adjustDialog.compHint")}
                 </p>
               </div>
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setAdjustingBalance(null)}>
-                取消
+                {t("common:actions.cancel")}
               </Button>
-              <Button onClick={handleConfirmAdjust}>儲存</Button>
+              <Button onClick={handleConfirmAdjust}>{t("common:actions.save")}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -992,21 +1009,21 @@ const LeaveManagement = () => {
         <Dialog open={!!viewingCompLedgerFor} onOpenChange={(open) => !open && setViewingCompLedgerFor(null)}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>補休明細</DialogTitle>
+              <DialogTitle>{t("leaveManagement:balance.compLedgerDialog.title")}</DialogTitle>
               <DialogDescription>
-                {viewingCompLedgerFor && `${viewingCompLedgerFor.employee}（${viewingCompLedgerFor.employeeId}）`}
+                {viewingCompLedgerFor && t("leaveManagement:balance.compLedgerDialog.descriptionLine", { employee: viewingCompLedgerFor.employee, employeeId: viewingCompLedgerFor.employeeId })}
               </DialogDescription>
             </DialogHeader>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>加班日期</TableHead>
-                    <TableHead>換算時數</TableHead>
-                    <TableHead>已用</TableHead>
-                    <TableHead>剩餘</TableHead>
-                    <TableHead>應休畢期限</TableHead>
-                    <TableHead>狀態</TableHead>
+                    <TableHead>{t("leaveManagement:balance.compLedgerDialog.columns.overtimeDate")}</TableHead>
+                    <TableHead>{t("leaveManagement:balance.compLedgerDialog.columns.convertedHours")}</TableHead>
+                    <TableHead>{t("leaveManagement:balance.compLedgerDialog.columns.used")}</TableHead>
+                    <TableHead>{t("leaveManagement:balance.compLedgerDialog.columns.remaining")}</TableHead>
+                    <TableHead>{t("leaveManagement:balance.compLedgerDialog.columns.deadline")}</TableHead>
+                    <TableHead>{t("leaveManagement:balance.compLedgerDialog.columns.status")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1022,17 +1039,17 @@ const LeaveManagement = () => {
                           <TableCell>{grant.deadline}</TableCell>
                           <TableCell>
                             {grant.settledAt
-                              ? `已結算（折算 ${grant.cashOutHours} 小時）`
+                              ? t("leaveManagement:balance.compLedgerDialog.statusSettled", { hours: grant.cashOutHours })
                               : new Date(grant.deadline) < new Date()
-                              ? "已逾期，待 HR 結算"
-                              : "可使用"}
+                              ? t("leaveManagement:balance.compLedgerDialog.statusOverdue")
+                              : t("leaveManagement:balance.compLedgerDialog.statusAvailable")}
                           </TableCell>
                         </TableRow>
                       ))
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} className="h-20 text-center text-muted-foreground">
-                        尚無補休紀錄
+                        {t("leaveManagement:balance.compLedgerDialog.empty")}
                       </TableCell>
                     </TableRow>
                   )}
@@ -1041,7 +1058,7 @@ const LeaveManagement = () => {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setViewingCompLedgerFor(null)}>
-                關閉
+                {t("common:actions.close")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1050,9 +1067,9 @@ const LeaveManagement = () => {
         <TabsContent value="settlement">
           <Card>
             <CardHeader>
-              <CardTitle>特休週年結算</CardTitle>
+              <CardTitle>{t("leaveManagement:settlement.title")}</CardTitle>
               <CardDescription>
-                已到期但尚未結算的特休週年期間。依勞基法第 38 條，本期新發放且尚未休完的天數可選擇遞延一次或折現；上一期遞延進來仍未休完的天數則必須全數折現。
+                {t("leaveManagement:settlement.description")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1060,14 +1077,14 @@ const LeaveManagement = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>員工</TableHead>
-                      <TableHead>週年區間</TableHead>
-                      <TableHead>本期發放</TableHead>
-                      <TableHead>上期遞延</TableHead>
-                      <TableHead>已用</TableHead>
-                      <TableHead>應強制折現</TableHead>
-                      <TableHead>可選遞延/折現</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
+                      <TableHead>{t("leaveManagement:settlement.columns.employee")}</TableHead>
+                      <TableHead>{t("leaveManagement:settlement.columns.period")}</TableHead>
+                      <TableHead>{t("leaveManagement:settlement.columns.currentGrant")}</TableHead>
+                      <TableHead>{t("leaveManagement:settlement.columns.carriedIn")}</TableHead>
+                      <TableHead>{t("leaveManagement:settlement.columns.used")}</TableHead>
+                      <TableHead>{t("leaveManagement:settlement.columns.mandatoryCashOut")}</TableHead>
+                      <TableHead>{t("leaveManagement:settlement.columns.optionalCarryOrCashOut")}</TableHead>
+                      <TableHead className="text-right">{t("leaveManagement:settlement.columns.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1083,7 +1100,7 @@ const LeaveManagement = () => {
                           <TableCell>{period.remainingGrantDays}</TableCell>
                           <TableCell className="text-right">
                             <Button size="sm" onClick={() => openSettleDialog(period)}>
-                              結算
+                              {t("leaveManagement:settlement.settleButton")}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -1091,7 +1108,7 @@ const LeaveManagement = () => {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                          目前沒有待結算的週年期間
+                          {t("leaveManagement:settlement.empty")}
                         </TableCell>
                       </TableRow>
                     )}
@@ -1104,7 +1121,7 @@ const LeaveManagement = () => {
           <Dialog open={!!settlingPeriod} onOpenChange={(open) => !open && setSettlingPeriod(null)}>
             <DialogContent className="sm:max-w-[450px]">
               <DialogHeader>
-                <DialogTitle>結算特休週年</DialogTitle>
+                <DialogTitle>{t("leaveManagement:settlement.settleDialog.title")}</DialogTitle>
                 <DialogDescription>
                   {settlingPeriod && `${settlingPeriod.employee}（${settlingPeriod.employeeId}）${settlingPeriod.periodStart} ~ ${settlingPeriod.periodEnd}`}
                 </DialogDescription>
@@ -1112,11 +1129,11 @@ const LeaveManagement = () => {
               {settlingPeriod && (
                 <div className="space-y-4 py-2">
                   <div className="rounded-md bg-muted p-3 text-sm space-y-1">
-                    <p>應強制折現（上期遞延未休完）：<strong>{settlingPeriod.mandatoryCashOutDays} 天</strong></p>
-                    <p>本期可選遞延或折現：<strong>{settlingPeriod.remainingGrantDays} 天</strong></p>
+                    <p>{t("leaveManagement:settlement.settleDialog.mandatoryLabel")}<strong>{settlingPeriod.mandatoryCashOutDays} {t("common:table.days")}</strong></p>
+                    <p>{t("leaveManagement:settlement.settleDialog.optionalLabel")}<strong>{settlingPeriod.remainingGrantDays} {t("common:table.days")}</strong></p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="carryOverDays">選擇遞延到下一期的天數（其餘自動折現）</Label>
+                    <Label htmlFor="carryOverDays">{t("leaveManagement:settlement.settleDialog.carryOverLabel")}</Label>
                     <Input
                       id="carryOverDays"
                       type="number"
@@ -1128,13 +1145,13 @@ const LeaveManagement = () => {
                     />
                   </div>
                   <div className="rounded-md border p-3 text-sm space-y-1">
-                    <p>將折現天數：<strong>{(settlingPeriod.mandatoryCashOutDays + settlingPeriod.remainingGrantDays - carryOverDays).toFixed(1)} 天</strong></p>
+                    <p>{t("leaveManagement:settlement.settleDialog.cashOutLabel")}<strong>{(settlingPeriod.mandatoryCashOutDays + settlingPeriod.remainingGrantDays - carryOverDays).toFixed(1)} {t("common:table.days")}</strong></p>
                     <p>
-                      預估折現金額：
+                      {t("leaveManagement:settlement.settleDialog.cashOutAmountLabel")}
                       <strong>
                         {settlingPeriod.monthlySalary
                           ? `NT$${Math.round((settlingPeriod.mandatoryCashOutDays + settlingPeriod.remainingGrantDays - carryOverDays) * (settlingPeriod.monthlySalary / 30)).toLocaleString()}`
-                          : "尚未設定月薪，無法試算"}
+                          : t("leaveManagement:settlement.settleDialog.noSalary")}
                       </strong>
                     </p>
                   </div>
@@ -1142,18 +1159,18 @@ const LeaveManagement = () => {
               )}
               <DialogFooter>
                 <Button variant="outline" onClick={() => setSettlingPeriod(null)}>
-                  取消
+                  {t("common:actions.cancel")}
                 </Button>
-                <Button onClick={handleConfirmSettle}>確認結算</Button>
+                <Button onClick={handleConfirmSettle}>{t("leaveManagement:settlement.settleDialog.confirm")}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle>補休結算</CardTitle>
+              <CardTitle>{t("leaveManagement:compSettlement.title")}</CardTitle>
               <CardDescription>
-                已逾期（超過加班日起 6 個月）但尚未休完的補休額度，剩餘時數需全數折算加班費發放。
+                {t("leaveManagement:compSettlement.description")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1161,13 +1178,13 @@ const LeaveManagement = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>員工</TableHead>
-                      <TableHead>加班日期</TableHead>
-                      <TableHead>核給時數</TableHead>
-                      <TableHead>已用</TableHead>
-                      <TableHead>剩餘（待折現）</TableHead>
-                      <TableHead>應休畢期限</TableHead>
-                      <TableHead className="text-right">操作</TableHead>
+                      <TableHead>{t("leaveManagement:compSettlement.columns.employee")}</TableHead>
+                      <TableHead>{t("leaveManagement:compSettlement.columns.overtimeDate")}</TableHead>
+                      <TableHead>{t("leaveManagement:compSettlement.columns.grantedHours")}</TableHead>
+                      <TableHead>{t("leaveManagement:compSettlement.columns.used")}</TableHead>
+                      <TableHead>{t("leaveManagement:compSettlement.columns.remainingPending")}</TableHead>
+                      <TableHead>{t("leaveManagement:compSettlement.columns.deadline")}</TableHead>
+                      <TableHead className="text-right">{t("leaveManagement:compSettlement.columns.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1182,7 +1199,7 @@ const LeaveManagement = () => {
                           <TableCell>{grant.deadline}</TableCell>
                           <TableCell className="text-right">
                             <Button size="sm" onClick={() => handleSettleComp(grant.id)}>
-                              結算
+                              {t("leaveManagement:compSettlement.settleButton")}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -1190,7 +1207,7 @@ const LeaveManagement = () => {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                          目前沒有待結算的補休額度
+                          {t("leaveManagement:compSettlement.empty")}
                         </TableCell>
                       </TableRow>
                     )}
@@ -1205,20 +1222,20 @@ const LeaveManagement = () => {
           <div className="grid gap-6 md:grid-cols-3">
             <Card className="md:col-span-1">
               <CardHeader>
-                <CardTitle>新增假別核給</CardTitle>
+                <CardTitle>{t("leaveManagement:grants.formTitle")}</CardTitle>
                 <CardDescription>
-                  適用喪假、婚假等「同一事由分次請假」的假別。審核過員工提供的證明文件後，直接核給總天數與應休畢期限，之後同一員工、同一假別的請假申請會自動從這筆核給扣抵，超過剩餘天數會被擋下。
+                  {t("leaveManagement:grants.formDescription")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="grantEmployeeId">員工</Label>
+                  <Label htmlFor="grantEmployeeId">{t("leaveManagement:grants.employeeLabel")}</Label>
                   <Select
                     value={grantForm.employeeId || ""}
                     onValueChange={(value) => setGrantForm({ ...grantForm, employeeId: value })}
                   >
                     <SelectTrigger id="grantEmployeeId">
-                      <SelectValue placeholder="選擇員工" />
+                      <SelectValue placeholder={t("leaveManagement:grants.employeePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {employees.map((employee) => (
@@ -1230,7 +1247,7 @@ const LeaveManagement = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="grantLeaveType">假別</Label>
+                  <Label htmlFor="grantLeaveType">{t("leaveManagement:grants.leaveTypeLabel")}</Label>
                   <Select
                     value={selectedGrantLeaveType}
                     onValueChange={(value) => {
@@ -1239,10 +1256,10 @@ const LeaveManagement = () => {
                     }}
                   >
                     <SelectTrigger id="grantLeaveType">
-                      <SelectValue placeholder="選擇假別" />
+                      <SelectValue placeholder={t("leaveManagement:grants.leaveTypePlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {leaveTypes.filter((t) => t.needProof).map((type) => (
+                      {leaveTypes.filter((lt) => lt.needProof).map((type) => (
                         <SelectItem key={type.id} value={type.id.toString()}>
                           {type.name}
                         </SelectItem>
@@ -1251,7 +1268,7 @@ const LeaveManagement = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="grantTotalDays">核給天數</Label>
+                  <Label htmlFor="grantTotalDays">{t("leaveManagement:grants.totalDaysLabel")}</Label>
                   <Input
                     id="grantTotalDays"
                     type="number"
@@ -1262,7 +1279,7 @@ const LeaveManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="grantDeadline">應休畢期限（選填）</Label>
+                  <Label htmlFor="grantDeadline">{t("leaveManagement:grants.deadlineLabel")}</Label>
                   <Input
                     id="grantDeadline"
                     type="date"
@@ -1271,38 +1288,38 @@ const LeaveManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="grantNote">備註（選填）</Label>
+                  <Label htmlFor="grantNote">{t("leaveManagement:grants.noteLabel")}</Label>
                   <Input
                     id="grantNote"
-                    placeholder="如：父喪，依親屬關係核給 8 天"
+                    placeholder={t("leaveManagement:grants.notePlaceholder")}
                     value={grantForm.note || ""}
                     onChange={(e) => setGrantForm({ ...grantForm, note: e.target.value })}
                   />
                 </div>
                 <Button onClick={handleCreateGrant} className="w-full">
-                  確認核給
+                  {t("leaveManagement:grants.confirmButton")}
                 </Button>
               </CardContent>
             </Card>
 
             <Card className="md:col-span-2">
               <CardHeader>
-                <CardTitle>核給紀錄</CardTitle>
-                <CardDescription>已核給的假別額度與使用狀況</CardDescription>
+                <CardTitle>{t("leaveManagement:grants.recordsTitle")}</CardTitle>
+                <CardDescription>{t("leaveManagement:grants.recordsDescription")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>員工</TableHead>
-                        <TableHead>假別</TableHead>
-                        <TableHead>核給</TableHead>
-                        <TableHead>已用</TableHead>
-                        <TableHead>剩餘</TableHead>
-                        <TableHead>期限</TableHead>
-                        <TableHead>備註</TableHead>
-                        <TableHead className="text-right">操作</TableHead>
+                        <TableHead>{t("leaveManagement:grants.columns.employee")}</TableHead>
+                        <TableHead>{t("leaveManagement:grants.columns.leaveType")}</TableHead>
+                        <TableHead>{t("leaveManagement:grants.columns.granted")}</TableHead>
+                        <TableHead>{t("leaveManagement:grants.columns.used")}</TableHead>
+                        <TableHead>{t("leaveManagement:grants.columns.remaining")}</TableHead>
+                        <TableHead>{t("leaveManagement:grants.columns.deadline")}</TableHead>
+                        <TableHead>{t("leaveManagement:grants.columns.note")}</TableHead>
+                        <TableHead className="text-right">{t("leaveManagement:grants.columns.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1314,7 +1331,7 @@ const LeaveManagement = () => {
                             <TableCell>{grant.totalDays}</TableCell>
                             <TableCell>{grant.usedDays}</TableCell>
                             <TableCell>{grant.totalDays - grant.usedDays}</TableCell>
-                            <TableCell>{grant.deadline || "無期限"}</TableCell>
+                            <TableCell>{grant.deadline || t("leaveManagement:grants.noDeadline")}</TableCell>
                             <TableCell>{grant.note || "-"}</TableCell>
                             <TableCell className="text-right">
                               {grant.usedDays === 0 && (
@@ -1328,7 +1345,7 @@ const LeaveManagement = () => {
                       ) : (
                         <TableRow>
                           <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                            尚無核給紀錄
+                            {t("leaveManagement:grants.empty")}
                           </TableCell>
                         </TableRow>
                       )}
@@ -1343,9 +1360,9 @@ const LeaveManagement = () => {
         <TabsContent value="types">
           <Card>
             <CardHeader>
-              <CardTitle>假別設定</CardTitle>
+              <CardTitle>{t("leaveManagement:types.title")}</CardTitle>
               <CardDescription>
-                管理系統中的假別類型和規則
+                {t("leaveManagement:types.description")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1353,14 +1370,14 @@ const LeaveManagement = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>假別名稱</TableHead>
-                      <TableHead>假別代碼</TableHead>
-                      <TableHead>計算單位</TableHead>
-                      <TableHead>需要證明</TableHead>
-                      <TableHead>影響全勤</TableHead>
-                      <TableHead>薪資計算</TableHead>
-                      <TableHead>最大天數</TableHead>
-                      <TableHead>提前申請</TableHead>
+                      <TableHead>{t("leaveManagement:types.columns.name")}</TableHead>
+                      <TableHead>{t("leaveManagement:types.columns.code")}</TableHead>
+                      <TableHead>{t("leaveManagement:types.columns.unit")}</TableHead>
+                      <TableHead>{t("leaveManagement:types.columns.needProof")}</TableHead>
+                      <TableHead>{t("leaveManagement:types.columns.affectAttendance")}</TableHead>
+                      <TableHead>{t("leaveManagement:types.columns.paidStatus")}</TableHead>
+                      <TableHead>{t("leaveManagement:types.columns.maxDays")}</TableHead>
+                      <TableHead>{t("leaveManagement:types.columns.advanceApply")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1384,7 +1401,7 @@ const LeaveManagement = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          {type.isPaid ? "有薪" : "無薪"}
+                          {type.isPaid ? t("leaveManagement:types.paid") : t("leaveManagement:types.unpaid")}
                         </TableCell>
                         <TableCell>{type.maxDays}</TableCell>
                         <TableCell>{type.advanceApply}</TableCell>
@@ -1401,20 +1418,20 @@ const LeaveManagement = () => {
           <div className="grid gap-6 md:grid-cols-3">
             <Card className="md:col-span-1">
               <CardHeader>
-                <CardTitle>匯入國定假日</CardTitle>
+                <CardTitle>{t("leaveManagement:holidays.importTitle")}</CardTitle>
                 <CardDescription>
-                  貼上人事行政總處「政府行政機關辦公日曆表」CSV 內容（可至政府資料開放平台下載）
+                  {t("leaveManagement:holidays.importDescription")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Textarea
-                  placeholder={"西元日期,星期,是否放假,備註\n20260101,四,2,中華民國開國紀念日"}
+                  placeholder={t("leaveManagement:holidays.csvPlaceholder")}
                   rows={8}
                   value={holidayCsv}
                   onChange={(e) => setHolidayCsv(e.target.value)}
                 />
                 <Button onClick={handleImportHolidays} disabled={!holidayCsv.trim()} className="w-full">
-                  <Upload className="mr-2 h-4 w-4" /> 匯入
+                  <Upload className="mr-2 h-4 w-4" /> {t("leaveManagement:holidays.importButton")}
                 </Button>
               </CardContent>
             </Card>
@@ -1422,9 +1439,9 @@ const LeaveManagement = () => {
             <Card className="md:col-span-2">
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <div>
-                  <CardTitle>假日列表</CardTitle>
+                  <CardTitle>{t("leaveManagement:holidays.listTitle")}</CardTitle>
                   <CardDescription>
-                    已匯入的國定假日與補班日
+                    {t("leaveManagement:holidays.listDescription")}
                   </CardDescription>
                 </div>
                 <Select value={String(holidayYear)} onValueChange={(value) => setHolidayYear(Number(value))}>
@@ -1433,7 +1450,7 @@ const LeaveManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((year) => (
-                      <SelectItem key={year} value={String(year)}>{year} 年</SelectItem>
+                      <SelectItem key={year} value={String(year)}>{t("leaveManagement:holidays.yearOption", { year })}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1443,10 +1460,10 @@ const LeaveManagement = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>日期</TableHead>
-                        <TableHead>說明</TableHead>
-                        <TableHead>類型</TableHead>
-                        <TableHead className="text-right">操作</TableHead>
+                        <TableHead>{t("leaveManagement:holidays.columns.date")}</TableHead>
+                        <TableHead>{t("leaveManagement:holidays.columns.description")}</TableHead>
+                        <TableHead>{t("leaveManagement:holidays.columns.type")}</TableHead>
+                        <TableHead className="text-right">{t("leaveManagement:holidays.columns.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1456,9 +1473,9 @@ const LeaveManagement = () => {
                           <TableCell>{holiday.name || "-"}</TableCell>
                           <TableCell>
                             {holiday.isHoliday ? (
-                              <span className="text-green-600">放假</span>
+                              <span className="text-green-600">{t("leaveManagement:holidays.isHoliday")}</span>
                             ) : (
-                              <span className="text-orange-600">補班</span>
+                              <span className="text-orange-600">{t("leaveManagement:holidays.isWorkday")}</span>
                             )}
                           </TableCell>
                           <TableCell className="text-right">
@@ -1471,7 +1488,7 @@ const LeaveManagement = () => {
                       {holidays.length === 0 && (
                         <TableRow>
                           <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
-                            {holidayYear} 年尚無假日資料，請於左側匯入
+                            {t("leaveManagement:holidays.empty", { year: holidayYear })}
                           </TableCell>
                         </TableRow>
                       )}

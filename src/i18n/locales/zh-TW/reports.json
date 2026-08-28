@@ -1,0 +1,43 @@
+{
+  "updatedAt": "資料更新時間: {{time}}",
+  "tabs": {
+    "attendance": "出勤分析",
+    "leave": "請假分析",
+    "department": "部門比較"
+  },
+  "attendance": {
+    "title": "年度出勤率趨勢",
+    "description": "各月份公司整體出勤率變化",
+    "featureUnavailable": "系統目前尚未建置出勤打卡紀錄功能，暫無月度出勤率資料可供分析。"
+  },
+  "leave": {
+    "title": "請假類型分布",
+    "description": "各類請假使用比例統計",
+    "dateTo": "到",
+    "seriesName": "請假天數",
+    "noData": "無請假分布資料"
+  },
+  "department": {
+    "title": "部門數據比較",
+    "description": "各部門出勤、請假與加班情況比較",
+    "rangePlaceholder": "選擇時間範圍",
+    "range": {
+      "currentMonth": "本月",
+      "lastMonth": "上個月",
+      "currentQuarter": "本季",
+      "lastQuarter": "上季",
+      "currentYear": "今年",
+      "lastYear": "去年"
+    },
+    "axis": {
+      "percentage": "百分比 (%)",
+      "hours": "小時"
+    },
+    "series": {
+      "attendance": "出勤率 (%)",
+      "leave": "請假率 (%)",
+      "overtime": "平均加班時數"
+    },
+    "noData": "無部門比較資料"
+  }
+}

@@ -1,6 +1,7 @@
 
-import { 
-  Table, 
+import { useTranslation } from "react-i18next";
+import {
+  Table,
   TableBody, 
   TableCell, 
   TableHead, 
@@ -52,12 +53,14 @@ const EmployeeTable = ({
   onTerminateEmployee,
   onResetPassword
 }: EmployeeTableProps) => {
+  const { t } = useTranslation(["employees", "common"]);
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>員工列表</CardTitle>
+        <CardTitle>{t("employees:table.title")}</CardTitle>
         <CardDescription>
-          共 {filteredEmployees.length} 位員工
+          {t("employees:table.count", { count: filteredEmployees.length })}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -65,13 +68,13 @@ const EmployeeTable = ({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>員工編號</TableHead>
-                <TableHead>姓名</TableHead>
-                <TableHead>部門</TableHead>
-                <TableHead>職位</TableHead>
-                <TableHead>電子郵件</TableHead>
-                <TableHead>狀態</TableHead>
-                <TableHead className="text-right">操作</TableHead>
+                <TableHead>{t("common:table.employeeId")}</TableHead>
+                <TableHead>{t("common:table.name")}</TableHead>
+                <TableHead>{t("common:table.department")}</TableHead>
+                <TableHead>{t("common:table.position")}</TableHead>
+                <TableHead>{t("employees:table.headers.email")}</TableHead>
+                <TableHead>{t("common:table.status")}</TableHead>
+                <TableHead className="text-right">{t("common:table.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -109,9 +112,9 @@ const EmployeeTable = ({
                               <div className="flex items-center pt-2">
                                 <Calendar className="mr-2 h-4 w-4" />
                                 <span className="text-xs text-muted-foreground">
-                                  {employee.active 
-                                    ? `到職日: ${employee.joinDate}` 
-                                    : `到職: ${employee.joinDate} | 離職: ${employee.terminationDate}`}
+                                  {employee.active
+                                    ? t("employees:table.joinDateHover", { date: employee.joinDate })
+                                    : t("employees:table.joinTerminationHover", { joinDate: employee.joinDate, terminationDate: employee.terminationDate })}
                                 </span>
                               </div>
                             </div>
@@ -124,20 +127,20 @@ const EmployeeTable = ({
                     <TableCell>{employee.email}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        employee.active 
-                          ? "bg-green-50 text-green-700" 
+                        employee.active
+                          ? "bg-green-50 text-green-700"
                           : "bg-red-50 text-red-700"
                       }`}>
-                        {employee.active ? "在職中" : "已離職"}
+                        {employee.active ? t("employees:status.active") : t("employees:status.inactive")}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           onClick={() => onViewEmployee(employee)}
-                          title="查看詳細資料"
+                          title={t("employees:table.actions.viewDetail")}
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
@@ -145,7 +148,7 @@ const EmployeeTable = ({
                           variant="ghost"
                           size="icon"
                           onClick={() => onEditEmployee(employee)}
-                          title="編輯資料"
+                          title={t("employees:table.actions.editData")}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -153,25 +156,25 @@ const EmployeeTable = ({
                           variant="ghost"
                           size="icon"
                           onClick={() => onResetPassword(employee)}
-                          title="重設登入密碼"
+                          title={t("employees:table.actions.resetPassword")}
                         >
                           <KeyRound className="h-4 w-4" />
                         </Button>
                         {employee.active && (
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             onClick={() => onTerminateEmployee(employee)}
-                            title="標記為離職"
+                            title={t("employees:table.actions.terminate")}
                           >
                             <UserX className="h-4 w-4 text-hrms-warning" />
                           </Button>
                         )}
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           onClick={() => onDeleteEmployee(employee)}
-                          title="刪除員工"
+                          title={t("employees:table.actions.delete")}
                         >
                           <Trash2 className="h-4 w-4 text-hrms-danger" />
                         </Button>
@@ -182,7 +185,7 @@ const EmployeeTable = ({
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center">
-                    沒有找到符合條件的員工
+                    {t("employees:table.empty")}
                   </TableCell>
                 </TableRow>
               )}
