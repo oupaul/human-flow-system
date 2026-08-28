@@ -38,6 +38,7 @@ import { CheckCircle2, Clock, Loader2, Paperclip, Plus, XCircle } from "lucide-r
 import { useAuth } from "@/contexts/AuthContext";
 import { useLeaveManagement } from "@/hooks/useLeaveManagement";
 import { useOvertimeApplications } from "@/hooks/useOvertimeApplications";
+import { useLeaveGrants } from "@/hooks/useLeaveGrants";
 import { LeaveApplicationFormData } from "@/types/leave";
 import { OvertimeApplicationFormData } from "@/types/overtime";
 import { leaveApi } from "@/services/leaveApi";
@@ -67,6 +68,7 @@ const MyPortal = () => {
     useLeaveManagement();
   const { overtimeApplications, loading: loadingOvertime, createOvertimeApplication } =
     useOvertimeApplications();
+  const { leaveGrants } = useLeaveGrants();
 
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const [selectedLeaveType, setSelectedLeaveType] = useState("");
@@ -301,6 +303,41 @@ const MyPortal = () => {
               <p className="text-xl font-bold">
                 {balance.compensatoryLeave - balance.compensatoryLeaveUsed} / {balance.compensatoryLeave}
               </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {leaveGrants.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>我的假別核給</CardTitle>
+            <CardDescription>喪假、婚假等由 HR 核給的假別額度與使用狀況</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>假別</TableHead>
+                    <TableHead>核給</TableHead>
+                    <TableHead>已用</TableHead>
+                    <TableHead>剩餘</TableHead>
+                    <TableHead>應休畢期限</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {leaveGrants.map((grant) => (
+                    <TableRow key={grant.id}>
+                      <TableCell>{grant.leaveTypeName}</TableCell>
+                      <TableCell>{grant.totalDays}</TableCell>
+                      <TableCell>{grant.usedDays}</TableCell>
+                      <TableCell>{grant.totalDays - grant.usedDays}</TableCell>
+                      <TableCell>{grant.deadline || "無期限"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>

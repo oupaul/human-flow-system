@@ -543,9 +543,11 @@ api.post('/leave-types', requireRole(...STAFF_ROLES), async (req, res) => {
 // 假別核給 API 路由（僅 HR/主管）：用於喪假、婚假等「同一事由分次請假」的
 // 假別，HR 審核員工提供的證明文件後直接核給總天數與應休畢期限
 
-api.get('/leave-grants', requireRole(...STAFF_ROLES), async (req, res) => {
+// employee 角色只能看自己的核給紀錄；HR/主管可看全公司或依 employeeId 篩選
+api.get('/leave-grants', async (req, res) => {
   try {
-    const { employeeId } = req.query;
+    const isEmployee = req.user.role === 'employee';
+    const employeeId = isEmployee ? req.user.employeeId : req.query.employeeId;
     const params = [];
     let query = `
       SELECT lg.*, e.name as employee, lt.name as leaveTypeName
