@@ -56,6 +56,8 @@ mysql -u root -p hrms_database < server/migrations/004_notification_settings.sql
 
 mysql -u root -p hrms_database < server/migrations/005_comp_time.sql   # 補休功能（加班可選換補休，依費率換算時數）
 
+mysql -u root -p hrms_database < server/migrations/006_menstrual_leave.sql   # 補上生理假假別
+
 npm run fix:leave-periods   # 修正舊版 bug 造成的錯誤特休週年紀錄（到職日回填多年前時發放天數算錯），可重複執行
 ```
 

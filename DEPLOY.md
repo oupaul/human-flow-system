@@ -75,6 +75,9 @@ docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_datab
 
 # 補休功能（加班可選換補休，依費率換算時數，透過請假申請使用）
 docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/005_comp_time.sql
+
+# 補上生理假假別
+docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/006_menstrual_leave.sql
 ```
 
 全新安裝（第一次啟動 `db` 容器）不需要這步，`schema.sql` 已經包含最新結構。
@@ -115,7 +118,7 @@ curl -X POST http://localhost:8080/api/auth/login \
    - **員工管理**：新增一筆員工 → 確認「假別管理 → 假別餘額」自動出現該員工的特休天數
    - **部門管理**：新增/編輯/刪除部門
    - **假別管理**：
-     - 「假別設定」應看到 7 筆範例假別（特休、事假、病假、婚假、公假、喪假、補休）
+     - 「假別設定」應看到 8 筆範例假別（特休、事假、病假、生理假、婚假、公假、喪假、補休）
      - 用剛新增的員工編號提交一筆請假申請 → 核准/拒絕
      - 「加班申請」提交一筆加班 → 核准/拒絕
      - 「國定假日」貼上一段測試 CSV 匯入，確認列表出現
