@@ -9,6 +9,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import { sendNotification } from './notifications.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -807,7 +808,13 @@ api.post('/leave-applications', async (req, res) => {
       WHERE la.id = ?
     `, [result.insertId]);
 
-    res.json(newApplication[0]);
+    const application = newApplication[0];
+    sendNotification(
+      '新的請假申請待審核',
+      `${application.employee}（${application.employeeId}）提交了一筆${application.type}申請（${application.startDate} ~ ${application.endDate}，共 ${application.days} 天），請至系統審核。`
+    );
+
+    res.json(application);
   } catch (error) {
     console.error('Error creating leave application:', error);
     res.status(500).json({ error: '新增請假申請失敗', detail: error.message });
@@ -1297,7 +1304,13 @@ api.post('/overtime-applications', async (req, res) => {
       WHERE o.id = ?
     `, [result.insertId]);
 
-    res.json(newApplication[0]);
+    const application = newApplication[0];
+    sendNotification(
+      '新的加班申請待審核',
+      `${application.employee}（${application.employeeId}）提交了一筆加班申請（${application.date} ${application.startTime}-${application.endTime}，共 ${application.hours} 小時），請至系統審核。`
+    );
+
+    res.json(application);
   } catch (error) {
     console.error('Error creating overtime application:', error);
     res.status(500).json({ error: '新增加班申請失敗', detail: error.message });
@@ -1349,13 +1362,15 @@ api.get('/dashboard/stats', requireRole(...STAFF_ROLES), async (req, res) => {
       averageAttendance = null;
     }
 
-    const [pendingRequests] = await pool.execute(`SELECT COUNT(*) as count FROM leave_applications WHERE status = 'pending'`);
+    // 待審核申請需同時計入請假與加班申請，否則加班申請永遠不會反映在儀表板上
+    const [pendingLeave] = await pool.execute(`SELECT COUNT(*) as count FROM leave_applications WHERE status = 'pending'`);
+    const [pendingOvertime] = await pool.execute(`SELECT COUNT(*) as count FROM overtime_applications WHERE status = 'pending'`);
 
     res.json({
       totalEmployees: totalEmployees[0].count,
       monthlyLeaves: monthlyLeaves[0].count,
       averageAttendance,
-      pendingRequests: pendingRequests[0].count,
+      pendingRequests: pendingLeave[0].count + pendingOvertime[0].count,
     });
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
