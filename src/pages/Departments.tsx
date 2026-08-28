@@ -29,10 +29,14 @@ const Departments = () => {
     setIsDeleteDialogOpen,
     isViewDialogOpen,
     setIsViewDialogOpen,
+    departments,
     selectedDepartment,
     addForm,
     editForm,
     getParentDepartmentOptions,
+    getDepartmentMembers,
+    getAssignableEmployees,
+    moveEmployeeToDepartment,
     handleAddDepartment,
     handleEditDepartment,
     handleDeleteDepartment,
@@ -162,11 +166,15 @@ const Departments = () => {
         onSubmit={handleAddDepartment}
       />
       
-      {/* 部門詳情對話框 */}
+      {/* 部門詳情對話框（含成員管理） */}
       <DepartmentViewDialog
         open={isViewDialogOpen}
         onOpenChange={setIsViewDialogOpen}
         department={selectedDepartment}
+        members={selectedDepartment ? getDepartmentMembers(selectedDepartment.name) : []}
+        assignableEmployees={selectedDepartment ? getAssignableEmployees(selectedDepartment.name) : []}
+        otherDepartments={departments}
+        onMoveEmployee={moveEmployeeToDepartment}
       />
       
       {/* 編輯部門對話框 */}

@@ -27,6 +27,23 @@
     "employeeCountValue": "{{count}} people",
     "descriptionLabel": "Description"
   },
+  "members": {
+    "sectionTitle": "Department Members",
+    "addPlaceholder": "Select an employee to add",
+    "addOptionLabel": "{{name}} ({{employeeId}}) · Currently: {{department}}",
+    "addButton": "Add",
+    "moveToPlaceholder": "Move to another department",
+    "noMembers": "No members in this department yet",
+    "noOtherEmployees": "No other employees available to add",
+    "columns": {
+      "name": "Name",
+      "employeeId": "Employee ID",
+      "position": "Position",
+      "actions": "Actions"
+    },
+    "moveSuccess": "Moved \"{{employee}}\" to \"{{department}}\"",
+    "moveFailed": "Failed to update employee's department"
+  },
   "confirmDialog": {
     "title": "Confirm Department Deletion",
     "description": "Are you sure you want to delete the department \"{{name}}\"?",
@@ -52,5 +69,20 @@
     "title": "Edit Department",
     "description": "Modify the department's information and structure.",
     "submitButton": "Update"
+  },
+  "toasts": {
+    "addMissingFields": "Please fill in all required fields (department name, department head)",
+    "addFailedTitle": "Failed to add department",
+    "addSuccessTitle": "Department added successfully",
+    "addSuccessDescription": "\"{{name}}\" department has been added",
+    "editFailedTitle": "Failed to update department",
+    "editSuccessTitle": "Department updated successfully",
+    "editSuccessDescription": "\"{{name}}\" department has been updated",
+    "deleteBlockedTitle": "Cannot delete department",
+    "deleteBlockedHasSubDepartments": "This department has sub-departments. Please delete or move them first.",
+    "deleteBlockedHasEmployees": "This department still has employees. Please move them to another department under \"Department Members\" first.",
+    "deleteFailedTitle": "Failed to delete department",
+    "deleteSuccessTitle": "Department deleted successfully",
+    "deleteSuccessDescription": "\"{{name}}\" department has been deleted"
   }
 }

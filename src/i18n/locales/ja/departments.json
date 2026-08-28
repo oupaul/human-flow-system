@@ -27,6 +27,23 @@
     "employeeCountValue": "{{count}} 名",
     "descriptionLabel": "部門の説明"
   },
+  "members": {
+    "sectionTitle": "部門メンバー",
+    "addPlaceholder": "追加する従業員を選択",
+    "addOptionLabel": "{{name}}（{{employeeId}}）・現在：{{department}}",
+    "addButton": "追加",
+    "moveToPlaceholder": "他の部門へ異動",
+    "noMembers": "この部門にはまだメンバーがいません",
+    "noOtherEmployees": "追加できる他の従業員がいません",
+    "columns": {
+      "name": "氏名",
+      "employeeId": "社員番号",
+      "position": "役職",
+      "actions": "操作"
+    },
+    "moveSuccess": "「{{employee}}」を「{{department}}」部門へ異動しました",
+    "moveFailed": "従業員の部門更新に失敗しました"
+  },
   "confirmDialog": {
     "title": "部門削除の確認",
     "description": "「{{name}}」部門を削除してもよろしいですか？",
@@ -52,5 +69,20 @@
     "title": "部門を編集",
     "description": "部門情報と組織構造を変更します。",
     "submitButton": "更新"
+  },
+  "toasts": {
+    "addMissingFields": "必須項目（部門名、部門長）をすべて入力してください",
+    "addFailedTitle": "部門の追加に失敗しました",
+    "addSuccessTitle": "部門を追加しました",
+    "addSuccessDescription": "「{{name}}」部門を追加しました",
+    "editFailedTitle": "部門の更新に失敗しました",
+    "editSuccessTitle": "部門を更新しました",
+    "editSuccessDescription": "「{{name}}」部門の情報を更新しました",
+    "deleteBlockedTitle": "部門を削除できません",
+    "deleteBlockedHasSubDepartments": "この部門にはサブ部門が存在します。先にすべてのサブ部門を削除または異動してください。",
+    "deleteBlockedHasEmployees": "この部門にはまだ従業員が所属しています。「部門メンバー」から先に他の部門へ異動させてください。",
+    "deleteFailedTitle": "部門の削除に失敗しました",
+    "deleteSuccessTitle": "部門を削除しました",
+    "deleteSuccessDescription": "「{{name}}」部門を削除しました"
   }
 }

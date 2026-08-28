@@ -1,12 +1,17 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Department, DepartmentFormData, departmentFormSchema, ParentDepartmentOption } from "@/types/department";
+import { Employee } from "@/types/employee";
 import { departmentApi } from "@/services/departmentApi";
+import { employeeApi } from "@/services/employeeApi";
 
 export const useDepartments = () => {
+  const { t } = useTranslation(["departments", "common"]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -14,7 +19,7 @@ export const useDepartments = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
-  
+
   const addForm: UseFormReturn<DepartmentFormData> = useForm({
     resolver: zodResolver(departmentFormSchema),
     defaultValues: {
@@ -25,7 +30,7 @@ export const useDepartments = () => {
     },
     mode: "onChange",
   }) as UseFormReturn<DepartmentFormData>;
-  
+
   const editForm: UseFormReturn<DepartmentFormData> = useForm({
     resolver: zodResolver(departmentFormSchema),
     defaultValues: {
@@ -37,25 +42,45 @@ export const useDepartments = () => {
     mode: "onChange",
   }) as UseFormReturn<DepartmentFormData>;
 
-  // 初始載入部門資料
+  // 初始載入部門與員工資料（員工資料用於「部門成員」管理）
   useEffect(() => {
     loadDepartments();
+    loadEmployees();
   }, []);
+
+  // selectedDepartment 是開啟對話框當下的快照；在成員管理對話框裡加入/移出
+  // 成員後，部門列表會重新載入，這裡讓快照跟著更新，員工數量等統計才不會顯示過期資料
+  useEffect(() => {
+    if (selectedDepartment) {
+      const fresh = departments.find((dept) => dept.id === selectedDepartment.id);
+      if (fresh && fresh !== selectedDepartment) {
+        setSelectedDepartment(fresh);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [departments]);
 
   const loadDepartments = async () => {
     try {
       setLoading(true);
-      console.log('Loading departments...');
       const data = await departmentApi.getDepartments();
-      console.log('Departments loaded:', data);
       setDepartments(data);
     } catch (error) {
       console.error('Failed to load departments:', error);
-      toast.error("載入部門資料失敗", {
-        description: "請檢查網路連線或聯繫系統管理員",
+      toast.error(t("common:common.loadFailed"), {
+        description: t("common:common.networkErrorHint"),
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadEmployees = async () => {
+    try {
+      const data = await employeeApi.getEmployees();
+      setEmployees(data);
+    } catch (error) {
+      console.error('Failed to load employees:', error);
     }
   };
 
@@ -68,156 +93,159 @@ export const useDepartments = () => {
         name: dept.name,
       }));
   };
-  
+
   // 根據搜尋條件過濾部門
   const filteredDepartments = departments.filter((department) =>
     department.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     department.leadName.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
+
+  // 某部門目前的在職成員（比對邏輯與後端 employeeCount 一致）
+  const getDepartmentMembers = (departmentName: string): Employee[] =>
+    employees.filter((employee) => employee.department === departmentName && employee.active);
+
+  // 可加入某部門的員工（在職、且目前不在該部門）
+  const getAssignableEmployees = (departmentName: string): Employee[] =>
+    employees.filter((employee) => employee.department !== departmentName && employee.active);
+
+  // 將員工改派到另一個部門；供「部門成員」的加入/移動操作使用
+  const moveEmployeeToDepartment = async (employee: Employee, departmentName: string) => {
+    try {
+      await employeeApi.updateEmployeeDepartment(employee.id, departmentName);
+      await Promise.all([loadDepartments(), loadEmployees()]);
+      toast.success(t("departments:members.moveSuccess", { employee: employee.name, department: departmentName }));
+    } catch (error) {
+      console.error('Failed to move employee to department:', error);
+      toast.error(t("departments:members.moveFailed"), {
+        description: error instanceof Error ? error.message : t("common:common.networkErrorHint"),
+      });
+    }
+  };
+
   // 處理部門新增
   const handleAddDepartment = async (data: DepartmentFormData) => {
     try {
-      console.log('Adding department with data:', data);
-      // 檢查必填欄位
       if (!data.name || !data.leadName) {
-        toast.error("新增失敗", {
-          description: "請填寫所有必填欄位（部門名稱、部門主管）",
+        toast.error(t("departments:toasts.addFailedTitle"), {
+          description: t("departments:toasts.addMissingFields"),
         });
         return;
       }
-      const result = await departmentApi.createDepartment(data);
-      console.log('Department created successfully:', result);
-      await loadDepartments(); // 重新載入資料
+      await departmentApi.createDepartment(data);
+      await loadDepartments();
       setIsAddDialogOpen(false);
-      // 完全重置表單
       addForm.reset({
         name: "",
         leadName: "",
         parentId: undefined,
         description: "",
       });
-      toast.success("部門新增成功", {
-        description: `已成功新增「${data.name}」部門`,
+      toast.success(t("departments:toasts.addSuccessTitle"), {
+        description: t("departments:toasts.addSuccessDescription", { name: data.name }),
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to create department:', error);
-      let msg = "部門新增失敗";
-      if (error?.message) msg += `：${error.message}`;
-      toast.error(msg, {
-        description: error?.response?.data?.error || error?.toString() || "請檢查網路連線或聯繫系統管理員",
+      toast.error(t("departments:toasts.addFailedTitle"), {
+        description: error instanceof Error ? error.message : t("common:common.networkErrorHint"),
       });
     }
   };
-  
+
   // 處理部門編輯
   const handleEditDepartment = async (data: DepartmentFormData) => {
     if (!selectedDepartment) return;
-    
+
     try {
-      console.log('Updating department with data:', data);
       await departmentApi.updateDepartment(selectedDepartment.id, data);
-      await loadDepartments(); // 重新載入資料
+      await Promise.all([loadDepartments(), loadEmployees()]);
       setIsEditDialogOpen(false);
       setSelectedDepartment(null);
-      
-      toast.success("部門更新成功", {
-        description: `已成功更新「${data.name}」部門的資料`,
+
+      toast.success(t("departments:toasts.editSuccessTitle"), {
+        description: t("departments:toasts.editSuccessDescription", { name: data.name }),
       });
     } catch (error) {
       console.error('Failed to update department:', error);
-      toast.error("部門更新失敗", {
-        description: "請檢查網路連線或聯繫系統管理員",
+      toast.error(t("departments:toasts.editFailedTitle"), {
+        description: t("common:common.networkErrorHint"),
       });
     }
   };
-  
+
   // 處理部門刪除
   const handleDeleteDepartment = async () => {
     if (!selectedDepartment) return;
-    
+
     // 檢查是否有子部門
     const hasSubDepartments = departments.some(
       dept => dept.parentId === selectedDepartment.id
     );
-    
+
     if (hasSubDepartments) {
-      toast.error("無法刪除部門", {
-        description: "此部門有子部門存在，請先刪除或移動所有子部門。",
+      toast.error(t("departments:toasts.deleteBlockedTitle"), {
+        description: t("departments:toasts.deleteBlockedHasSubDepartments"),
       });
       setIsDeleteDialogOpen(false);
       return;
     }
-    
+
     // 檢查是否有員工
     if (selectedDepartment.employeeCount > 0) {
-      toast.error("無法刪除部門", {
-        description: "此部門還有員工存在，請先將員工移動到其他部門。",
+      toast.error(t("departments:toasts.deleteBlockedTitle"), {
+        description: t("departments:toasts.deleteBlockedHasEmployees"),
       });
       setIsDeleteDialogOpen(false);
       return;
     }
-    
+
     try {
       await departmentApi.deleteDepartment(selectedDepartment.id);
-      await loadDepartments(); // 重新載入資料
+      await loadDepartments();
       setIsDeleteDialogOpen(false);
+      const deletedName = selectedDepartment.name;
       setSelectedDepartment(null);
-      
-      toast.success("部門刪除成功", {
-        description: `已成功刪除「${selectedDepartment.name}」部門`,
+
+      toast.success(t("departments:toasts.deleteSuccessTitle"), {
+        description: t("departments:toasts.deleteSuccessDescription", { name: deletedName }),
       });
     } catch (error) {
       console.error('Failed to delete department:', error);
-      toast.error("部門刪除失敗", {
-        description: "請檢查網路連線或聯繫系統管理員",
+      toast.error(t("departments:toasts.deleteFailedTitle"), {
+        description: t("common:common.networkErrorHint"),
       });
     }
   };
-  
+
   // 開啟編輯對話框
   const openEditDialog = (department: Department) => {
-    console.log("Opening edit dialog for department:", department);
     setSelectedDepartment(department);
-    
-    // 確保表單完全重置
     editForm.reset();
-    
-    // 設置表單值
-    const formValues = {
+    editForm.reset({
       id: department.id,
       name: department.name,
       leadName: department.leadName,
       parentId: department.parentId || undefined,
       description: department.description || "",
-    };
-    
-    console.log("Setting form values:", formValues);
-    editForm.reset(formValues);
-    
-    // 確保所有值都正確設置
-    setTimeout(() => {
-      console.log("Form values after reset:", editForm.getValues());
-      setIsEditDialogOpen(true);
-    }, 0);
+    });
+    setIsEditDialogOpen(true);
   };
-  
+
   // 開啟查看對話框
   const openViewDialog = (department: Department) => {
     setSelectedDepartment(department);
     setIsViewDialogOpen(true);
   };
-  
+
   // 開啟刪除對話框
   const openDeleteDialog = (department: Department) => {
     setSelectedDepartment(department);
     setIsDeleteDialogOpen(true);
   };
-  
+
   // 根據 parentId 分組部門
   const getDepartmentHierarchy = () => {
     const mainDepartments = departments.filter(dept => !dept.parentId);
-    
+
     return mainDepartments.map(mainDept => {
       const subDepartments = departments.filter(
         dept => dept.parentId === mainDept.id
@@ -247,6 +275,9 @@ export const useDepartments = () => {
     addForm,
     editForm,
     getParentDepartmentOptions,
+    getDepartmentMembers,
+    getAssignableEmployees,
+    moveEmployeeToDepartment,
     handleAddDepartment,
     handleEditDepartment,
     handleDeleteDepartment,

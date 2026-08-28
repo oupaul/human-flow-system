@@ -33,6 +33,13 @@ export const employeeApi = {
     });
   },
 
+  async updateEmployeeDepartment(id: number, department: string): Promise<Employee> {
+    return apiFetch<Employee>(`/employees/${id}/department`, {
+      method: "PUT",
+      body: JSON.stringify({ department }),
+    });
+  },
+
   async resetPassword(id: number): Promise<{ message: string; username: string; defaultPassword: string }> {
     return apiFetch<{ message: string; username: string; defaultPassword: string }>(`/employees/${id}/reset-password`, {
       method: "POST",

@@ -607,10 +607,19 @@ api.put('/departments/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     const { id } = req.params;
     const { name, leadName, parentId, description } = req.body;
 
+    // 員工的部門欄位是用名稱比對（不是外鍵），改名前先記下舊名稱，
+    // 改名後要一併更新所有原本歸屬此部門的員工，否則他們會跟部門表脫鉤
+    const [beforeRows] = await pool.execute('SELECT name FROM departments WHERE id = ?', [id]);
+    const oldName = beforeRows[0]?.name;
+
     await pool.execute(
       'UPDATE departments SET name = ?, leadName = ?, parentId = ?, description = ? WHERE id = ?',
       [name, leadName, parentId || null, description || '', id]
     );
+
+    if (oldName && oldName !== name) {
+      await pool.execute('UPDATE employees SET department = ? WHERE department = ?', [name, oldName]);
+    }
 
     const [updatedDept] = await pool.execute('SELECT * FROM departments WHERE id = ?', [id]);
     res.json(updatedDept[0]);
@@ -746,6 +755,29 @@ api.put('/employees/:id/terminate', requireRole(...STAFF_ROLES), async (req, res
   } catch (error) {
     console.error('Error terminating employee:', error);
     res.status(500).json({ error: '員工離職失敗', detail: error.message });
+  }
+});
+
+// 將員工改派到另一個部門；供部門管理頁「直接管理成員」使用，只更新部門欄位，
+// 不影響員工的其他資料（不像一般 PUT /employees/:id 需要整包欄位）
+api.put('/employees/:id/department', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { department } = req.body;
+    if (!department) {
+      return res.status(400).json({ error: '部門為必填' });
+    }
+
+    await pool.execute('UPDATE employees SET department = ? WHERE id = ?', [department, id]);
+
+    const [updatedEmployee] = await pool.execute('SELECT * FROM employees WHERE id = ?', [id]);
+    if (!updatedEmployee[0]) {
+      return res.status(404).json({ error: '找不到該名員工' });
+    }
+    res.json(updatedEmployee[0]);
+  } catch (error) {
+    console.error('Error updating employee department:', error);
+    res.status(500).json({ error: '更新員工部門失敗', detail: error.message });
   }
 });
 

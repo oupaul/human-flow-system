@@ -27,6 +27,23 @@
     "employeeCountValue": "{{count}} 人",
     "descriptionLabel": "部門描述"
   },
+  "members": {
+    "sectionTitle": "部門成員",
+    "addPlaceholder": "選擇要加入的員工",
+    "addOptionLabel": "{{name}}（{{employeeId}}）· 目前：{{department}}",
+    "addButton": "加入",
+    "moveToPlaceholder": "移至其他部門",
+    "noMembers": "此部門尚無成員",
+    "noOtherEmployees": "沒有其他員工可加入",
+    "columns": {
+      "name": "姓名",
+      "employeeId": "員工編號",
+      "position": "職位",
+      "actions": "操作"
+    },
+    "moveSuccess": "已將「{{employee}}」移至「{{department}}」部門",
+    "moveFailed": "更新員工部門失敗"
+  },
   "confirmDialog": {
     "title": "確認刪除部門",
     "description": "您確定要刪除「{{name}}」部門嗎？",
@@ -52,5 +69,20 @@
     "title": "編輯部門",
     "description": "修改部門資料和結構。",
     "submitButton": "更新"
+  },
+  "toasts": {
+    "addMissingFields": "請填寫所有必填欄位（部門名稱、部門主管）",
+    "addFailedTitle": "部門新增失敗",
+    "addSuccessTitle": "部門新增成功",
+    "addSuccessDescription": "已成功新增「{{name}}」部門",
+    "editFailedTitle": "部門更新失敗",
+    "editSuccessTitle": "部門更新成功",
+    "editSuccessDescription": "已成功更新「{{name}}」部門的資料",
+    "deleteBlockedTitle": "無法刪除部門",
+    "deleteBlockedHasSubDepartments": "此部門有子部門存在，請先刪除或移動所有子部門。",
+    "deleteBlockedHasEmployees": "此部門還有員工存在，請先在「部門成員」將員工移動到其他部門。",
+    "deleteFailedTitle": "部門刪除失敗",
+    "deleteSuccessTitle": "部門刪除成功",
+    "deleteSuccessDescription": "已成功刪除「{{name}}」部門"
   }
 }
