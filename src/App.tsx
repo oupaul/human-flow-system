@@ -11,6 +11,7 @@ import LeaveManagement from "./pages/LeaveManagement";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
+import SsoCallback from "./pages/SsoCallback";
 import MyPortal from "./pages/MyPortal";
 import NotFound from "./pages/NotFound";
 import Layout from "./components/Layout";
@@ -31,6 +32,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/sso-callback" element={<SsoCallback />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<RoleRoute allow={["employee"]} fallback="/" />}>
                 <Route path="/my" element={<EmployeeLayout />}>

@@ -20,6 +20,10 @@ interface LoginResponse {
   user: AuthUser;
 }
 
+// 後端會重導到這個路徑開始 Microsoft 登入流程，未跨路由所以用相對路徑，
+// 瀏覽器整頁導航即可（不透過 apiFetch，因為要讓瀏覽器實際跳轉到 Microsoft 登入頁）
+export const MICROSOFT_LOGIN_URL = "/api/auth/microsoft/login";
+
 export const authApi = {
   async login(username: string, password: string): Promise<AuthUser> {
     const result = await apiFetch<LoginResponse>("/auth/login", {
@@ -28,6 +32,21 @@ export const authApi = {
     });
     setToken(result.token);
     return result.user;
+  },
+
+  async getMicrosoftSsoStatus(): Promise<{ enabled: boolean }> {
+    try {
+      return await apiFetch<{ enabled: boolean }>("/auth/microsoft/status");
+    } catch {
+      return { enabled: false };
+    }
+  },
+
+  // 供 Microsoft SSO 登入完成後的 /sso-callback 頁面使用：後端已核發 token，
+  // 這裡只需要存起來並補齊完整使用者資料，流程等同一般登入的最後一步
+  async completeSsoLogin(token: string): Promise<AuthUser | null> {
+    setToken(token);
+    return this.getCurrentUser();
   },
 
   async getCurrentUser(): Promise<AuthUser | null> {

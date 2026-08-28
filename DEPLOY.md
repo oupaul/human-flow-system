@@ -28,6 +28,8 @@ JWT_SECRET=改成一組長度足夠的隨機字串
 
 `.env` 不會被提交到版本控制。
 
+如果要開啟「使用 Microsoft 帳號登入」（M365 SSO，選用），需要額外設定 `MS_TENANT_ID`/`MS_CLIENT_ID`/`MS_CLIENT_SECRET`/`MS_REDIRECT_URI` 四個值，完整設定步驟見 [`API_SETUP_README.md`](API_SETUP_README.md#microsoft-365-單一登入選用)。沒設定就不會出現這個登入選項，不影響原本的帳號密碼登入。
+
 ## 步驟 2：建置並啟動
 
 ```sh

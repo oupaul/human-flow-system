@@ -129,11 +129,34 @@ npm run dev
 
 通知發送失敗（設定錯誤、網路問題等）只會記錄在後端 log，不會影響申請/審核等主要功能正常運作。
 
+## Microsoft 365 單一登入（選用）
+
+登入頁可以加一個「使用 Microsoft 帳號登入」按鈕，讓員工直接用公司的 M365 帳號登入，不用另外記系統密碼。這是**跟現有帳號密碼登入並存**的選項，不會取代原本的登入方式；`.env` 沒設定時登入頁根本不會出現這個按鈕。
+
+**運作方式**：只限貴公司自己的 M365 租戶（tenant）內的帳號能登入，其他租戶或個人 Microsoft 帳號在 Microsoft 自家登入頁就會被擋下。登入成功後，系統會用 Microsoft 回傳的電子郵件去比對 `users` 表的帳號（跟一般登入邏輯完全相同——員工帳號的 username 本來就是電子郵件），**找不到對應帳號會直接被拒絕**、導回登入頁並提示「請聯絡管理員」，不會自動建立新帳號。也就是說，要能用 M365 SSO 登入，員工必須已經被 HR 在「員工管理」新增過（會自動建立登入帳號）或透過批次匯入建立。
+
+**設定步驟（需要 Azure/Microsoft 365 系統管理員權限）**：
+
+1. 到 [Microsoft Entra 系統管理中心](https://entra.microsoft.com)（或 Azure Portal）→ 「應用程式註冊」→「新增註冊」
+2. 名稱自訂（例如「HR管理系統」），支援的帳戶類型選**「僅此組織目錄中的帳戶（單一租戶）」**，重新導向 URI 類型選 **Web**，網址填 `.env` 裡 `MS_REDIRECT_URI` 的值（例如 `https://你的網域/api/auth/microsoft/callback`，正式環境請用 HTTPS）
+3. 註冊完成後，在應用程式「總覽」頁記下 **應用程式 (用戶端) 識別碼**（→ `MS_CLIENT_ID`）與 **目錄 (租用戶) 識別碼**（→ `MS_TENANT_ID`）
+4. 左側選單「憑證及密碼」→「用戶端密碼」→「新增用戶端密碼」，建立後**立刻複製「值」**（離開頁面後就看不到了）→ `MS_CLIENT_SECRET`
+5. 左側選單「API 權限」確認已有 `Microsoft Graph` 的 `User.Read`（委派）權限，這是新註冊應用程式的預設權限，通常不用額外設定
+6. 把上面四個值填進 `.env`：`MS_TENANT_ID`、`MS_CLIENT_ID`、`MS_CLIENT_SECRET`、`MS_REDIRECT_URI`，重新啟動服務即可
+7. 到登入頁確認出現「使用 Microsoft 帳號登入」按鈕，用一個已存在系統帳號的 M365 信箱測試登入
+
+`MS_REDIRECT_URI` 要注意：不管是本機開發還是 Docker 部署，`/api` 都是透過對外網址（`CORS_ORIGIN` 那個網址，Vite/nginx 會轉發到後端）存取，後端的 3001 埠本身沒有對外開放，所以這裡務必填對外網址，不是 `http://localhost:3001/...`（詳見 `.env.example` 裡的說明）。
+
+`MS_CLIENT_SECRET` 目前**以明文存在環境變數**（跟 Email 通知的 SMTP 密碼/OAuth 設定同樣的限制），請確保 `.env` 檔案本身的存取權限受控制，不要提交到版本控制（已列在 `.gitignore`）。
+
 ## API 端點
 
 ### 登入（公開，不需 token）
 - `POST /api/auth/login` — `{ username, password }`，成功回傳 `{ token, user }`
 - `GET /api/health` — 健康檢查
+- `GET /api/auth/microsoft/status` — 回傳 `{ enabled }`，供登入頁判斷要不要顯示「使用 Microsoft 帳號登入」按鈕
+- `GET /api/auth/microsoft/login` — 導向 Microsoft 登入頁，瀏覽器整頁導航使用，不是給前端 fetch 呼叫的
+- `GET /api/auth/microsoft/callback` — Microsoft 登入完成後的回呼網址（要跟 `MS_REDIRECT_URI` 完全一致），驗證成功會導回前端 `/sso-callback#token=...`，失敗則導回 `/login?ssoError=<代碼>`
 
 以下端點皆需在 Header 帶上 `Authorization: Bearer <token>`：
 
