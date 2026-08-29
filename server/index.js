@@ -2058,13 +2058,21 @@ api.get('/dashboard/stats', requireRole(...STAFF_ROLES), async (req, res) => {
     `);
 
     // 出勤率 = 正常天數 ÷（正常＋缺卡天數），休息日/例假日/請假不計入分母，
-    // 沒有任何考勤紀錄（尚未匯入過）時回傳 null，前端會顯示「無資料」而不是 0%
-    const [attendanceRows] = await pool.execute(`
-      SELECT ROUND(100 * SUM(status = 'normal') / NULLIF(SUM(status IN ('normal', 'missing')), 0)) as avgAttendance
-      FROM attendance_records
-      WHERE MONTH(date) = MONTH(CURRENT_DATE()) AND YEAR(date) = YEAR(CURRENT_DATE())
-    `);
-    const averageAttendance = attendanceRows[0]?.avgAttendance ?? null;
+    // 沒有任何考勤紀錄（尚未匯入過，或 attendance_records 表還沒建立——例如
+    // migration 008 還沒套用）時回傳 null，前端會顯示「無資料」而不是讓整個
+    // Dashboard 因為這張表查詢失敗而打不開
+    let averageAttendance = null;
+    try {
+      const [attendanceRows] = await pool.execute(`
+        SELECT ROUND(100 * SUM(status = 'normal') / NULLIF(SUM(status IN ('normal', 'missing')), 0)) as avgAttendance
+        FROM attendance_records
+        WHERE MONTH(date) = MONTH(CURRENT_DATE()) AND YEAR(date) = YEAR(CURRENT_DATE())
+      `);
+      averageAttendance = attendanceRows[0]?.avgAttendance ?? null;
+    } catch (e) {
+      console.error('attendance_records 查詢失敗（可能尚未套用 migration 008）：', e.message);
+      averageAttendance = null;
+    }
 
     // 待審核申請需同時計入請假與加班申請，否則加班申請永遠不會反映在儀表板上
     const [pendingLeave] = await pool.execute(`SELECT COUNT(*) as count FROM leave_applications WHERE status = 'pending'`);
@@ -2086,6 +2094,9 @@ api.get('/dashboard/stats', requireRole(...STAFF_ROLES), async (req, res) => {
 
 // leave（本月請假件數）與 overtime（本月平均加班時數）查詢既有資料；
 // attendance（本月出勤率）查詢考勤紀錄，沒有匯入過考勤資料的部門會是 0
+// 部門出勤率／請假／加班統計。attendance_records 相關的 JOIN 有可能因為
+// migration 008 還沒套用（表不存在）而讓整個查詢失敗，這裡外層再包一層，
+// 失敗時退回不含出勤率的版本（attendance 固定 0），避免整個 Dashboard 打不開
 api.get('/dashboard/attendance', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const [rows] = await pool.execute(`
@@ -2121,8 +2132,36 @@ api.get('/dashboard/attendance', requireRole(...STAFF_ROLES), async (req, res) =
     `);
     res.json(rows);
   } catch (error) {
-    console.error('Error fetching department attendance:', error);
-    res.status(500).json({ error: '獲取部門出勤率失敗', detail: error.message });
+    console.error('attendance_records 查詢失敗，改用不含出勤率的版本（可能尚未套用 migration 008）：', error.message);
+    try {
+      const [fallbackRows] = await pool.execute(`
+        SELECT
+          d.name as name,
+          0 as attendance,
+          IFNULL(leave_stats.leave_count, 0) as \`leave\`,
+          IFNULL(overtime_stats.avg_hours, 0) as overtime
+        FROM departments d
+        LEFT JOIN (
+          SELECT e.department, COUNT(la.id) as leave_count
+          FROM employees e
+          LEFT JOIN leave_applications la ON la.employeeId = e.employeeId
+            AND MONTH(la.startDate) = MONTH(CURRENT_DATE()) AND YEAR(la.startDate) = YEAR(CURRENT_DATE())
+          GROUP BY e.department
+        ) leave_stats ON leave_stats.department = d.name
+        LEFT JOIN (
+          SELECT e.department, AVG(o.hours) as avg_hours
+          FROM employees e
+          LEFT JOIN overtime_applications o ON o.employeeId = e.employeeId
+            AND MONTH(o.date) = MONTH(CURRENT_DATE()) AND YEAR(o.date) = YEAR(CURRENT_DATE())
+          GROUP BY e.department
+        ) overtime_stats ON overtime_stats.department = d.name
+        GROUP BY d.name
+      `);
+      res.json(fallbackRows);
+    } catch (fallbackError) {
+      console.error('Error fetching department attendance:', fallbackError);
+      res.status(500).json({ error: '獲取部門出勤率失敗', detail: fallbackError.message });
+    }
   }
 });
 
