@@ -77,6 +77,13 @@ const EmployeeDetailSheet = ({
               </div>
             )}
 
+            {employee.attendanceAccount && (
+              <div>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-1">{t("employees:detail.fields.attendanceAccount")}</h4>
+                <p>{employee.attendanceAccount}</p>
+              </div>
+            )}
+
             <div>
               <h4 className="text-sm font-semibold text-muted-foreground mb-1">{t("employees:detail.fields.email")}</h4>
               <p>{employee.email}</p>

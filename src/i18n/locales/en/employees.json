@@ -41,6 +41,7 @@
       "department": "Department",
       "position": "Position",
       "email": "Email",
+      "attendanceAccount": "Attendance Account",
       "phone": "Phone Number",
       "joinDate": "Join Date",
       "terminationDate": "Termination Date",
@@ -62,6 +63,8 @@
     "positionPlaceholder": "Enter position",
     "gender": "Gender (optional, used to restrict gender-specific leave types such as menstrual leave)",
     "genderPlaceholder": "Select gender",
+    "attendanceAccount": "Attendance Account (optional, used to match records imported from the external time-clock system)",
+    "attendanceAccountPlaceholder": "e.g. nicole",
     "email": "Email *",
     "emailPlaceholder": "name@example.com",
     "phone": "Phone Number",
@@ -99,7 +102,7 @@
   },
   "import": {
     "title": "Bulk Import Employees",
-    "description": "Upload a CSV file, or paste the content directly. The header row must include \"姓名、員工編號、部門、職位、電子郵件、到職日\" (name, employee ID, department, position, email, join date); phone, address, notes, monthly salary, gender, and annual leave days used are optional (gender should be \"男\" or \"女\", used to restrict gender-specific leave types such as menstrual leave). A login account is created automatically for each employee (username = email, default password = employee ID).",
+    "description": "Upload a CSV file, or paste the content directly. The header row must include \"姓名、員工編號、部門、職位、電子郵件、到職日\" (name, employee ID, department, position, email, join date); phone, address, notes, monthly salary, gender, attendance account, and annual leave days used are optional (gender should be \"男\" or \"女\", used to restrict gender-specific leave types such as menstrual leave; attendance account is used to match records imported from the external time-clock system). A login account is created automatically for each employee (username = email, default password = employee ID).",
     "uploadLabel": "Upload CSV File",
     "pasteLabel": "Or paste CSV content",
     "result": {

@@ -114,20 +114,32 @@ const EditEmployeeDialog = ({
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="editGender">{t("employees:form.gender")}</Label>
-            <Select
-              value={formData.gender}
-              onValueChange={(value) => onSelectChange("gender", value)}
-            >
-              <SelectTrigger id="editGender" className="w-full sm:w-[240px]">
-                <SelectValue placeholder={t("employees:form.genderPlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="female">{t("common:gender.female")}</SelectItem>
-                <SelectItem value="male">{t("common:gender.male")}</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="editGender">{t("employees:form.gender")}</Label>
+              <Select
+                value={formData.gender}
+                onValueChange={(value) => onSelectChange("gender", value)}
+              >
+                <SelectTrigger id="editGender">
+                  <SelectValue placeholder={t("employees:form.genderPlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="female">{t("common:gender.female")}</SelectItem>
+                  <SelectItem value="male">{t("common:gender.male")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editAttendanceAccount">{t("employees:form.attendanceAccount")}</Label>
+              <Input
+                id="editAttendanceAccount"
+                name="attendanceAccount"
+                placeholder={t("employees:form.attendanceAccountPlaceholder")}
+                value={formData.attendanceAccount}
+                onChange={onFormChange}
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

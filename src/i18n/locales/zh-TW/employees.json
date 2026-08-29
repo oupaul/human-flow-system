@@ -41,6 +41,7 @@
       "department": "部門",
       "position": "職位",
       "email": "電子郵件",
+      "attendanceAccount": "考勤帳號",
       "phone": "電話號碼",
       "joinDate": "到職日期",
       "terminationDate": "離職日期",
@@ -62,6 +63,8 @@
     "positionPlaceholder": "輸入職位",
     "gender": "性別（選填，用於生理假等限定性別的假別）",
     "genderPlaceholder": "選擇性別",
+    "attendanceAccount": "考勤帳號（選填，用於比對外部打卡系統匯出的考勤資料）",
+    "attendanceAccountPlaceholder": "如：nicole",
     "email": "電子郵件 *",
     "emailPlaceholder": "name@example.com",
     "phone": "電話號碼",
@@ -99,7 +102,7 @@
   },
   "import": {
     "title": "批次匯入員工",
-    "description": "上傳 CSV 檔案，或直接貼上內容。標題列需包含「姓名、員工編號、部門、職位、電子郵件、到職日」，電話/地址/備註/月薪/性別/已用特休天數為選填（性別填「男」或「女」，用於限制生理假等性別限定的假別）。每位員工會自動建立登入帳號（帳號＝電子郵件、預設密碼＝員工編號）。",
+    "description": "上傳 CSV 檔案，或直接貼上內容。標題列需包含「姓名、員工編號、部門、職位、電子郵件、到職日」，電話/地址/備註/月薪/性別/考勤帳號/已用特休天數為選填（性別填「男」或「女」，用於限制生理假等性別限定的假別；考勤帳號用於比對外部打卡系統匯出的考勤資料）。每位員工會自動建立登入帳號（帳號＝電子郵件、預設密碼＝員工編號）。",
     "uploadLabel": "上傳 CSV 檔案",
     "pasteLabel": "或貼上 CSV 內容",
     "result": {

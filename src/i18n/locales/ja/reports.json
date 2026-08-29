@@ -6,9 +6,37 @@
     "department": "部門比較"
   },
   "attendance": {
-    "title": "年間出勤率の推移",
-    "description": "月ごとの会社全体の出勤率の変化",
-    "featureUnavailable": "現時点では出勤打刻機能が未実装のため、月次の出勤率データはまだご利用いただけません。"
+    "title": "勤怠分析",
+    "description": "外部の勤怠システムから記録をインポートし、月別・従業員別の出勤状況を確認できます",
+    "importTitle": "勤怠データのインポート",
+    "importDescription": "外部の勤怠システムからエクスポートした .xls ファイルをアップロードしてください（部門／アカウント／氏名／シフト、および日々の出退勤時刻を含む必要があります）。システムは「従業員管理」で設定した「勤怠アカウント」を使って各行を従業員に照合します。日付見出し（例：「07-01」）には年が含まれないため、以下で年を指定してください。",
+    "yearLabel": "西暦年",
+    "fileLabel": "ファイルを選択",
+    "importButton": "インポート開始",
+    "importing": "インポート中...",
+    "unmatchedTitle": "以下の勤怠アカウントは対応する従業員が見つからず、インポートされませんでした：",
+    "summaryTitle": "月次勤怠統計",
+    "summaryDescription": "勤怠アカウントで照合した後の統計結果です。年月を切り替えて表示できます",
+    "monthLabel": "月",
+    "columns": {
+      "employeeId": "社員番号",
+      "name": "氏名",
+      "department": "部門",
+      "normalDays": "正常日数",
+      "missingDays": "打刻漏れ日数",
+      "lateCount": "遅刻回数",
+      "earlyLeaveCount": "早退回数",
+      "leaveDays": "休暇日数",
+      "dayOffDays": "休日日数"
+    },
+    "noData": "この月の勤怠データはまだありません。まず上でインポートしてください。",
+    "toasts": {
+      "loadFailed": "勤怠統計の読み込みに失敗しました",
+      "importSuccess": "インポートが完了しました（{{count}} 件）",
+      "importPartial": "インポートが完了しました（{{count}} 件）が、一部のアカウントは照合できませんでした",
+      "unmatchedAccounts": "対応する従業員が見つからなかった勤怠アカウント：{{accounts}}。「従業員管理」で勤怠アカウントを設定してから再度インポートしてください",
+      "importFailed": "勤怠データのインポートに失敗しました"
+    }
   },
   "leave": {
     "title": "休暇種別分布",

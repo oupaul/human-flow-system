@@ -6,9 +6,37 @@
     "department": "部門比較"
   },
   "attendance": {
-    "title": "年度出勤率趨勢",
-    "description": "各月份公司整體出勤率變化",
-    "featureUnavailable": "系統目前尚未建置出勤打卡紀錄功能，暫無月度出勤率資料可供分析。"
+    "title": "出勤分析",
+    "description": "匯入外部打卡系統的考勤紀錄，依月份統計每位員工的出勤狀況",
+    "importTitle": "匯入考勤資料",
+    "importDescription": "上傳外部打卡系統匯出的 .xls 檔案（需包含部門／人員帳號／人員姓名／班別，及逐日簽到簽退），系統會依「員工管理」裡設定的「考勤帳號」自動比對到對應員工。日期標題（如「07-01」）不含年份，請在下方指定西元年。",
+    "yearLabel": "西元年",
+    "fileLabel": "選擇檔案",
+    "importButton": "開始匯入",
+    "importing": "匯入中...",
+    "unmatchedTitle": "以下考勤帳號找不到對應員工，未匯入：",
+    "summaryTitle": "月度出勤統計",
+    "summaryDescription": "依考勤帳號比對後的統計結果，可切換年月查看",
+    "monthLabel": "月份",
+    "columns": {
+      "employeeId": "員工編號",
+      "name": "姓名",
+      "department": "部門",
+      "normalDays": "正常天數",
+      "missingDays": "缺卡天數",
+      "lateCount": "遲到次數",
+      "earlyLeaveCount": "早退次數",
+      "leaveDays": "請假天數",
+      "dayOffDays": "休息天數"
+    },
+    "noData": "此月份尚無考勤資料，請先在上方匯入",
+    "toasts": {
+      "loadFailed": "載入考勤統計失敗",
+      "importSuccess": "匯入完成，共 {{count}} 筆",
+      "importPartial": "匯入完成，共 {{count}} 筆，但有部分帳號找不到對應員工",
+      "unmatchedAccounts": "找不到對應員工的考勤帳號：{{accounts}}，請至「員工管理」補上考勤帳號後重新匯入",
+      "importFailed": "匯入考勤資料失敗"
+    }
   },
   "leave": {
     "title": "請假類型分布",

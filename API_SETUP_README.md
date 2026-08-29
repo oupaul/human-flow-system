@@ -60,6 +60,8 @@ mysql -u root -p hrms_database < server/migrations/006_menstrual_leave.sql   # �
 
 mysql -u root -p hrms_database < server/migrations/007_employee_gender.sql   # 員工新增性別欄位（用於限制生理假僅女性員工可請）
 
+mysql -u root -p hrms_database < server/migrations/008_attendance.sql   # 考勤匯入功能（員工新增考勤帳號欄位、新增考勤紀錄表）
+
 npm run fix:leave-periods   # 修正舊版 bug 造成的錯誤特休週年紀錄（到職日回填多年前時發放天數算錯），可重複執行
 ```
 
@@ -149,6 +151,22 @@ npm run dev
 
 `MS_CLIENT_SECRET` 目前**以明文存在環境變數**（跟 Email 通知的 SMTP 密碼/OAuth 設定同樣的限制），請確保 `.env` 檔案本身的存取權限受控制，不要提交到版本控制（已列在 `.gitignore`）。
 
+## 考勤匯入與分析
+
+本系統**不提供打卡功能**，考勤資料是從外部打卡系統匯出的 `.xls` 檔案匯入的。在「報表分析 → 出勤分析」分頁上傳檔案即可，會員工/主管都能自動比對統計。
+
+**運作方式**：
+
+- 匯入前，需要先在「員工管理」幫每位員工填上「考勤帳號」欄位——就是外部打卡系統裡那個人的帳號（例如 `nicole`），系統靠這個欄位把匯入的每一列資料對應到正確的員工，員工編號、姓名都不會拿來比對（因為外部系統的帳號格式通常跟本系統的員工編號、email 對不上）。可以在新增/編輯員工時手動填，或批次匯入 CSV 時用「考勤帳號」欄位一次填。
+- 支援的檔案格式：橫向的月曆式匯出檔——每一列是一位員工（可能因排班設定重複出現多列），標題列是「部門、人員帳號、人員姓名、班別」接著每天兩欄（簽到／簽退），日期格式如「07-01」不含年份，匯入時需另外指定西元年。這是目前測試過的其中一種打卡系統匯出格式；如果貴公司的匯出格式欄位順序或標題文字不同，需要調整 `server/index.js` 的 `parseAttendanceXls` 函式。
+- 儲存格內容除了時間（如 `09:02`）以外，「缺卡」會記為缺卡狀態；「休息日」「例假日」記為休息日；「特休」「事假」「病假」「生理假」「婚假」「公假」「喪假」「補休」等假別文字記為請假狀態（**只是原樣存起來顯示參考用，不會影響本系統自己的請假額度或核准紀錄**，兩邊的請假資料是分開的）。
+- 匯入採 UPSERT（同一位員工同一天再匯入一次會覆蓋舊資料），可以重複匯入同一份檔案或匯入修正後的檔案不會產生重複紀錄。
+- 找不到對應「考勤帳號」的資料列不會被匯入，會在匯入結果裡列出未比對到的帳號清單，供 HR 補上員工的考勤帳號後重新匯入。
+- 「出勤分析」統計表裡的遲到／早退，是拿實際簽到退時間跟匯入檔裡「班別」欄位解析出的上下班時間比較，容許 10 分鐘緩衝（寫在 `server/index.js` 的 `ATTENDANCE_GRACE_MINUTES` 常數，如需調整直接改這個值）；跨夜班別（例如 18:00-06:00）的早退判斷用時間字串直接比較會不準確，這是已知限制。
+- Dashboard 的「平均出勤率」與「部門出勤率」現在也是查詢真正匯入的考勤資料計算（正常天數 ÷（正常＋缺卡天數）），沒有匯入過考勤資料時會顯示無資料或 0%。
+
+**已知風險**：解析 `.xls` 用的 `xlsx`（SheetJS）npm 套件目前發布在 npm 官方登記所的版本有已知的高風險安全性問題（原型污染、ReDoS），且沒有官方修補版本可安裝（SheetJS 已改把修補版本另外發布在自己的 CDN，不在 npm 上）。因為這支端點限定只有 `admin`/`hr`/`manager` 角色能呼叫，風險僅限於這些受信任的內部帳號上傳的檔案，但如果貴公司的資安政策不允許使用有已知漏洞的套件，請自行評估是否要改用 SheetJS 官方 CDN 版本或其他方案。
+
 ## API 端點
 
 ### 登入（公開，不需 token）
@@ -177,7 +195,7 @@ npm run dev
 ### 員工管理（僅 HR/主管）
 - `GET /api/employees`
 - `POST /api/employees` — 新增員工時會自動建立對應的員工登入帳號與第一期特休週年紀錄；可選帶 `initialAnnualLeaveUsed`，登記系統上線前該員工已休掉的特休天數（預設 0）
-- `POST /api/employees/import` — `{ csv }` 批次匯入，標題列需含姓名/員工編號/部門/職位/電子郵件/到職日（電話/地址/備註/月薪/性別/已用特休天數選填，欄位可任意排序；性別填「男」或「女」，用於限制生理假等性別限定的假別），逐列處理、單列失敗不影響其他列，回傳 `{ created, failed: [{ row, employeeId, error }] }`
+- `POST /api/employees/import` — `{ csv }` 批次匯入，標題列需含姓名/員工編號/部門/職位/電子郵件/到職日（電話/地址/備註/月薪/性別/考勤帳號/已用特休天數選填，欄位可任意排序；性別填「男」或「女」，用於限制生理假等性別限定的假別；考勤帳號用於比對外部打卡系統匯入的考勤資料），逐列處理、單列失敗不影響其他列，回傳 `{ created, failed: [{ row, employeeId, error }] }`
 - `PUT /api/employees/:id`
 - `DELETE /api/employees/:id`
 - `PUT /api/employees/:id/terminate` — 員工離職時會一併停用其登入帳號
@@ -222,6 +240,11 @@ npm run dev
 - `GET /api/comp-time-grants?employeeId=EMP001` — 查詢補休額度明細（員工只能看自己的，不帶 employeeId 時 HR/主管看全公司）
 - `GET /api/comp-time-grants/pending-settlement`（僅 HR/主管）— 已逾期但還有剩餘時數、尚未結算的補休額度清單
 - `POST /api/comp-time-grants/:id/settle`（僅 HR/主管）— 結算一筆逾期補休額度，剩餘時數全數折算加班費，回傳折算時數與金額（依員工月薪試算，未設定月薪則為 `null`）
+
+### 考勤（僅 HR/主管）
+- `POST /api/attendance/import` — `multipart/form-data`，欄位 `file`（.xls）與 `year`（西元年，數字），依員工的「考勤帳號」比對匯入，回傳 `{ message, imported, unmatchedAccounts }`
+- `GET /api/attendance/summary?year=2026&month=7` — 該年月每位員工的統計摘要（正常/缺卡/休息/請假天數、遲到早退次數）
+- `GET /api/attendance/records?year=2026&month=7&employeeId=EMP001` — 該年月的考勤明細，可選 employeeId 篩選單一員工
 
 ### Dashboard（僅 HR/主管）
 - `GET /api/dashboard/stats` — `pendingRequests` 同時計入待審核的請假與加班申請；另附 `pendingLeaveRequests`/`pendingOvertimeRequests` 細項，供前端判斷儀表板「待審核申請」卡片該導向哪個分頁

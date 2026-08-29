@@ -9,6 +9,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
+import * as XLSX from 'xlsx';
 import { sendNotification, getNotificationSettings, sendTestNotification } from './notifications.js';
 
 const app = express();
@@ -81,6 +82,12 @@ const uploadAttachment = multer({
       cb(new Error('僅允許上傳 JPG/PNG/WEBP 圖片或 PDF 檔案'));
     }
   },
+});
+
+// 考勤匯入檔只需要解析內容存進資料庫，不用留存原始檔案，用記憶體儲存即可
+const uploadAttendanceFile = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 // 依勞基法第 38 條計算特休天數（以到職日與基準日的年資試算）
@@ -241,14 +248,14 @@ async function getOrCreateActivePeriod(employeeId, joinDate, initialUsedDays = 0
 // 新增一位員工：建立員工紀錄、第一期特休週年紀錄、假別餘額預設值、登入帳號。
 // 供單筆新增（POST /employees）與批次匯入（POST /employees/import）共用
 async function createEmployeeRecord(data) {
-  const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, initialAnnualLeaveUsed } = data;
+  const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, initialAnnualLeaveUsed } = data;
   if (!name || !employeeId || !department || !position || !email || !joinDate) {
     throw new Error('所有必填欄位皆需填寫（姓名、員工編號、部門、職位、電子郵件、到職日）');
   }
 
   const [result] = await pool.execute(
-    'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, monthlySalary || null, gender || null]
+    'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, monthlySalary || null, gender || null, attendanceAccount || null]
   );
 
   await getOrCreateActivePeriod(employeeId, joinDate, Number(initialAnnualLeaveUsed) || 0);
@@ -280,6 +287,7 @@ function parseEmployeeCsv(csvText) {
     notes: findColumn(['備註']),
     monthlySalary: findColumn(['月薪']),
     gender: findColumn(['性別']),
+    attendanceAccount: findColumn(['考勤帳號', '打卡帳號']),
     initialAnnualLeaveUsed: findColumn(['已用特休', '特休已用']),
   };
 
@@ -311,6 +319,7 @@ function parseEmployeeCsv(csvText) {
       notes: pick(cells, 'notes') || null,
       monthlySalary: pick(cells, 'monthlySalary') || null,
       gender: normalizeGender(pick(cells, 'gender')),
+      attendanceAccount: pick(cells, 'attendanceAccount') || null,
       initialAnnualLeaveUsed: pick(cells, 'initialAnnualLeaveUsed') || 0,
     };
   });
@@ -324,6 +333,109 @@ function computeSettlementSplit(period) {
   const mandatoryCashOutDays = period.carriedInDays - usedFromCarriedIn;
   const remainingGrantDays = Math.max(0, period.grantedDays - usedFromGrant);
   return { mandatoryCashOutDays, remainingGrantDays };
+}
+
+// 遲到/早退的容許誤差（分鐘），如需調整請直接改這個常數
+const ATTENDANCE_GRACE_MINUTES = 10;
+
+const ATTENDANCE_LEAVE_LABELS = new Set(['特休', '事假', '病假', '生理假', '婚假', '公假', '喪假', '補休']);
+const ATTENDANCE_DAY_OFF_LABELS = new Set(['休息日', '例假日']);
+
+// 解析外部打卡系統匯出的考勤 .xls：每人每天佔「簽到/簽退」兩欄，橫向排一整個月。
+// 檔案裡的日期標題（如「07-01」）沒有年份，由呼叫端指定要匯入的西元年。
+// 同一人可能因排班設定重複出現多列（例如日班/夜班），逐日挑選當天實際有資料的那一列
+function parseAttendanceXls(buffer, year) {
+  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+  if (rows.length < 3) {
+    throw new Error('考勤檔案格式不正確，找不到資料列');
+  }
+
+  const headerRow = rows[0];
+  const dayColumns = [];
+  for (let col = 4; col < headerRow.length; col += 2) {
+    const label = String(headerRow[col] || '').trim();
+    const match = label.match(/^(\d{1,2})-(\d{1,2})/);
+    if (!match) continue;
+    const month = match[1].padStart(2, '0');
+    const day = match[2].padStart(2, '0');
+    dayColumns.push({ col, date: `${year}-${month}-${day}` });
+  }
+  if (dayColumns.length === 0) {
+    throw new Error('無法辨識日期欄位，請確認檔案格式（標題列需包含如「07-01」的日期）');
+  }
+
+  const byAccount = new Map();
+  for (let r = 2; r < rows.length; r++) {
+    const row = rows[r];
+    const account = String(row[1] || '').trim();
+    if (!account) continue;
+    const shiftLabel = String(row[3] || '').trim();
+    if (!byAccount.has(account)) byAccount.set(account, []);
+    byAccount.get(account).push({ shiftLabel, row });
+  }
+
+  const isTime = (value) => /^\d{1,2}:\d{2}$/.test(value);
+  const parseShift = (label) => {
+    const match = label.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
+    return match ? { start: match[1], end: match[2] } : { start: null, end: null };
+  };
+
+  const records = [];
+  for (const [account, entries] of byAccount) {
+    for (const { col, date } of dayColumns) {
+      // 多列都缺卡時要保留「第一列」（該員工實際的排班列），不能被後面同樣缺卡
+      // 的列覆蓋掉；只有遇到「非缺卡」的列才代表找到真正有效的資料，直接採用並停止
+      let chosen = null;
+      for (const entry of entries) {
+        const inCell = String(entry.row[col] || '').trim();
+        const outCell = String(entry.row[col + 1] || '').trim();
+        if (!inCell && !outCell) continue;
+        const isMissingBoth = inCell === '缺卡' && outCell === '缺卡';
+        if (!chosen) {
+          chosen = { entry, inCell, outCell };
+        } else if (!isMissingBoth) {
+          chosen = { entry, inCell, outCell };
+          break;
+        }
+      }
+      if (!chosen) continue;
+
+      const { entry, inCell, outCell } = chosen;
+      const { start: shiftStart, end: shiftEnd } = parseShift(entry.shiftLabel);
+
+      let status = 'leave';
+      let clockIn = null;
+      let clockOut = null;
+      let note = null;
+
+      if (ATTENDANCE_DAY_OFF_LABELS.has(inCell)) {
+        status = 'day_off';
+        note = inCell;
+      } else if (ATTENDANCE_LEAVE_LABELS.has(inCell)) {
+        status = 'leave';
+        note = inCell;
+      } else if (isTime(inCell) && isTime(outCell)) {
+        status = 'normal';
+        clockIn = inCell;
+        clockOut = outCell;
+      } else if (isTime(inCell) || isTime(outCell)) {
+        // 只有簽到或只有簽退：漏打卡，仍記錄有的那一筆時間供人工核對
+        status = 'missing';
+        clockIn = isTime(inCell) ? inCell : null;
+        clockOut = isTime(outCell) ? outCell : null;
+      } else if (inCell === '缺卡') {
+        status = 'missing';
+      } else {
+        note = inCell || outCell || null;
+      }
+
+      records.push({ account, date, shiftStart, shiftEnd, clockIn, clockOut, status, note });
+    }
+  }
+
+  return records;
 }
 
 // 解析政府行政機關辦公日曆表（人事行政總處開放資料）CSV，格式彈性辨識欄位
@@ -842,14 +954,14 @@ api.post('/employees/import', requireRole(...STAFF_ROLES), async (req, res) => {
 api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender } = req.body;
+    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount } = req.body;
 
     const [beforeRows] = await pool.execute('SELECT employeeId FROM employees WHERE id = ?', [id]);
     const previousEmployeeId = beforeRows[0]?.employeeId;
 
     await pool.execute(
-      'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, monthlySalary = ?, gender = ? WHERE id = ?',
-      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', monthlySalary || null, gender || null, id]
+      'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, monthlySalary = ?, gender = ?, attendanceAccount = ? WHERE id = ?',
+      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', monthlySalary || null, gender || null, attendanceAccount || null, id]
     );
 
     // 同步登入帳號：email 異動時登入帳號一併更新
@@ -1598,6 +1710,131 @@ api.delete('/holidays/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   }
 });
 
+// 考勤 API 路由（僅 HR/主管）：資料來自外部打卡系統匯出的 .xls，透過員工的
+// 「考勤帳號」比對到系統內的員工，未設定考勤帳號的匯入資料列會列在 unmatchedAccounts
+
+api.post('/attendance/import', requireRole(...STAFF_ROLES), (req, res, next) => {
+  uploadAttendanceFile.single('file')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: '請選擇要匯入的考勤檔案' });
+    }
+    const year = Number(req.body.year);
+    if (!year || year < 2000 || year > 2100) {
+      return res.status(400).json({ error: '請提供正確的西元年' });
+    }
+
+    let records;
+    try {
+      records = parseAttendanceXls(req.file.buffer, year);
+    } catch (parseError) {
+      return res.status(400).json({ error: parseError.message });
+    }
+    if (records.length === 0) {
+      return res.status(400).json({ error: '檔案中沒有可匯入的考勤資料' });
+    }
+
+    const [employeeRows] = await pool.execute(
+      'SELECT employeeId, attendanceAccount FROM employees WHERE attendanceAccount IS NOT NULL'
+    );
+    const accountMap = new Map(employeeRows.map((e) => [e.attendanceAccount, e.employeeId]));
+
+    let imported = 0;
+    const unmatchedAccounts = new Set();
+    for (const record of records) {
+      const employeeId = accountMap.get(record.account);
+      if (!employeeId) {
+        unmatchedAccounts.add(record.account);
+        continue;
+      }
+      await pool.execute(
+        `INSERT INTO attendance_records (employeeId, date, shiftStart, shiftEnd, clockIn, clockOut, status, note)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE shiftStart = VALUES(shiftStart), shiftEnd = VALUES(shiftEnd),
+           clockIn = VALUES(clockIn), clockOut = VALUES(clockOut), status = VALUES(status), note = VALUES(note)`,
+        [employeeId, record.date, record.shiftStart, record.shiftEnd, record.clockIn, record.clockOut, record.status, record.note]
+      );
+      imported += 1;
+    }
+
+    res.json({
+      message: '匯入完成',
+      imported,
+      unmatchedAccounts: Array.from(unmatchedAccounts),
+    });
+  } catch (error) {
+    console.error('Error importing attendance:', error);
+    res.status(500).json({ error: '匯入考勤資料失敗', detail: error.message });
+  }
+});
+
+// 某年月的考勤明細（可選員工篩選），供報表明細表使用
+api.get('/attendance/records', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const { year, month, employeeId } = req.query;
+    if (!year || !month) {
+      return res.status(400).json({ error: '請提供年月' });
+    }
+    const params = [String(year), String(month).padStart(2, '0')];
+    let query = `
+      SELECT a.*, e.name as employeeName, e.department
+      FROM attendance_records a
+      LEFT JOIN employees e ON a.employeeId = e.employeeId
+      WHERE DATE_FORMAT(a.date, '%Y-%m') = CONCAT(?, '-', ?)
+    `;
+    if (employeeId) {
+      query += ' AND a.employeeId = ?';
+      params.push(employeeId);
+    }
+    query += ' ORDER BY a.date, a.employeeId';
+    const [rows] = await pool.execute(query, params);
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching attendance records:', error);
+    res.status(500).json({ error: '獲取考勤紀錄失敗', detail: error.message });
+  }
+});
+
+// 某年月每位員工的統計摘要：正常/缺卡/請假/休息天數與遲到早退次數。
+// 遲到早退只在 status='normal' 且有排班時間可比對時計算，容許 ATTENDANCE_GRACE_MINUTES
+// 分鐘的緩衝；跨夜班別（如 18:00-06:00）的早退判斷用時間字串直接比較會不準，
+// 屬已知限制，跨夜班別的紀錄目前很少見所以先不特別處理
+api.get('/attendance/summary', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const { year, month } = req.query;
+    if (!year || !month) {
+      return res.status(400).json({ error: '請提供年月' });
+    }
+    const [rows] = await pool.execute(
+      `SELECT
+        a.employeeId, e.name as employeeName, e.department,
+        COUNT(*) as totalDays,
+        SUM(a.status = 'normal') as normalDays,
+        SUM(a.status = 'missing') as missingDays,
+        SUM(a.status = 'day_off') as dayOffDays,
+        SUM(a.status = 'leave') as leaveDays,
+        SUM(a.status = 'normal' AND a.shiftStart IS NOT NULL AND a.clockIn > ADDTIME(a.shiftStart, ?)) as lateCount,
+        SUM(a.status = 'normal' AND a.shiftEnd IS NOT NULL AND a.shiftEnd > a.shiftStart AND a.clockOut < SUBTIME(a.shiftEnd, ?)) as earlyLeaveCount
+      FROM attendance_records a
+      LEFT JOIN employees e ON a.employeeId = e.employeeId
+      WHERE DATE_FORMAT(a.date, '%Y-%m') = CONCAT(?, '-', ?)
+      GROUP BY a.employeeId, e.name, e.department
+      ORDER BY e.department, a.employeeId`,
+      [`00:${String(ATTENDANCE_GRACE_MINUTES).padStart(2, '0')}:00`, `00:${String(ATTENDANCE_GRACE_MINUTES).padStart(2, '0')}:00`, String(year), String(month).padStart(2, '0')]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching attendance summary:', error);
+    res.status(500).json({ error: '獲取考勤統計失敗', detail: error.message });
+  }
+});
+
 // 加班申請 API 路由
 
 api.get('/overtime-applications', async (req, res) => {
@@ -1820,16 +2057,14 @@ api.get('/dashboard/stats', requireRole(...STAFF_ROLES), async (req, res) => {
       WHERE MONTH(startDate) = MONTH(CURRENT_DATE()) AND YEAR(startDate) = YEAR(CURRENT_DATE())
     `);
 
-    let averageAttendance = null;
-    try {
-      const [attendanceRows] = await pool.execute(`
-        SELECT AVG(attendance) as avgAttendance FROM attendance
-        WHERE MONTH(date) = MONTH(CURRENT_DATE()) AND YEAR(date) = YEAR(CURRENT_DATE())
-      `);
-      averageAttendance = attendanceRows[0]?.avgAttendance ? Math.round(attendanceRows[0].avgAttendance) : null;
-    } catch (e) {
-      averageAttendance = null;
-    }
+    // 出勤率 = 正常天數 ÷（正常＋缺卡天數），休息日/例假日/請假不計入分母，
+    // 沒有任何考勤紀錄（尚未匯入過）時回傳 null，前端會顯示「無資料」而不是 0%
+    const [attendanceRows] = await pool.execute(`
+      SELECT ROUND(100 * SUM(status = 'normal') / NULLIF(SUM(status IN ('normal', 'missing')), 0)) as avgAttendance
+      FROM attendance_records
+      WHERE MONTH(date) = MONTH(CURRENT_DATE()) AND YEAR(date) = YEAR(CURRENT_DATE())
+    `);
+    const averageAttendance = attendanceRows[0]?.avgAttendance ?? null;
 
     // 待審核申請需同時計入請假與加班申請，否則加班申請永遠不會反映在儀表板上
     const [pendingLeave] = await pool.execute(`SELECT COUNT(*) as count FROM leave_applications WHERE status = 'pending'`);
@@ -1849,17 +2084,25 @@ api.get('/dashboard/stats', requireRole(...STAFF_ROLES), async (req, res) => {
   }
 });
 
-// 注意：系統目前沒有出勤打卡資料表，attendance 固定回傳 0；
-// leave（本月請假件數）與 overtime（本月平均加班時數）則查詢真實資料
+// leave（本月請假件數）與 overtime（本月平均加班時數）查詢既有資料；
+// attendance（本月出勤率）查詢考勤紀錄，沒有匯入過考勤資料的部門會是 0
 api.get('/dashboard/attendance', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const [rows] = await pool.execute(`
       SELECT
         d.name as name,
-        0 as attendance,
+        IFNULL(attendance_stats.rate, 0) as attendance,
         IFNULL(leave_stats.leave_count, 0) as \`leave\`,
         IFNULL(overtime_stats.avg_hours, 0) as overtime
       FROM departments d
+      LEFT JOIN (
+        SELECT e.department,
+          ROUND(100 * SUM(a.status = 'normal') / NULLIF(SUM(a.status IN ('normal', 'missing')), 0)) as rate
+        FROM employees e
+        LEFT JOIN attendance_records a ON a.employeeId = e.employeeId
+          AND MONTH(a.date) = MONTH(CURRENT_DATE()) AND YEAR(a.date) = YEAR(CURRENT_DATE())
+        GROUP BY e.department
+      ) attendance_stats ON attendance_stats.department = d.name
       LEFT JOIN (
         SELECT e.department, COUNT(la.id) as leave_count
         FROM employees e

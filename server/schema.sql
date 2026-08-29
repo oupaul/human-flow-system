@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS employees (
   notes TEXT,
   monthlySalary DECIMAL(10,0) NULL,
   gender ENUM('male', 'female') NULL,
+  attendanceAccount VARCHAR(100) NULL UNIQUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -138,6 +139,26 @@ CREATE TABLE IF NOT EXISTS holidays (
   isHoliday BOOLEAN NOT NULL DEFAULT TRUE,
   source VARCHAR(20) DEFAULT 'manual',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 考勤紀錄：從外部打卡系統匯出的 .xls 匯入，一天一筆。status 為
+-- normal（有正常簽到退）/missing（缺卡）/day_off（休息日或例假日）/leave（請假，
+-- note 存原始假別文字僅供參考顯示，不影響本系統自己的請假額度計算）。
+-- shiftStart/shiftEnd 來自匯入檔的班別欄位，用於報表計算遲到/早退
+CREATE TABLE IF NOT EXISTS attendance_records (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL,
+  date DATE NOT NULL,
+  shiftStart TIME NULL,
+  shiftEnd TIME NULL,
+  clockIn TIME NULL,
+  clockOut TIME NULL,
+  status ENUM('normal', 'missing', 'day_off', 'leave') NOT NULL,
+  note VARCHAR(50) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY employee_date (employeeId, date),
+  FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
 );
 
 -- 加班申請表：compensationType 由員工申請時選擇要領加班費還是換補休；

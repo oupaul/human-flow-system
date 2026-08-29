@@ -16,6 +16,7 @@ export interface Employee {
   notes: string;
   monthlySalary?: number | null;
   gender?: Gender | null;
+  attendanceAccount?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -36,6 +37,7 @@ export interface EmployeeFormData {
   notes: string;
   monthlySalary: number | null;
   gender: Gender | "";
+  attendanceAccount: string;
   // 僅新增員工時使用：系統上線時導入既有員工，登記他們在此之前已休掉的特休天數
   initialAnnualLeaveUsed?: number | null;
 }
@@ -62,6 +64,7 @@ export const emptyFormData: EmployeeFormData = {
   notes: "",
   monthlySalary: null,
   gender: "",
+  attendanceAccount: "",
   initialAnnualLeaveUsed: null,
 };
 
@@ -82,5 +85,6 @@ export const employeeToFormData = (employee: Employee): EmployeeFormData => {
     notes: employee.notes || "",
     monthlySalary: employee.monthlySalary ?? null,
     gender: employee.gender || "",
+    attendanceAccount: employee.attendanceAccount || "",
   };
 };

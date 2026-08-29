@@ -6,9 +6,37 @@
     "department": "Department Comparison"
   },
   "attendance": {
-    "title": "Annual Attendance Rate Trend",
-    "description": "Monthly changes in overall company attendance rate",
-    "featureUnavailable": "Attendance clock-in tracking has not been implemented yet, so no monthly attendance data is available for analysis."
+    "title": "Attendance Analysis",
+    "description": "Import records from the external time-clock system and view monthly attendance statistics per employee",
+    "importTitle": "Import Attendance Data",
+    "importDescription": "Upload the .xls file exported from the external time-clock system (must include department / account / name / shift, and daily clock-in/out). The system matches each row to an employee using the \"Attendance Account\" set in Employee Management. Since the date headers (e.g. \"07-01\") don't include a year, specify the year below.",
+    "yearLabel": "Year",
+    "fileLabel": "Choose File",
+    "importButton": "Start Import",
+    "importing": "Importing...",
+    "unmatchedTitle": "The following attendance accounts could not be matched to any employee and were not imported:",
+    "summaryTitle": "Monthly Attendance Summary",
+    "summaryDescription": "Statistics after matching by attendance account; switch year/month to view different periods",
+    "monthLabel": "Month",
+    "columns": {
+      "employeeId": "Employee ID",
+      "name": "Name",
+      "department": "Department",
+      "normalDays": "Normal Days",
+      "missingDays": "Missing Punch Days",
+      "lateCount": "Late Count",
+      "earlyLeaveCount": "Early Leave Count",
+      "leaveDays": "Leave Days",
+      "dayOffDays": "Days Off"
+    },
+    "noData": "No attendance data for this month yet. Please import above first.",
+    "toasts": {
+      "loadFailed": "Failed to load attendance summary",
+      "importSuccess": "Import complete: {{count}} records",
+      "importPartial": "Import complete: {{count}} records, but some accounts could not be matched",
+      "unmatchedAccounts": "Unmatched attendance accounts: {{accounts}}. Please add the attendance account in Employee Management and re-import.",
+      "importFailed": "Failed to import attendance data"
+    }
   },
   "leave": {
     "title": "Leave Type Distribution",

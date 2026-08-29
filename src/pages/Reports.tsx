@@ -20,6 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,13 +44,29 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { Download, Calendar } from "lucide-react";
+import { Download, Calendar, Upload } from "lucide-react";
 import { dashboardApi } from "@/services/dashboardApi";
+import { useAttendance } from "@/hooks/useAttendance";
 
 const Reports = () => {
   const { t } = useTranslation(["reports", "common"]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const currentDate = new Date();
+  const [attendanceYear, setAttendanceYear] = useState(currentDate.getFullYear());
+  const [attendanceMonth, setAttendanceMonth] = useState(currentDate.getMonth() + 1);
+  const [importYear, setImportYear] = useState(currentDate.getFullYear());
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const { summary, loading: loadingAttendance, isImporting, importFile: doImport } = useAttendance(attendanceYear, attendanceMonth);
+
+  const handleImport = async () => {
+    if (!importFile) return;
+    const result = await doImport(importFile, importYear);
+    if (result) {
+      setImportFile(null);
+    }
+  };
   const [departmentComparison, setDepartmentComparison] = useState([]);
   const [loadingDepartment, setLoadingDepartment] = useState(false);
   const [leaveDistribution, setLeaveDistribution] = useState([]);
@@ -95,15 +119,112 @@ const Reports = () => {
         </TabsList>
 
         {/* 出勤分析 Tab */}
-        <TabsContent value="attendance">
+        <TabsContent value="attendance" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t("reports:attendance.title")}</CardTitle>
-              <CardDescription>{t("reports:attendance.description")}</CardDescription>
+              <CardTitle>{t("reports:attendance.importTitle")}</CardTitle>
+              <CardDescription>{t("reports:attendance.importDescription")}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center text-muted-foreground py-12">
-                {t("reports:attendance.featureUnavailable")}
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="attendanceImportYear">{t("reports:attendance.yearLabel")}</Label>
+                  <Input
+                    id="attendanceImportYear"
+                    type="number"
+                    className="w-28"
+                    value={importYear}
+                    onChange={(e) => setImportYear(Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="attendanceImportFile">{t("reports:attendance.fileLabel")}</Label>
+                  <Input
+                    id="attendanceImportFile"
+                    type="file"
+                    accept=".xls,.xlsx"
+                    className="w-64"
+                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  />
+                </div>
+                <Button onClick={handleImport} disabled={!importFile || isImporting}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  {isImporting ? t("reports:attendance.importing") : t("reports:attendance.importButton")}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>{t("reports:attendance.summaryTitle")}</CardTitle>
+                  <CardDescription>{t("reports:attendance.summaryDescription")}</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select value={String(attendanceYear)} onValueChange={(value) => setAttendanceYear(Number(value))}>
+                    <SelectTrigger className="w-28">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[currentDate.getFullYear() - 1, currentDate.getFullYear(), currentDate.getFullYear() + 1].map((y) => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={String(attendanceMonth)} onValueChange={(value) => setAttendanceMonth(Number(value))}>
+                    <SelectTrigger className="w-24">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                        <SelectItem key={m} value={String(m)}>{t("reports:attendance.monthLabel")} {m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("reports:attendance.columns.employeeId")}</TableHead>
+                      <TableHead>{t("reports:attendance.columns.name")}</TableHead>
+                      <TableHead>{t("reports:attendance.columns.department")}</TableHead>
+                      <TableHead>{t("reports:attendance.columns.normalDays")}</TableHead>
+                      <TableHead>{t("reports:attendance.columns.missingDays")}</TableHead>
+                      <TableHead>{t("reports:attendance.columns.lateCount")}</TableHead>
+                      <TableHead>{t("reports:attendance.columns.earlyLeaveCount")}</TableHead>
+                      <TableHead>{t("reports:attendance.columns.leaveDays")}</TableHead>
+                      <TableHead>{t("reports:attendance.columns.dayOffDays")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {summary.map((row) => (
+                      <TableRow key={row.employeeId}>
+                        <TableCell>{row.employeeId}</TableCell>
+                        <TableCell>{row.employeeName}</TableCell>
+                        <TableCell>{row.department}</TableCell>
+                        <TableCell>{row.normalDays}</TableCell>
+                        <TableCell className={row.missingDays > 0 ? "text-red-600" : undefined}>{row.missingDays}</TableCell>
+                        <TableCell className={row.lateCount > 0 ? "text-orange-600" : undefined}>{row.lateCount}</TableCell>
+                        <TableCell className={row.earlyLeaveCount > 0 ? "text-orange-600" : undefined}>{row.earlyLeaveCount}</TableCell>
+                        <TableCell>{row.leaveDays}</TableCell>
+                        <TableCell>{row.dayOffDays}</TableCell>
+                      </TableRow>
+                    ))}
+                    {!loadingAttendance && summary.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                          {t("reports:attendance.noData")}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
