@@ -28,6 +28,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,7 +52,7 @@ import {
   Cell,
 } from "recharts";
 import { Download, Calendar, Upload } from "lucide-react";
-import { dashboardApi } from "@/services/dashboardApi";
+import { dashboardApi, LeaveDistributionDetailRow } from "@/services/dashboardApi";
 import { useAttendance } from "@/hooks/useAttendance";
 import { useLeaveImport } from "@/hooks/useLeaveImport";
 
@@ -172,6 +179,23 @@ const Reports = () => {
     link.download = `leave-distribution-${startDate || "current"}_to_${endDate || "current"}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const [selectedLeaveType, setSelectedLeaveType] = useState<string | null>(null);
+  const [leaveTypeDetail, setLeaveTypeDetail] = useState<LeaveDistributionDetailRow[]>([]);
+  const [loadingLeaveTypeDetail, setLoadingLeaveTypeDetail] = useState(false);
+
+  const handleLeaveTypeClick = async (name: string) => {
+    setSelectedLeaveType(name);
+    setLoadingLeaveTypeDetail(true);
+    try {
+      const data = await dashboardApi.getLeaveDistributionDetail(name, startDate || undefined, endDate || undefined);
+      setLeaveTypeDetail(data);
+    } catch (e) {
+      setLeaveTypeDetail([]);
+    } finally {
+      setLoadingLeaveTypeDetail(false);
+    }
   };
 
   return (
@@ -386,6 +410,8 @@ const Reports = () => {
                         outerRadius={80}
                         fill="#8884d8"
                         dataKey="value"
+                        cursor="pointer"
+                        onClick={(entry) => handleLeaveTypeClick(entry.name)}
                       >
                         {leaveDistribution.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -417,6 +443,8 @@ const Reports = () => {
                         name={t("reports:leave.seriesName")}
                         fill="#3b82f6"
                         radius={[0, 4, 4, 0]}
+                        cursor="pointer"
+                        onClick={(entry) => handleLeaveTypeClick(entry.name)}
                       >
                         {leaveDistribution.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -429,10 +457,13 @@ const Reports = () => {
               {!loadingLeave && leaveDistribution.length === 0 && (
                 <div className="text-center text-muted-foreground mt-4">{t("reports:leave.noData")}</div>
               )}
+              {!loadingLeave && leaveDistribution.length > 0 && (
+                <div className="text-center text-sm text-muted-foreground mt-2">{t("reports:leave.detailHint")}</div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* 部門比較 Tab */}
         <TabsContent value="department">
           <Card>
@@ -498,6 +529,46 @@ const Reports = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={selectedLeaveType !== null} onOpenChange={(open) => !open && setSelectedLeaveType(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{t("reports:leave.detailTitle", { name: selectedLeaveType })}</DialogTitle>
+            <DialogDescription>{t("reports:leave.detailDescription")}</DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md border max-h-96 overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("reports:leave.detailColumns.employee")}</TableHead>
+                  <TableHead>{t("reports:leave.detailColumns.department")}</TableHead>
+                  <TableHead>{t("reports:leave.detailColumns.period")}</TableHead>
+                  <TableHead>{t("reports:leave.detailColumns.value")}</TableHead>
+                  <TableHead>{t("reports:leave.detailColumns.source")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {leaveTypeDetail.map((row, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{row.employeeName}（{row.employeeId}）</TableCell>
+                    <TableCell>{row.department}</TableCell>
+                    <TableCell>{row.eventDate === row.endDate ? row.eventDate : `${row.eventDate} ~ ${row.endDate}`}</TableCell>
+                    <TableCell>{row.value}</TableCell>
+                    <TableCell>{row.source === "imported" ? t("reports:leave.detailColumns.sourceImported") : t("reports:leave.detailColumns.sourceApplication")}</TableCell>
+                  </TableRow>
+                ))}
+                {!loadingLeaveTypeDetail && leaveTypeDetail.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                      {t("reports:leave.detailNoData")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

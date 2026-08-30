@@ -20,6 +20,16 @@ interface LeaveDistribution {
   color: string;
 }
 
+export interface LeaveDistributionDetailRow {
+  employeeId: string;
+  employeeName: string;
+  department: string;
+  eventDate: string;
+  endDate: string;
+  value: number;
+  source: "application" | "imported";
+}
+
 export const dashboardApi = {
   async getDashboardStats(): Promise<DashboardStats> {
     return apiFetch<DashboardStats>("/dashboard/stats");
@@ -33,5 +43,10 @@ export const dashboardApi = {
   async getLeaveDistribution(startDate?: string, endDate?: string): Promise<LeaveDistribution[]> {
     const query = startDate && endDate ? `?startDate=${startDate}&endDate=${endDate}` : "";
     return apiFetch<LeaveDistribution[]>(`/dashboard/leaves${query}`);
+  },
+
+  async getLeaveDistributionDetail(name: string, startDate?: string, endDate?: string): Promise<LeaveDistributionDetailRow[]> {
+    const rangeQuery = startDate && endDate ? `&startDate=${startDate}&endDate=${endDate}` : "";
+    return apiFetch<LeaveDistributionDetailRow[]>(`/dashboard/leaves/detail?name=${encodeURIComponent(name)}${rangeQuery}`);
   },
 };

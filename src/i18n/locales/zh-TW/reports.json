@@ -54,6 +54,19 @@
       "importPartial": "匯入完成，共 {{count}} 筆，但有部分帳號找不到對應員工",
       "unmatchedAccounts": "找不到對應員工的考勤帳號：{{accounts}}，請至「員工管理」補上考勤帳號後重新匯入",
       "importFailed": "匯入請假紀錄失敗"
+    },
+    "detailHint": "點選圖表可查看該假別的員工明細",
+    "detailTitle": "{{name}} 明細",
+    "detailDescription": "所選期間內請了這個假別的員工清單",
+    "detailNoData": "此期間查無明細資料",
+    "detailColumns": {
+      "employee": "員工",
+      "department": "部門",
+      "period": "請假期間",
+      "value": "天數/時數",
+      "source": "資料來源",
+      "sourceApplication": "正式申請",
+      "sourceImported": "匯入紀錄"
     }
   },
   "department": {

@@ -54,6 +54,19 @@
       "importPartial": "Import complete: {{count}} records, but some accounts could not be matched",
       "unmatchedAccounts": "Unmatched attendance accounts: {{accounts}}. Please add the attendance account in Employee Management and re-import.",
       "importFailed": "Failed to import leave records"
+    },
+    "detailHint": "Click the chart to see which employees took this leave type",
+    "detailTitle": "{{name}} Details",
+    "detailDescription": "Employees who took this leave type during the selected period",
+    "detailNoData": "No detail records for this period",
+    "detailColumns": {
+      "employee": "Employee",
+      "department": "Department",
+      "period": "Leave Period",
+      "value": "Days/Hours",
+      "source": "Source",
+      "sourceApplication": "Formal Application",
+      "sourceImported": "Imported Record"
     }
   },
   "department": {

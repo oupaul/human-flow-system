@@ -54,6 +54,19 @@
       "importPartial": "インポートが完了しました（{{count}} 件）が、一部のアカウントは照合できませんでした",
       "unmatchedAccounts": "対応する従業員が見つからなかった勤怠アカウント：{{accounts}}。「従業員管理」で勤怠アカウントを設定してから再度インポートしてください",
       "importFailed": "休暇記録のインポートに失敗しました"
+    },
+    "detailHint": "グラフをクリックすると、この休暇種別を取得した従業員の明細を表示します",
+    "detailTitle": "{{name}} の明細",
+    "detailDescription": "選択した期間にこの休暇種別を取得した従業員一覧",
+    "detailNoData": "この期間の明細データはありません",
+    "detailColumns": {
+      "employee": "従業員",
+      "department": "部門",
+      "period": "休暇期間",
+      "value": "日数/時間数",
+      "source": "データ元",
+      "sourceApplication": "正式申請",
+      "sourceImported": "インポート記録"
     }
   },
   "department": {

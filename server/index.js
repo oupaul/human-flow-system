@@ -2359,6 +2359,63 @@ api.get('/dashboard/leaves', requireRole(...STAFF_ROLES), async (req, res) => {
   }
 });
 
+// 點選請假分布圖某一假別後的明細：哪些員工在該期間請了這個假別，合併正式申請
+// 與已生效的匯入紀錄兩個來源，依請假開始日期新到舊排序
+api.get('/dashboard/leaves/detail', requireRole(...STAFF_ROLES), async (req, res) => {
+  const { name, startDate, endDate } = req.query;
+  if (!name) {
+    return res.status(400).json({ error: '請提供假別名稱' });
+  }
+  const useRange = startDate && endDate;
+  const rangeFilter = useRange
+    ? 'eventDate >= ? AND eventDate <= ?'
+    : 'MONTH(eventDate) = MONTH(CURRENT_DATE()) AND YEAR(eventDate) = YEAR(CURRENT_DATE())';
+  const rangeParams = useRange ? [startDate, endDate] : [];
+  try {
+    let rows;
+    try {
+      [rows] = await pool.execute(
+        `SELECT * FROM (
+          SELECT e.employeeId, e.name as employeeName, e.department,
+            la.startDate as eventDate, la.endDate as endDate, la.days as value, 'application' as source
+          FROM leave_applications la
+          LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
+          LEFT JOIN employees e ON la.employeeId = e.employeeId
+          WHERE lt.name = ?
+          UNION ALL
+          SELECT e.employeeId, e.name as employeeName, e.department,
+            DATE(ilr.startDateTime) as eventDate, DATE(ilr.endDateTime) as endDate,
+            IFNULL(ilr.days, IFNULL(ilr.hours, ilr.minutes / 60) / 8) as value, 'imported' as source
+          FROM imported_leave_records ilr
+          LEFT JOIN employees e ON ilr.employeeId = e.employeeId
+          WHERE ilr.leaveType = ? AND ilr.status = '已生效'
+        ) combined
+        WHERE ${rangeFilter}
+        ORDER BY eventDate DESC`,
+        [name, name, ...rangeParams]
+      );
+    } catch (unionError) {
+      console.error('imported_leave_records 查詢失敗，改用只含正式申請的版本（可能尚未套用 migration 009）：', unionError.message);
+      [rows] = await pool.execute(
+        `SELECT e.employeeId, e.name as employeeName, e.department,
+          la.startDate as eventDate, la.endDate as endDate, la.days as value, 'application' as source
+        FROM leave_applications la
+        LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
+        LEFT JOIN employees e ON la.employeeId = e.employeeId
+        WHERE lt.name = ? AND ${useRange
+          ? 'la.startDate >= ? AND la.startDate <= ?'
+          : 'MONTH(la.startDate) = MONTH(CURRENT_DATE()) AND YEAR(la.startDate) = YEAR(CURRENT_DATE())'}
+        ORDER BY la.startDate DESC`,
+        [name, ...rangeParams]
+      );
+    }
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching leave distribution detail:', error);
+    res.status(500).json({ error: '獲取請假明細失敗', detail: error.message });
+  }
+});
+
 app.use('/api', api);
 
 // 錯誤處理中間件
