@@ -2167,13 +2167,18 @@ api.get('/dashboard/attendance', requireRole(...STAFF_ROLES), async (req, res) =
 
 api.get('/dashboard/leaves', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
-    const [rows] = await pool.execute(`
-      SELECT lt.name as name, SUM(la.days) as value
-      FROM leave_applications la
-      LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
-      WHERE MONTH(la.startDate) = MONTH(CURRENT_DATE()) AND YEAR(la.startDate) = YEAR(CURRENT_DATE())
-      GROUP BY la.leaveTypeId
-    `);
+    const { startDate, endDate } = req.query;
+    const useRange = startDate && endDate;
+    const [rows] = await pool.execute(
+      `SELECT lt.name as name, SUM(la.days) as value
+       FROM leave_applications la
+       LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
+       WHERE ${useRange
+         ? 'la.startDate >= ? AND la.startDate <= ?'
+         : 'MONTH(la.startDate) = MONTH(CURRENT_DATE()) AND YEAR(la.startDate) = YEAR(CURRENT_DATE())'}
+       GROUP BY la.leaveTypeId`,
+      useRange ? [startDate, endDate] : []
+    );
     const colorList = ["#3b82f6", "#f59e0b", "#ef4444", "#10b981", "#8b5cf6", "#06b6d4", "#6b7280"];
     const leaveData = rows.map((row, idx) => ({ ...row, color: colorList[idx % colorList.length] }));
     res.json(leaveData);

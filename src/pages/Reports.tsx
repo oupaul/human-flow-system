@@ -91,7 +91,7 @@ const Reports = () => {
     const fetchLeaveDistribution = async () => {
       setLoadingLeave(true);
       try {
-        const data = await dashboardApi.getLeaveDistribution();
+        const data = await dashboardApi.getLeaveDistribution(startDate || undefined, endDate || undefined);
         setLeaveDistribution(data);
       } catch (e) {
         setLeaveDistribution([]);
@@ -100,7 +100,20 @@ const Reports = () => {
       }
     };
     fetchLeaveDistribution();
-  }, []);
+  }, [startDate, endDate]);
+
+  const handleExportLeaveDistribution = () => {
+    const header = `${t("reports:leave.title")},${t("reports:leave.seriesName")}`;
+    const rows = leaveDistribution.map((row) => `${row.name},${row.value}`);
+    const csvContent = "﻿" + [header, ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `leave-distribution-${startDate || "current"}_to_${endDate || "current"}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
@@ -264,7 +277,12 @@ const Reports = () => {
                       onChange={(e) => setEndDate(e.target.value)}
                     />
                   </div>
-                  <Button variant="outline" size="icon">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleExportLeaveDistribution}
+                    disabled={leaveDistribution.length === 0}
+                  >
                     <Download className="h-4 w-4" />
                   </Button>
                 </div>

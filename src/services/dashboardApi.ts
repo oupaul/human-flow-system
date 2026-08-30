@@ -29,7 +29,8 @@ export const dashboardApi = {
     return apiFetch<DepartmentAttendance[]>("/dashboard/attendance");
   },
 
-  async getLeaveDistribution(): Promise<LeaveDistribution[]> {
-    return apiFetch<LeaveDistribution[]>("/dashboard/leaves");
+  async getLeaveDistribution(startDate?: string, endDate?: string): Promise<LeaveDistribution[]> {
+    const query = startDate && endDate ? `?startDate=${startDate}&endDate=${endDate}` : "";
+    return apiFetch<LeaveDistribution[]>(`/dashboard/leaves${query}`);
   },
 };
