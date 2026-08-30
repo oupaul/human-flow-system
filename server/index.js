@@ -84,8 +84,8 @@ const uploadAttachment = multer({
   },
 });
 
-// 考勤匯入檔只需要解析內容存進資料庫，不用留存原始檔案，用記憶體儲存即可
-const uploadAttendanceFile = multer({
+// 考勤／請假紀錄匯入檔只需要解析內容存進資料庫，不用留存原始檔案，用記憶體儲存即可
+const uploadImportFile = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
 });
@@ -435,6 +435,76 @@ function parseAttendanceXls(buffer, year) {
     }
   }
 
+  return records;
+}
+
+// 解析外部打卡系統匯出的「請假紀錄」.xls：一列一筆請假紀錄，標題以關鍵字辨識，
+// 欄位順序調整不影響解析。天數/時數/分鐘視該公司請假單位習慣，三者可能只填其中之一
+function parseLeaveXls(buffer) {
+  const workbook = XLSX.read(buffer, { type: 'buffer' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+  if (rows.length < 2) {
+    throw new Error('請假紀錄檔案格式不正確，找不到資料列');
+  }
+
+  const header = rows[0].map((cell) => String(cell || '').trim());
+  const findColumn = (keywords) => header.findIndex((col) => keywords.some((keyword) => col.includes(keyword)));
+  const columns = {
+    account: findColumn(['人員帳號']),
+    name: findColumn(['人員姓名']),
+    leaveType: findColumn(['假別']),
+    startDateTime: findColumn(['請假開始時間']),
+    endDateTime: findColumn(['請假結束時間']),
+    days: findColumn(['請假天數']),
+    hours: findColumn(['請假時數']),
+    minutes: findColumn(['請假分鐘數']),
+    status: findColumn(['狀態']),
+    reason: findColumn(['請假原因']),
+  };
+  if (columns.account === -1 || columns.leaveType === -1 || columns.startDateTime === -1 || columns.endDateTime === -1) {
+    throw new Error('請假紀錄檔案標題列需包含：人員帳號、假別、請假開始時間、請假結束時間');
+  }
+
+  // 匯出檔的時間是「YYYY/MM/DD HH:MM:SS」字串，用正則手動解析成 MySQL DATETIME
+  // 格式，避免用 new Date() 解讀成當地時區造成時間偏移
+  const toDateTime = (raw) => {
+    const value = String(raw || '').trim();
+    const match = value.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (!match) return null;
+    const [, y, mo, d, h = '0', mi = '0', s = '0'] = match;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${y}-${pad(mo)}-${pad(d)} ${pad(h)}:${pad(mi)}:${pad(s)}`;
+  };
+  const toNumber = (raw) => {
+    const value = String(raw || '').trim();
+    if (!value) return null;
+    const n = Number(value);
+    return Number.isNaN(n) ? null : n;
+  };
+  const pick = (cells, key) => (columns[key] === -1 ? '' : String(cells[columns[key]] || '').trim());
+
+  const records = [];
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r];
+    const account = pick(cells, 'account');
+    const leaveType = pick(cells, 'leaveType');
+    const startDateTime = toDateTime(cells[columns.startDateTime]);
+    const endDateTime = toDateTime(cells[columns.endDateTime]);
+    if (!account || !leaveType || !startDateTime || !endDateTime) continue;
+    records.push({
+      account,
+      name: pick(cells, 'name') || null,
+      leaveType,
+      startDateTime,
+      endDateTime,
+      days: toNumber(pick(cells, 'days')),
+      hours: toNumber(pick(cells, 'hours')),
+      minutes: toNumber(pick(cells, 'minutes')),
+      status: pick(cells, 'status') || null,
+      reason: pick(cells, 'reason') || null,
+    });
+  }
   return records;
 }
 
@@ -1714,7 +1784,7 @@ api.delete('/holidays/:id', requireRole(...STAFF_ROLES), async (req, res) => {
 // 「考勤帳號」比對到系統內的員工，未設定考勤帳號的匯入資料列會列在 unmatchedAccounts
 
 api.post('/attendance/import', requireRole(...STAFF_ROLES), (req, res, next) => {
-  uploadAttendanceFile.single('file')(req, res, (err) => {
+  uploadImportFile.single('file')(req, res, (err) => {
     if (err) {
       return res.status(400).json({ error: err.message });
     }
@@ -1832,6 +1902,67 @@ api.get('/attendance/summary', requireRole(...STAFF_ROLES), async (req, res) => 
   } catch (error) {
     console.error('Error fetching attendance summary:', error);
     res.status(500).json({ error: '獲取考勤統計失敗', detail: error.message });
+  }
+});
+
+// 請假紀錄匯入 API（僅 HR/主管）：資料來自外部打卡系統匯出的「請假紀錄」.xls，
+// 透過員工的「考勤帳號」比對到系統內的員工，用於補齊「報表 → 請假分析」在正式
+// 數位化請假申請功能上線前的歷史/既有請假資料，不會寫入 leave_applications，
+// 也不影響假別餘額或核准流程，純粹供報表統計使用
+api.post('/leaves/import', requireRole(...STAFF_ROLES), (req, res, next) => {
+  uploadImportFile.single('file')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: '請選擇要匯入的請假紀錄檔案' });
+    }
+
+    let records;
+    try {
+      records = parseLeaveXls(req.file.buffer);
+    } catch (parseError) {
+      return res.status(400).json({ error: parseError.message });
+    }
+    if (records.length === 0) {
+      return res.status(400).json({ error: '檔案中沒有可匯入的請假紀錄' });
+    }
+
+    const [employeeRows] = await pool.execute(
+      'SELECT employeeId, attendanceAccount FROM employees WHERE attendanceAccount IS NOT NULL'
+    );
+    const accountMap = new Map(employeeRows.map((e) => [e.attendanceAccount, e.employeeId]));
+
+    let imported = 0;
+    const unmatchedAccounts = new Set();
+    for (const record of records) {
+      const employeeId = accountMap.get(record.account);
+      if (!employeeId) {
+        unmatchedAccounts.add(record.account);
+        continue;
+      }
+      await pool.execute(
+        `INSERT INTO imported_leave_records (employeeId, leaveType, startDateTime, endDateTime, days, hours, minutes, status, reason)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE days = VALUES(days), hours = VALUES(hours), minutes = VALUES(minutes),
+           status = VALUES(status), reason = VALUES(reason)`,
+        [employeeId, record.leaveType, record.startDateTime, record.endDateTime, record.days, record.hours, record.minutes, record.status, record.reason]
+      );
+      imported += 1;
+    }
+
+    res.json({
+      message: '匯入完成',
+      imported,
+      unmatchedAccounts: Array.from(unmatchedAccounts),
+    });
+  } catch (error) {
+    console.error('Error importing leave records:', error);
+    res.status(500).json({ error: '匯入請假紀錄失敗', detail: error.message });
   }
 });
 
@@ -2179,20 +2310,46 @@ api.get('/dashboard/attendance', requireRole(...STAFF_ROLES), async (req, res) =
   }
 });
 
+// 請假分布統計：正式數位化請假申請（leave_applications）與外部系統匯入的歷史
+// 請假紀錄（imported_leave_records）合併統計，讓匯入資料還沒有的期間也能對得上
+// 正式申請的數字。imported_leave_records 表可能因為 migration 009 還沒套用而
+// 不存在，這裡失敗時退回只統計正式申請的版本，避免整個報表打不開
 api.get('/dashboard/leaves', requireRole(...STAFF_ROLES), async (req, res) => {
+  const { startDate, endDate } = req.query;
+  const useRange = startDate && endDate;
+  const rangeParams = useRange ? [startDate, endDate] : [];
   try {
-    const { startDate, endDate } = req.query;
-    const useRange = startDate && endDate;
-    const [rows] = await pool.execute(
-      `SELECT lt.name as name, SUM(la.days) as value
-       FROM leave_applications la
-       LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
-       WHERE ${useRange
-         ? 'la.startDate >= ? AND la.startDate <= ?'
-         : 'MONTH(la.startDate) = MONTH(CURRENT_DATE()) AND YEAR(la.startDate) = YEAR(CURRENT_DATE())'}
-       GROUP BY la.leaveTypeId`,
-      useRange ? [startDate, endDate] : []
-    );
+    let rows;
+    try {
+      [rows] = await pool.execute(
+        `SELECT name, SUM(value) as value FROM (
+          SELECT lt.name as name, la.days as value, la.startDate as eventDate
+          FROM leave_applications la
+          LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
+          UNION ALL
+          SELECT ilr.leaveType as name, IFNULL(ilr.days, IFNULL(ilr.hours, ilr.minutes / 60) / 8) as value, DATE(ilr.startDateTime) as eventDate
+          FROM imported_leave_records ilr
+          WHERE ilr.status = '已生效'
+        ) combined
+        WHERE ${useRange
+          ? 'eventDate >= ? AND eventDate <= ?'
+          : 'MONTH(eventDate) = MONTH(CURRENT_DATE()) AND YEAR(eventDate) = YEAR(CURRENT_DATE())'}
+        GROUP BY name`,
+        rangeParams
+      );
+    } catch (unionError) {
+      console.error('imported_leave_records 查詢失敗，改用只含正式申請的版本（可能尚未套用 migration 009）：', unionError.message);
+      [rows] = await pool.execute(
+        `SELECT lt.name as name, SUM(la.days) as value
+         FROM leave_applications la
+         LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
+         WHERE ${useRange
+           ? 'la.startDate >= ? AND la.startDate <= ?'
+           : 'MONTH(la.startDate) = MONTH(CURRENT_DATE()) AND YEAR(la.startDate) = YEAR(CURRENT_DATE())'}
+         GROUP BY la.leaveTypeId`,
+        rangeParams
+      );
+    }
     const colorList = ["#3b82f6", "#f59e0b", "#ef4444", "#10b981", "#8b5cf6", "#06b6d4", "#6b7280"];
     const leaveData = rows.map((row, idx) => ({ ...row, color: colorList[idx % colorList.length] }));
     res.json(leaveData);

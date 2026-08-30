@@ -161,6 +161,28 @@ CREATE TABLE IF NOT EXISTS attendance_records (
   FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
 );
 
+-- 匯入的請假紀錄：從外部打卡系統匯出的「請假紀錄」.xls 匯入，用於補齊報表
+-- 「請假分析」在正式數位化請假申請功能上線前的歷史資料，純粹供統計使用，
+-- 不會寫入 leave_applications，也不影響假別餘額或核准流程。
+-- days/hours/minutes 依匯出檔實際填寫的請假單位，可能只有其中之一有值；
+-- status 是外部系統的原始狀態文字（如「已生效」），報表只統計已生效的紀錄
+CREATE TABLE IF NOT EXISTS imported_leave_records (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL,
+  leaveType VARCHAR(50) NOT NULL,
+  startDateTime DATETIME NOT NULL,
+  endDateTime DATETIME NOT NULL,
+  days DECIMAL(4,1) NULL,
+  hours DECIMAL(5,1) NULL,
+  minutes DECIMAL(6,1) NULL,
+  status VARCHAR(20) NULL,
+  reason VARCHAR(255) NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY employee_leave_period (employeeId, leaveType, startDateTime, endDateTime),
+  FOREIGN KEY (employeeId) REFERENCES employees(employeeId)
+);
+
 -- 加班申請表：compensationType 由員工申請時選擇要領加班費還是換補休；
 -- compHours 是依勞基法第 32-1 條以工作時數 1:1 換算出的補休時數（僅 compensationType='comp' 時有意義），
 -- 核准時才會真的開立補休額度（見 comp_time_grants）

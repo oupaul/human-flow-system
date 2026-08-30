@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Card,
@@ -47,6 +47,7 @@ import {
 import { Download, Calendar, Upload } from "lucide-react";
 import { dashboardApi } from "@/services/dashboardApi";
 import { useAttendance } from "@/hooks/useAttendance";
+import { useLeaveImport } from "@/hooks/useLeaveImport";
 
 type DepartmentRange = "currentMonth" | "lastMonth" | "currentQuarter" | "lastQuarter" | "currentYear" | "lastYear";
 
@@ -133,20 +134,32 @@ const Reports = () => {
     URL.revokeObjectURL(url);
   };
 
-  useEffect(() => {
-    const fetchLeaveDistribution = async () => {
-      setLoadingLeave(true);
-      try {
-        const data = await dashboardApi.getLeaveDistribution(startDate || undefined, endDate || undefined);
-        setLeaveDistribution(data);
-      } catch (e) {
-        setLeaveDistribution([]);
-      } finally {
-        setLoadingLeave(false);
-      }
-    };
-    fetchLeaveDistribution();
+  const fetchLeaveDistribution = useCallback(async () => {
+    setLoadingLeave(true);
+    try {
+      const data = await dashboardApi.getLeaveDistribution(startDate || undefined, endDate || undefined);
+      setLeaveDistribution(data);
+    } catch (e) {
+      setLeaveDistribution([]);
+    } finally {
+      setLoadingLeave(false);
+    }
   }, [startDate, endDate]);
+
+  useEffect(() => {
+    fetchLeaveDistribution();
+  }, [fetchLeaveDistribution]);
+
+  const { isImporting: isImportingLeave, importFile: doImportLeave } = useLeaveImport(fetchLeaveDistribution);
+  const [importLeaveFile, setImportLeaveFile] = useState<File | null>(null);
+
+  const handleImportLeave = async () => {
+    if (!importLeaveFile) return;
+    const result = await doImportLeave(importLeaveFile);
+    if (result) {
+      setImportLeaveFile(null);
+    }
+  };
 
   const handleExportLeaveDistribution = () => {
     const header = `${t("reports:leave.title")},${t("reports:leave.seriesName")}`;
@@ -290,7 +303,32 @@ const Reports = () => {
         </TabsContent>
 
         {/* 請假分析 Tab */}
-        <TabsContent value="leave">
+        <TabsContent value="leave" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("reports:leave.importTitle")}</CardTitle>
+              <CardDescription>{t("reports:leave.importDescription")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="leaveImportFile">{t("reports:leave.fileLabel")}</Label>
+                  <Input
+                    id="leaveImportFile"
+                    type="file"
+                    accept=".xls,.xlsx"
+                    className="w-64"
+                    onChange={(e) => setImportLeaveFile(e.target.files?.[0] || null)}
+                  />
+                </div>
+                <Button onClick={handleImportLeave} disabled={!importLeaveFile || isImportingLeave}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  {isImportingLeave ? t("reports:leave.importing") : t("reports:leave.importButton")}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">

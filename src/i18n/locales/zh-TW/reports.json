@@ -43,7 +43,18 @@
     "description": "各類請假使用比例統計",
     "dateTo": "到",
     "seriesName": "請假天數",
-    "noData": "無請假分布資料"
+    "noData": "無請假分布資料",
+    "importTitle": "匯入請假紀錄",
+    "importDescription": "上傳外部打卡系統匯出的「請假紀錄」.xls 檔案（需包含人員帳號／假別／請假開始與結束時間），系統會依「員工管理」裡設定的「考勤帳號」自動比對到對應員工，用來補齊下方請假分布圖在正式數位化請假申請功能上線前的歷史資料，不影響假別餘額或核准流程。",
+    "fileLabel": "選擇檔案",
+    "importButton": "開始匯入",
+    "importing": "匯入中...",
+    "toasts": {
+      "importSuccess": "匯入完成，共 {{count}} 筆",
+      "importPartial": "匯入完成，共 {{count}} 筆，但有部分帳號找不到對應員工",
+      "unmatchedAccounts": "找不到對應員工的考勤帳號：{{accounts}}，請至「員工管理」補上考勤帳號後重新匯入",
+      "importFailed": "匯入請假紀錄失敗"
+    }
   },
   "department": {
     "title": "部門數據比較",

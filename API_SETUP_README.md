@@ -62,6 +62,8 @@ mysql -u root -p hrms_database < server/migrations/007_employee_gender.sql   # �
 
 mysql -u root -p hrms_database < server/migrations/008_attendance.sql   # 考勤匯入功能（員工新增考勤帳號欄位、新增考勤紀錄表）
 
+mysql -u root -p hrms_database < server/migrations/009_leave_import.sql   # 請假紀錄匯入功能（報表「請假分析」可匯入外部系統匯出的請假紀錄）
+
 npm run fix:leave-periods   # 修正舊版 bug 造成的錯誤特休週年紀錄（到職日回填多年前時發放天數算錯），可重複執行
 ```
 
@@ -167,6 +169,19 @@ npm run dev
 
 **已知風險**：解析 `.xls` 用的 `xlsx`（SheetJS）npm 套件目前發布在 npm 官方登記所的版本有已知的高風險安全性問題（原型污染、ReDoS），且沒有官方修補版本可安裝（SheetJS 已改把修補版本另外發布在自己的 CDN，不在 npm 上）。因為這支端點限定只有 `admin`/`hr`/`manager` 角色能呼叫，風險僅限於這些受信任的內部帳號上傳的檔案，但如果貴公司的資安政策不允許使用有已知漏洞的套件，請自行評估是否要改用 SheetJS 官方 CDN 版本或其他方案。
 
+## 請假紀錄匯入與分析
+
+本系統的數位化「請假申請」功能是後來才上線的，正式上線前的既有請假紀錄還留在外部打卡系統裡。在「報表分析 → 請假分析」分頁可以把外部系統匯出的「請假紀錄」`.xls` 補匯進來，讓下方的請假分布圖／長條圖能反映實際的歷史用假情況。
+
+**運作方式**：
+
+- 跟考勤匯入一樣，靠員工的「考勤帳號」欄位比對匯入資料列對應到哪位員工，匯入前需先在「員工管理」把這個欄位填好。
+- 支援的檔案格式：一列一筆請假紀錄，標題列以關鍵字辨識欄位（欄位順序可調整），需包含「人員帳號」「假別」「請假開始時間」「請假結束時間」；「請假天數」「請假時數」「請假分鐘數」三者依匯出檔實際請假單位，通常只會填其中一個。這是目前測試過的其中一種打卡系統匯出格式；如果貴公司的匯出格式標題文字不同，需要調整 `server/index.js` 的 `parseLeaveXls` 函式。
+- 只有外部系統標記「已生效」狀態的紀錄才會被計入請假分布圖的統計，但所有列都會被存起來（供未來查看原始資料或狀態變更後重新匯入時更新）。
+- 匯入採 UPSERT（同一位員工、同一假別、同一段起訖時間再匯入一次會覆蓋舊資料，例如狀態從「審核中」改成「已生效」），可以重複匯入同一份檔案或匯入修正後的檔案不會產生重複紀錄。
+- 找不到對應「考勤帳號」的資料列不會被匯入，會在匯入結果裡列出未比對到的帳號清單，供 HR 補上員工的考勤帳號後重新匯入。
+- 匯入的資料存在獨立的 `imported_leave_records` 表，**不會**寫入本系統自己的 `leave_applications`，也**不影響**假別餘額計算或核准流程；請假分析圖表是把這張表跟正式數位化請假申請的資料加總後一起統計。
+
 ## API 端點
 
 ### 登入（公開，不需 token）
@@ -246,7 +261,10 @@ npm run dev
 - `GET /api/attendance/summary?year=2026&month=7` — 該年月每位員工的統計摘要（正常/缺卡/休息/請假天數、遲到早退次數）
 - `GET /api/attendance/records?year=2026&month=7&employeeId=EMP001` — 該年月的考勤明細，可選 employeeId 篩選單一員工
 
+### 請假紀錄匯入（僅 HR/主管）
+- `POST /api/leaves/import` — `multipart/form-data`，欄位 `file`（.xls），依員工的「考勤帳號」比對匯入，寫入 `imported_leave_records`（不影響 `leave_applications`），回傳 `{ message, imported, unmatchedAccounts }`
+
 ### Dashboard（僅 HR/主管）
 - `GET /api/dashboard/stats` — `pendingRequests` 同時計入待審核的請假與加班申請；另附 `pendingLeaveRequests`/`pendingOvertimeRequests` 細項，供前端判斷儀表板「待審核申請」卡片該導向哪個分頁
-- `GET /api/dashboard/attendance`
-- `GET /api/dashboard/leaves`
+- `GET /api/dashboard/attendance?startDate=2026-07-01&endDate=2026-07-31`（不帶日期參數預設當月）
+- `GET /api/dashboard/leaves?startDate=2026-07-01&endDate=2026-07-31`（不帶日期參數預設當月；統計同時包含正式請假申請與已生效的匯入請假紀錄）

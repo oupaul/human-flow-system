@@ -43,7 +43,18 @@
     "description": "Statistics on the proportion of each leave type used",
     "dateTo": "to",
     "seriesName": "Leave Days",
-    "noData": "No leave distribution data"
+    "noData": "No leave distribution data",
+    "importTitle": "Import Leave Records",
+    "importDescription": "Upload the \"Leave Records\" .xls file exported from the external time-clock system (must include account / leave type / leave start and end time). The system matches each row to an employee using the \"Attendance Account\" set in Employee Management, to fill in historical leave data from before the digital leave application feature went live. This does not affect leave balances or the approval workflow.",
+    "fileLabel": "Choose File",
+    "importButton": "Start Import",
+    "importing": "Importing...",
+    "toasts": {
+      "importSuccess": "Import complete: {{count}} records",
+      "importPartial": "Import complete: {{count}} records, but some accounts could not be matched",
+      "unmatchedAccounts": "Unmatched attendance accounts: {{accounts}}. Please add the attendance account in Employee Management and re-import.",
+      "importFailed": "Failed to import leave records"
+    }
   },
   "department": {
     "title": "Department Data Comparison",
