@@ -13,10 +13,11 @@ import {
   Pie,
   Cell
 } from "recharts";
-import { Users, Calendar, Clock, Briefcase } from "lucide-react";
+import { Users, Calendar, Clock, Briefcase, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { dashboardApi } from "@/services/dashboardApi";
+import { useCompTimeExpiringSoon } from "@/hooks/useCompTimeExpiringSoon";
 import { toast } from "sonner";
 
 interface DashboardStats {
@@ -45,6 +46,7 @@ const Dashboard = () => {
   const [departmentAttendance, setDepartmentAttendance] = useState<DepartmentAttendance[]>([]);
   const [leaveDistribution, setLeaveDistribution] = useState<LeaveDistribution[]>([]);
   const [loading, setLoading] = useState(true);
+  const { expiringSoon } = useCompTimeExpiringSoon(30);
 
   useEffect(() => {
     loadDashboardData();
@@ -228,6 +230,39 @@ const Dashboard = () => {
           </Card>
         </Link>
       </div>
+
+      {expiringSoon.length > 0 && (
+        <Link to="/leave-management?tab=settlement" className="block">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-hrms-warning" />
+                <CardTitle>{t("dashboard:compExpiringSoon.title")}</CardTitle>
+              </div>
+              <CardDescription>{t("dashboard:compExpiringSoon.description")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                {expiringSoon.slice(0, 5).map((grant) => (
+                  <li key={grant.id} className="flex items-center justify-between border-b pb-2 last:border-b-0 last:pb-0">
+                    <span>{grant.employee}（{grant.employeeId}）</span>
+                    <span className="text-muted-foreground">
+                      {t("dashboard:compExpiringSoon.remaining", { hours: (grant.hours - grant.usedHours).toFixed(1) })}
+                      {" · "}
+                      {t("dashboard:compExpiringSoon.deadline", { date: grant.deadline })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {expiringSoon.length > 5 && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {t("dashboard:compExpiringSoon.more", { count: expiringSoon.length - 5 })}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </Link>
+      )}
     </div>
   );
 };

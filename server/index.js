@@ -2160,6 +2160,28 @@ api.get('/comp-time-grants', async (req, res) => {
   }
 });
 
+// 列出即將到期（預設 30 天內）但還沒過期、還有剩餘時數的補休額度，供 HR
+// 提前提醒員工排休，避免到期後才發現只能折算加班費
+api.get('/comp-time-grants/expiring-soon', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const days = Number(req.query.days) || 30;
+    const [rows] = await pool.execute(
+      `SELECT ctg.*, e.name as employee, o.date as overtimeDate
+       FROM comp_time_grants ctg
+       LEFT JOIN employees e ON ctg.employeeId = e.employeeId
+       LEFT JOIN overtime_applications o ON ctg.overtimeApplicationId = o.id
+       WHERE ctg.settledAt IS NULL AND ctg.hours > ctg.usedHours
+         AND ctg.deadline >= CURDATE() AND ctg.deadline <= CURDATE() + INTERVAL ? DAY
+       ORDER BY ctg.deadline ASC`,
+      [days]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching expiring comp time grants:', error);
+    res.status(500).json({ error: '獲取即將到期補休清單失敗', detail: error.message });
+  }
+});
+
 // 列出已到期但尚未結算、還有剩餘時數的補休額度，供 HR 折算加班費
 api.get('/comp-time-grants/pending-settlement', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
@@ -2469,8 +2491,45 @@ app.use((req, res) => {
   res.status(404).json({ error: '找不到請求的資源', path: req.originalUrl });
 });
 
+// 補休到期提醒：每天檢查一次，找出「距離到期日剛好還有 14 天」且尚未休完的
+// 補休額度，發一則通知給 HR/主管（走「系統設定」裡設定的通知通道），提醒
+// 提早安排員工排休，避免逾期後才發現只能被動折算加班費。
+// 已知限制：這是簡單的「整天比對」，若伺服器在那一天沒有在跑（例如剛好當天
+// 重啟後才啟動），會錯過那筆額度的提醒；也沒有防重複機制，同一天內若伺服器
+// 重啟多次可能會重複發送同一批提醒。以本系統的使用情境（單一 HR 團隊、不要求
+// 100% 送達保證）這個簡化是可接受的
+const COMP_TIME_REMINDER_DAYS_BEFORE = 14;
+
+async function checkCompTimeExpiryReminders() {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT ctg.hours, ctg.usedHours, ctg.deadline, e.name as employee, e.employeeId
+       FROM comp_time_grants ctg
+       LEFT JOIN employees e ON ctg.employeeId = e.employeeId
+       WHERE ctg.settledAt IS NULL AND ctg.hours > ctg.usedHours
+         AND ctg.deadline = CURDATE() + INTERVAL ? DAY`,
+      [COMP_TIME_REMINDER_DAYS_BEFORE]
+    );
+    if (rows.length === 0) return;
+
+    const lines = rows.map(
+      (row) => `${row.employee}（${row.employeeId}）：剩餘 ${(row.hours - row.usedHours).toFixed(1)} 小時，應休畢期限 ${row.deadline}`
+    );
+    await sendNotification(
+      pool,
+      '補休即將到期提醒',
+      `以下員工的補休將於 ${COMP_TIME_REMINDER_DAYS_BEFORE} 天後到期，請提醒排休，逾期未休完將自動折算加班費：\n${lines.join('\n')}`
+    );
+  } catch (error) {
+    console.error('補休到期提醒檢查失敗（可能尚未套用 migration 005）：', error.message);
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`🚀 HRMS API Server running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log('⚠️  請確保 MariaDB 資料庫已運行並且 .env 連接設定正確');
+
+  checkCompTimeExpiryReminders();
+  setInterval(checkCompTimeExpiryReminders, 24 * 60 * 60 * 1000);
 });

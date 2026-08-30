@@ -139,6 +139,26 @@ const Reports = () => {
     const blob = await attendanceApi.downloadImportTemplate();
     downloadBlob(blob, "attendance-import-template.xlsx");
   };
+
+  const handleExportAttendanceSummary = () => {
+    const header = [
+      t("reports:attendance.columns.employeeId"),
+      t("reports:attendance.columns.name"),
+      t("reports:attendance.columns.department"),
+      t("reports:attendance.columns.normalDays"),
+      t("reports:attendance.columns.missingDays"),
+      t("reports:attendance.columns.lateCount"),
+      t("reports:attendance.columns.earlyLeaveCount"),
+      t("reports:attendance.columns.leaveDays"),
+      t("reports:attendance.columns.dayOffDays"),
+    ].join(",");
+    const rows = summary.map((row) =>
+      [row.employeeId, row.employeeName, row.department, row.normalDays, row.missingDays, row.lateCount, row.earlyLeaveCount, row.leaveDays, row.dayOffDays].join(",")
+    );
+    const csvContent = "﻿" + [header, ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    downloadBlob(blob, `attendance-summary-${attendanceYear}-${String(attendanceMonth).padStart(2, "0")}.csv`);
+  };
   const [departmentComparison, setDepartmentComparison] = useState([]);
   const [loadingDepartment, setLoadingDepartment] = useState(false);
   const [departmentRange, setDepartmentRange] = useState<DepartmentRange>("currentMonth");
@@ -324,6 +344,14 @@ const Reports = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleExportAttendanceSummary}
+                    disabled={summary.length === 0}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </CardHeader>

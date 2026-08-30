@@ -17,5 +17,12 @@
       "title": "請假類型分布",
       "description": "本月各類請假使用比例"
     }
+  },
+  "compExpiringSoon": {
+    "title": "即將到期補休",
+    "description": "30 天內即將到期但尚未休完的補休額度",
+    "remaining": "剩餘 {{hours}} 小時",
+    "deadline": "期限 {{date}}",
+    "more": "還有 {{count}} 筆，點擊查看完整清單"
   }
 }

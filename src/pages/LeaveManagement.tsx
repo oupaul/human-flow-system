@@ -53,6 +53,7 @@ import { useLeavePeriodSettlements } from "@/hooks/useLeavePeriodSettlements";
 import { useLeaveGrants } from "@/hooks/useLeaveGrants";
 import { useCompTimeGrants } from "@/hooks/useCompTimeGrants";
 import { useCompTimeSettlements } from "@/hooks/useCompTimeSettlements";
+import { useCompTimeExpiringSoon } from "@/hooks/useCompTimeExpiringSoon";
 import { useAuth } from "@/contexts/AuthContext";
 import { LeaveApplicationFormData, LeaveApplication, LeaveBalance } from "@/types/leave";
 import { OvertimeApplication, OvertimeApplicationFormData } from "@/types/overtime";
@@ -96,6 +97,7 @@ const LeaveManagement = () => {
 
   const { compTimeGrants } = useCompTimeGrants();
   const { pendingSettlements: pendingCompSettlements, settleGrant: settleCompGrant } = useCompTimeSettlements();
+  const { expiringSoon: expiringSoonCompGrants } = useCompTimeExpiringSoon();
   const [viewingCompLedgerFor, setViewingCompLedgerFor] = useState<LeaveBalance | null>(null);
 
   const VALID_TABS = ["applications", "overtime", "balance", "settlement", "grants", "types", "holidays"];
@@ -1265,6 +1267,47 @@ const LeaveManagement = () => {
                       <TableRow>
                         <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                           {t("leaveManagement:compSettlement.empty")}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>{t("leaveManagement:compExpiringSoon.title")}</CardTitle>
+              <CardDescription>
+                {t("leaveManagement:compExpiringSoon.description")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("leaveManagement:compExpiringSoon.columns.employee")}</TableHead>
+                      <TableHead>{t("leaveManagement:compExpiringSoon.columns.overtimeDate")}</TableHead>
+                      <TableHead>{t("leaveManagement:compExpiringSoon.columns.remaining")}</TableHead>
+                      <TableHead>{t("leaveManagement:compExpiringSoon.columns.deadline")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {expiringSoonCompGrants.length > 0 ? (
+                      expiringSoonCompGrants.map((grant) => (
+                        <TableRow key={grant.id}>
+                          <TableCell>{grant.employee}（{grant.employeeId}）</TableCell>
+                          <TableCell>{grant.overtimeDate}</TableCell>
+                          <TableCell>{(grant.hours - grant.usedHours).toFixed(1)}</TableCell>
+                          <TableCell>{grant.deadline}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                          {t("leaveManagement:compExpiringSoon.empty")}
                         </TableCell>
                       </TableRow>
                     )}

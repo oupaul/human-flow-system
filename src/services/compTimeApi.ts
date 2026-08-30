@@ -11,6 +11,10 @@ export const compTimeApi = {
     return apiFetch<PendingCompTimeSettlement[]>("/comp-time-grants/pending-settlement");
   },
 
+  async getExpiringSoon(days = 30): Promise<CompTimeGrant[]> {
+    return apiFetch<CompTimeGrant[]>(`/comp-time-grants/expiring-soon?days=${days}`);
+  },
+
   async settleGrant(id: number): Promise<SettleCompTimeGrantResult> {
     return apiFetch<SettleCompTimeGrantResult>(`/comp-time-grants/${id}/settle`, {
       method: "POST",

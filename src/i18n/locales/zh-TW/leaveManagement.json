@@ -206,6 +206,17 @@
     "empty": "目前沒有待結算的補休額度",
     "settleButton": "結算"
   },
+  "compExpiringSoon": {
+    "title": "補休即將到期",
+    "description": "30 天內即將到期但尚未休完的補休額度，尚未逾期，建議提醒員工提早排休。",
+    "columns": {
+      "employee": "員工",
+      "overtimeDate": "加班日期",
+      "remaining": "剩餘時數",
+      "deadline": "應休畢期限"
+    },
+    "empty": "近期沒有即將到期的補休額度"
+  },
   "grants": {
     "formTitle": "新增假別核給",
     "formDescription": "適用喪假、婚假等「同一事由分次請假」的假別。審核過員工提供的證明文件後，直接核給總天數與應休畢期限，之後同一員工、同一假別的請假申請會自動從這筆核給扣抵，超過剩餘天數會被擋下。",

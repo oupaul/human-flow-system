@@ -17,5 +17,12 @@
       "title": "休暇種別分布",
       "description": "今月の休暇種別ごとの利用比率"
     }
+  },
+  "compExpiringSoon": {
+    "title": "まもなく期限切れの代休",
+    "description": "30日以内に期限を迎える、未消化の代休枠",
+    "remaining": "残り {{hours}} 時間",
+    "deadline": "期限 {{date}}",
+    "more": "他 {{count}} 件 — クリックして全リストを表示"
   }
 }

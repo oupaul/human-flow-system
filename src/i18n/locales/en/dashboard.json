@@ -17,5 +17,12 @@
       "title": "Leave Type Distribution",
       "description": "Proportion of leave types used this month"
     }
+  },
+  "compExpiringSoon": {
+    "title": "Comp Time Expiring Soon",
+    "description": "Comp time entitlements expiring within 30 days that are still unused",
+    "remaining": "{{hours}} hours remaining",
+    "deadline": "due {{date}}",
+    "more": "{{count}} more — click to view the full list"
   }
 }

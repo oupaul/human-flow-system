@@ -206,6 +206,17 @@
     "empty": "No pending comp time entitlements to settle",
     "settleButton": "Settle"
   },
+  "compExpiringSoon": {
+    "title": "Comp Time Expiring Soon",
+    "description": "Comp time entitlements expiring within 30 days that are still unused and not yet overdue. Consider reminding employees to schedule time off.",
+    "columns": {
+      "employee": "Employee",
+      "overtimeDate": "Overtime Date",
+      "remaining": "Remaining Hours",
+      "deadline": "Deadline to Use"
+    },
+    "empty": "No comp time entitlements expiring soon"
+  },
   "grants": {
     "formTitle": "New Leave Grant",
     "formDescription": "For leave types such as bereavement or marriage leave that involve \"multiple leave requests for the same event.\" After verifying the employee's supporting documents, grant the total days and deadline directly. Subsequent leave applications from the same employee for the same leave type will automatically be deducted from this grant, and applications exceeding the remaining balance will be blocked.",
