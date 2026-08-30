@@ -63,13 +63,18 @@ const getStatusDisplay = (status: string, t: (key: string) => string) => {
   }
 };
 
+const currentYear = new Date().getFullYear();
+const RECORD_YEAR_OPTIONS = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
 const MyPortal = () => {
   const { t } = useTranslation(["myPortal", "common"]);
   const { user } = useAuth();
+  const [leaveHistoryYear, setLeaveHistoryYear] = useState(currentYear);
+  const [overtimeHistoryYear, setOvertimeHistoryYear] = useState(currentYear);
   const { leaveTypes, leaveApplications, leaveBalances, loading: loadingLeave, createLeaveApplication } =
-    useLeaveManagement();
+    useLeaveManagement(leaveHistoryYear);
   const { overtimeApplications, loading: loadingOvertime, createOvertimeApplication } =
-    useOvertimeApplications();
+    useOvertimeApplications(overtimeHistoryYear);
   const { leaveGrants } = useLeaveGrants();
 
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
@@ -422,8 +427,22 @@ const MyPortal = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("myPortal:leaveHistory.title")}</CardTitle>
-          <CardDescription>{t("myPortal:leaveHistory.description")}</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>{t("myPortal:leaveHistory.title")}</CardTitle>
+              <CardDescription>{t("myPortal:leaveHistory.description")}</CardDescription>
+            </div>
+            <Select value={String(leaveHistoryYear)} onValueChange={(value) => setLeaveHistoryYear(Number(value))}>
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RECORD_YEAR_OPTIONS.map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -478,8 +497,22 @@ const MyPortal = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("myPortal:overtimeHistory.title")}</CardTitle>
-          <CardDescription>{t("myPortal:overtimeHistory.description")}</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>{t("myPortal:overtimeHistory.title")}</CardTitle>
+              <CardDescription>{t("myPortal:overtimeHistory.description")}</CardDescription>
+            </div>
+            <Select value={String(overtimeHistoryYear)} onValueChange={(value) => setOvertimeHistoryYear(Number(value))}>
+              <SelectTrigger className="w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RECORD_YEAR_OPTIONS.map((y) => (
+                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">

@@ -1230,10 +1230,24 @@ api.delete('/leave-grants/:id', requireRole(...STAFF_ROLES), async (req, res) =>
 
 // 請假申請 API 路由
 
+// year 為選填的年度篩選（依請假開始日期），供「我的入口」的個人紀錄依年度
+// 查詢用，避免年資累積後整頁紀錄無止盡拉長；不帶這個參數時維持原本回傳全部
+// 紀錄的行為，「假別管理」給 HR/主管看全公司紀錄的用法不受影響
 api.get('/leave-applications', async (req, res) => {
   try {
     // employee 角色只能看到自己的請假紀錄，其餘角色可看全公司
     const isEmployee = req.user.role === 'employee';
+    const { year } = req.query;
+    const conditions = [];
+    const params = [];
+    if (isEmployee) {
+      conditions.push('la.employeeId = ?');
+      params.push(req.user.employeeId);
+    }
+    if (year) {
+      conditions.push('YEAR(la.startDate) = ?');
+      params.push(year);
+    }
     const [rows] = await pool.execute(`
       SELECT
         la.*,
@@ -1242,9 +1256,9 @@ api.get('/leave-applications', async (req, res) => {
       FROM leave_applications la
       LEFT JOIN employees e ON la.employeeId = e.employeeId
       LEFT JOIN leave_types lt ON la.leaveTypeId = lt.id
-      ${isEmployee ? 'WHERE la.employeeId = ?' : ''}
+      ${conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''}
       ORDER BY la.created_at DESC
-    `, isEmployee ? [req.user.employeeId] : []);
+    `, params);
     res.json(rows);
   } catch (error) {
     console.error('Error fetching leave applications:', error);
@@ -2008,19 +2022,31 @@ api.post('/leaves/import', requireRole(...STAFF_ROLES), (req, res, next) => {
 
 // 加班申請 API 路由
 
+// year 為選填的年度篩選（依加班日期），用途同 /leave-applications 的 year 參數
 api.get('/overtime-applications', async (req, res) => {
   try {
     // employee 角色只能看到自己的加班紀錄
     const isEmployee = req.user.role === 'employee';
+    const { year } = req.query;
+    const conditions = [];
+    const params = [];
+    if (isEmployee) {
+      conditions.push('o.employeeId = ?');
+      params.push(req.user.employeeId);
+    }
+    if (year) {
+      conditions.push('YEAR(o.date) = ?');
+      params.push(year);
+    }
     const [rows] = await pool.execute(`
       SELECT
         o.*,
         e.name as employee
       FROM overtime_applications o
       LEFT JOIN employees e ON o.employeeId = e.employeeId
-      ${isEmployee ? 'WHERE o.employeeId = ?' : ''}
+      ${conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''}
       ORDER BY o.created_at DESC
-    `, isEmployee ? [req.user.employeeId] : []);
+    `, params);
     res.json(rows);
   } catch (error) {
     console.error('Error fetching overtime applications:', error);

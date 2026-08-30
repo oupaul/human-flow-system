@@ -2,8 +2,9 @@ import { OvertimeApplication, OvertimeApplicationFormData } from "@/types/overti
 import { apiFetch } from "@/lib/apiClient";
 
 export const overtimeApi = {
-  async getOvertimeApplications(): Promise<OvertimeApplication[]> {
-    return apiFetch<OvertimeApplication[]>("/overtime-applications");
+  async getOvertimeApplications(year?: number): Promise<OvertimeApplication[]> {
+    const query = year ? `?year=${year}` : "";
+    return apiFetch<OvertimeApplication[]>(`/overtime-applications${query}`);
   },
 
   async createOvertimeApplication(data: OvertimeApplicationFormData): Promise<OvertimeApplication> {

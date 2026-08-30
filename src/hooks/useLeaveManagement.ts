@@ -5,7 +5,10 @@ import { LeaveType, LeaveApplication, LeaveBalance, LeaveApplicationFormData } f
 import { leaveApi } from "@/services/leaveApi";
 import { leavePeriodApi } from "@/services/leavePeriodApi";
 
-export const useLeaveManagement = () => {
+// year 為選填的請假紀錄年度篩選（只影響 leaveApplications，不影響假別類型/
+// 餘額）；不帶時維持原本回傳全部紀錄的行為，供「假別管理」HR 檢視全公司歷史
+// 紀錄使用，「我的入口」則會帶入年度，避免年資累積後個人紀錄無止盡拉長
+export const useLeaveManagement = (year?: number) => {
   const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
   const [leaveApplications, setLeaveApplications] = useState<LeaveApplication[]>([]);
   const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
@@ -13,14 +16,15 @@ export const useLeaveManagement = () => {
 
   useEffect(() => {
     loadAllData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year]);
 
   const loadAllData = async () => {
     try {
       setLoading(true);
       const [types, applications, balances] = await Promise.all([
         leaveApi.getLeaveTypes(),
-        leaveApi.getLeaveApplications(),
+        leaveApi.getLeaveApplications(year),
         leaveApi.getLeaveBalances(),
       ]);
       

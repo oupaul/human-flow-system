@@ -3,18 +3,20 @@ import { toast } from "sonner";
 import { OvertimeApplication, OvertimeApplicationFormData } from "@/types/overtime";
 import { overtimeApi } from "@/services/overtimeApi";
 
-export const useOvertimeApplications = () => {
+// year 為選填的加班紀錄年度篩選，用途同 useLeaveManagement 的 year 參數
+export const useOvertimeApplications = (year?: number) => {
   const [overtimeApplications, setOvertimeApplications] = useState<OvertimeApplication[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadOvertimeApplications();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year]);
 
   const loadOvertimeApplications = async () => {
     try {
       setLoading(true);
-      const data = await overtimeApi.getOvertimeApplications();
+      const data = await overtimeApi.getOvertimeApplications(year);
       setOvertimeApplications(data);
     } catch (error) {
       console.error("Failed to load overtime applications:", error);

@@ -8,8 +8,9 @@ export const leaveApi = {
   },
 
   // 請假申請管理
-  async getLeaveApplications(): Promise<LeaveApplication[]> {
-    return apiFetch<LeaveApplication[]>("/leave-applications");
+  async getLeaveApplications(year?: number): Promise<LeaveApplication[]> {
+    const query = year ? `?year=${year}` : "";
+    return apiFetch<LeaveApplication[]>(`/leave-applications${query}`);
   },
 
   async createLeaveApplication(applicationData: LeaveApplicationFormData): Promise<LeaveApplication> {
