@@ -48,6 +48,34 @@ import { Download, Calendar, Upload } from "lucide-react";
 import { dashboardApi } from "@/services/dashboardApi";
 import { useAttendance } from "@/hooks/useAttendance";
 
+type DepartmentRange = "currentMonth" | "lastMonth" | "currentQuarter" | "lastQuarter" | "currentYear" | "lastYear";
+
+const toDateStr = (d: Date) => d.toISOString().slice(0, 10);
+
+const getRangeDates = (range: DepartmentRange, now: Date): { startDate: string; endDate: string } => {
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  switch (range) {
+    case "lastMonth":
+      return { startDate: toDateStr(new Date(year, month - 1, 1)), endDate: toDateStr(new Date(year, month, 0)) };
+    case "currentQuarter": {
+      const qStartMonth = Math.floor(month / 3) * 3;
+      return { startDate: toDateStr(new Date(year, qStartMonth, 1)), endDate: toDateStr(new Date(year, qStartMonth + 3, 0)) };
+    }
+    case "lastQuarter": {
+      const qStartMonth = Math.floor(month / 3) * 3 - 3;
+      return { startDate: toDateStr(new Date(year, qStartMonth, 1)), endDate: toDateStr(new Date(year, qStartMonth + 3, 0)) };
+    }
+    case "currentYear":
+      return { startDate: toDateStr(new Date(year, 0, 1)), endDate: toDateStr(new Date(year, 11, 31)) };
+    case "lastYear":
+      return { startDate: toDateStr(new Date(year - 1, 0, 1)), endDate: toDateStr(new Date(year - 1, 11, 31)) };
+    case "currentMonth":
+    default:
+      return { startDate: toDateStr(new Date(year, month, 1)), endDate: toDateStr(new Date(year, month + 1, 0)) };
+  }
+};
+
 const Reports = () => {
   const { t } = useTranslation(["reports", "common"]);
   const [startDate, setStartDate] = useState("");
@@ -69,6 +97,7 @@ const Reports = () => {
   };
   const [departmentComparison, setDepartmentComparison] = useState([]);
   const [loadingDepartment, setLoadingDepartment] = useState(false);
+  const [departmentRange, setDepartmentRange] = useState<DepartmentRange>("currentMonth");
   const [leaveDistribution, setLeaveDistribution] = useState([]);
   const [loadingLeave, setLoadingLeave] = useState(false);
 
@@ -76,7 +105,8 @@ const Reports = () => {
     const fetchDepartmentComparison = async () => {
       setLoadingDepartment(true);
       try {
-        const data = await dashboardApi.getDepartmentAttendance();
+        const { startDate, endDate } = getRangeDates(departmentRange, new Date());
+        const data = await dashboardApi.getDepartmentAttendance(startDate, endDate);
         setDepartmentComparison(data);
       } catch (e) {
         setDepartmentComparison([]);
@@ -85,7 +115,23 @@ const Reports = () => {
       }
     };
     fetchDepartmentComparison();
-  }, []);
+  }, [departmentRange]);
+
+  const handleExportDepartmentComparison = () => {
+    const header = `${t("reports:department.title")},${t("reports:department.series.attendance")},${t("reports:department.series.leave")},${t("reports:department.series.overtime")}`;
+    const rows = departmentComparison.map(
+      (row: { name: string; attendance: number; leave: number; overtime: number }) =>
+        `${row.name},${row.attendance},${row.leave},${row.overtime}`
+    );
+    const csvContent = "﻿" + [header, ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `department-comparison-${departmentRange}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     const fetchLeaveDistribution = async () => {
@@ -359,7 +405,7 @@ const Reports = () => {
                   <CardDescription>{t("reports:department.description")}</CardDescription>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Select defaultValue="currentMonth">
+                  <Select value={departmentRange} onValueChange={(value) => setDepartmentRange(value as DepartmentRange)}>
                     <SelectTrigger className="w-40">
                       <SelectValue placeholder={t("reports:department.rangePlaceholder")} />
                     </SelectTrigger>
@@ -372,7 +418,12 @@ const Reports = () => {
                       <SelectItem value="lastYear">{t("reports:department.range.lastYear")}</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" size="icon">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleExportDepartmentComparison}
+                    disabled={departmentComparison.length === 0}
+                  >
                     <Download className="h-4 w-4" />
                   </Button>
                 </div>

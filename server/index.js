@@ -2098,9 +2098,21 @@ api.get('/dashboard/stats', requireRole(...STAFF_ROLES), async (req, res) => {
 // migration 008 還沒套用（表不存在）而讓整個查詢失敗，這裡外層再包一層，
 // 失敗時退回不含出勤率的版本（attendance 固定 0），避免整個 Dashboard 打不開
 api.get('/dashboard/attendance', requireRole(...STAFF_ROLES), async (req, res) => {
+  const { startDate, endDate } = req.query;
+  const useRange = startDate && endDate;
+  const attendanceDateFilter = useRange
+    ? 'a.date >= ? AND a.date <= ?'
+    : 'MONTH(a.date) = MONTH(CURRENT_DATE()) AND YEAR(a.date) = YEAR(CURRENT_DATE())';
+  const leaveDateFilter = useRange
+    ? 'la.startDate >= ? AND la.startDate <= ?'
+    : 'MONTH(la.startDate) = MONTH(CURRENT_DATE()) AND YEAR(la.startDate) = YEAR(CURRENT_DATE())';
+  const overtimeDateFilter = useRange
+    ? 'o.date >= ? AND o.date <= ?'
+    : 'MONTH(o.date) = MONTH(CURRENT_DATE()) AND YEAR(o.date) = YEAR(CURRENT_DATE())';
+  const rangeParams = useRange ? [startDate, endDate] : [];
   try {
-    const [rows] = await pool.execute(`
-      SELECT
+    const [rows] = await pool.execute(
+      `SELECT
         d.name as name,
         IFNULL(attendance_stats.rate, 0) as attendance,
         IFNULL(leave_stats.leave_count, 0) as \`leave\`,
@@ -2111,31 +2123,32 @@ api.get('/dashboard/attendance', requireRole(...STAFF_ROLES), async (req, res) =
           ROUND(100 * SUM(a.status = 'normal') / NULLIF(SUM(a.status IN ('normal', 'missing')), 0)) as rate
         FROM employees e
         LEFT JOIN attendance_records a ON a.employeeId = e.employeeId
-          AND MONTH(a.date) = MONTH(CURRENT_DATE()) AND YEAR(a.date) = YEAR(CURRENT_DATE())
+          AND ${attendanceDateFilter}
         GROUP BY e.department
       ) attendance_stats ON attendance_stats.department = d.name
       LEFT JOIN (
         SELECT e.department, COUNT(la.id) as leave_count
         FROM employees e
         LEFT JOIN leave_applications la ON la.employeeId = e.employeeId
-          AND MONTH(la.startDate) = MONTH(CURRENT_DATE()) AND YEAR(la.startDate) = YEAR(CURRENT_DATE())
+          AND ${leaveDateFilter}
         GROUP BY e.department
       ) leave_stats ON leave_stats.department = d.name
       LEFT JOIN (
         SELECT e.department, AVG(o.hours) as avg_hours
         FROM employees e
         LEFT JOIN overtime_applications o ON o.employeeId = e.employeeId
-          AND MONTH(o.date) = MONTH(CURRENT_DATE()) AND YEAR(o.date) = YEAR(CURRENT_DATE())
+          AND ${overtimeDateFilter}
         GROUP BY e.department
       ) overtime_stats ON overtime_stats.department = d.name
-      GROUP BY d.name
-    `);
+      GROUP BY d.name`,
+      [...rangeParams, ...rangeParams, ...rangeParams]
+    );
     res.json(rows);
   } catch (error) {
     console.error('attendance_records 查詢失敗，改用不含出勤率的版本（可能尚未套用 migration 008）：', error.message);
     try {
-      const [fallbackRows] = await pool.execute(`
-        SELECT
+      const [fallbackRows] = await pool.execute(
+        `SELECT
           d.name as name,
           0 as attendance,
           IFNULL(leave_stats.leave_count, 0) as \`leave\`,
@@ -2145,18 +2158,19 @@ api.get('/dashboard/attendance', requireRole(...STAFF_ROLES), async (req, res) =
           SELECT e.department, COUNT(la.id) as leave_count
           FROM employees e
           LEFT JOIN leave_applications la ON la.employeeId = e.employeeId
-            AND MONTH(la.startDate) = MONTH(CURRENT_DATE()) AND YEAR(la.startDate) = YEAR(CURRENT_DATE())
+            AND ${leaveDateFilter}
           GROUP BY e.department
         ) leave_stats ON leave_stats.department = d.name
         LEFT JOIN (
           SELECT e.department, AVG(o.hours) as avg_hours
           FROM employees e
           LEFT JOIN overtime_applications o ON o.employeeId = e.employeeId
-            AND MONTH(o.date) = MONTH(CURRENT_DATE()) AND YEAR(o.date) = YEAR(CURRENT_DATE())
+            AND ${overtimeDateFilter}
           GROUP BY e.department
         ) overtime_stats ON overtime_stats.department = d.name
-        GROUP BY d.name
-      `);
+        GROUP BY d.name`,
+        [...rangeParams, ...rangeParams]
+      );
       res.json(fallbackRows);
     } catch (fallbackError) {
       console.error('Error fetching department attendance:', fallbackError);
