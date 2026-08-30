@@ -57,6 +57,8 @@ import { useAttendance } from "@/hooks/useAttendance";
 import { useLeaveImport } from "@/hooks/useLeaveImport";
 import { attendanceApi } from "@/services/attendanceApi";
 import { AttendanceRecord } from "@/types/attendance";
+import { leaveImportApi } from "@/services/leaveImportApi";
+import { FileDown } from "lucide-react";
 
 type DepartmentRange = "currentMonth" | "lastMonth" | "currentQuarter" | "lastQuarter" | "currentYear" | "lastYear";
 
@@ -84,6 +86,15 @@ const getRangeDates = (range: DepartmentRange, now: Date): { startDate: string; 
     default:
       return { startDate: toDateStr(new Date(year, month, 1)), endDate: toDateStr(new Date(year, month + 1, 0)) };
   }
+};
+
+const downloadBlob = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 };
 
 const Reports = () => {
@@ -122,6 +133,11 @@ const Reports = () => {
     if (result) {
       setImportFile(null);
     }
+  };
+
+  const handleDownloadAttendanceTemplate = async () => {
+    const blob = await attendanceApi.downloadImportTemplate();
+    downloadBlob(blob, "attendance-import-template.xlsx");
   };
   const [departmentComparison, setDepartmentComparison] = useState([]);
   const [loadingDepartment, setLoadingDepartment] = useState(false);
@@ -186,6 +202,11 @@ const Reports = () => {
     if (result) {
       setImportLeaveFile(null);
     }
+  };
+
+  const handleDownloadLeaveTemplate = async () => {
+    const blob = await leaveImportApi.downloadImportTemplate();
+    downloadBlob(blob, "leave-import-template.xlsx");
   };
 
   const handleExportLeaveDistribution = () => {
@@ -266,6 +287,10 @@ const Reports = () => {
                 <Button onClick={handleImport} disabled={!importFile || isImporting}>
                   <Upload className="mr-2 h-4 w-4" />
                   {isImporting ? t("reports:attendance.importing") : t("reports:attendance.importButton")}
+                </Button>
+                <Button variant="outline" onClick={handleDownloadAttendanceTemplate}>
+                  <FileDown className="mr-2 h-4 w-4" />
+                  {t("reports:attendance.downloadTemplate")}
                 </Button>
               </div>
             </CardContent>
@@ -395,6 +420,10 @@ const Reports = () => {
                 <Button onClick={handleImportLeave} disabled={!importLeaveFile || isImportingLeave}>
                   <Upload className="mr-2 h-4 w-4" />
                   {isImportingLeave ? t("reports:leave.importing") : t("reports:leave.importButton")}
+                </Button>
+                <Button variant="outline" onClick={handleDownloadLeaveTemplate}>
+                  <FileDown className="mr-2 h-4 w-4" />
+                  {t("reports:leave.downloadTemplate")}
                 </Button>
               </div>
             </CardContent>

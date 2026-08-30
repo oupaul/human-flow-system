@@ -14,6 +14,7 @@
     "fileLabel": "選擇檔案",
     "importButton": "開始匯入",
     "importing": "匯入中...",
+    "downloadTemplate": "下載範例格式",
     "unmatchedTitle": "以下考勤帳號找不到對應員工，未匯入：",
     "summaryTitle": "月度出勤統計",
     "summaryDescription": "依考勤帳號比對後的統計結果，可切換年月查看",
@@ -60,6 +61,7 @@
     "fileLabel": "選擇檔案",
     "importButton": "開始匯入",
     "importing": "匯入中...",
+    "downloadTemplate": "下載範例格式",
     "toasts": {
       "importSuccess": "匯入完成，共 {{count}} 筆",
       "importPartial": "匯入完成，共 {{count}} 筆，但有部分帳號找不到對應員工",

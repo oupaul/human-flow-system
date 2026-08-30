@@ -1783,6 +1783,24 @@ api.delete('/holidays/:id', requireRole(...STAFF_ROLES), async (req, res) => {
 // 考勤 API 路由（僅 HR/主管）：資料來自外部打卡系統匯出的 .xls，透過員工的
 // 「考勤帳號」比對到系統內的員工，未設定考勤帳號的匯入資料列會列在 unmatchedAccounts
 
+// 考勤匯入範例檔：示範 parseAttendanceXls 預期的欄位格式（標題列＋日期欄位、
+// 缺卡／休息日／請假／正常簽到退等各種儲存格內容範例），供 HR 依此格式整理資料
+api.get('/attendance/import-template', requireRole(...STAFF_ROLES), (req, res) => {
+  const data = [
+    ['部門', '人員帳號', '人員姓名', '班別', '07-01', '', '07-02', '', '07-03', ''],
+    ['', '', '', '', '簽到', '簽退', '簽到', '簽退', '簽到', '簽退'],
+    ['範例部門', 'employee01', '範例員工一', '09:00-18:00', '09:02', '18:05', '09:15', '18:00', '缺卡', '缺卡'],
+    ['範例部門', 'employee02', '範例員工二', '09:00-18:00', '休息日', '休息日', '特休', '特休', '09:00', '18:10'],
+  ];
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '考勤紀錄範例');
+  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="attendance-import-template.xlsx"');
+  res.send(buffer);
+});
+
 api.post('/attendance/import', requireRole(...STAFF_ROLES), (req, res, next) => {
   uploadImportFile.single('file')(req, res, (err) => {
     if (err) {
@@ -1908,6 +1926,23 @@ api.get('/attendance/summary', requireRole(...STAFF_ROLES), async (req, res) => 
     console.error('Error fetching attendance summary:', error);
     res.status(500).json({ error: '獲取考勤統計失敗', detail: error.message });
   }
+});
+
+// 請假紀錄匯入範例檔：示範 parseLeaveXls 預期的欄位格式，標題列與真實外部系統
+// 匯出的檔案一致，範例資料展示「請假天數」與「請假時數」兩種填法
+api.get('/leaves/import-template', requireRole(...STAFF_ROLES), (req, res) => {
+  const data = [
+    ['部門名稱', '人員帳號', '人員姓名', '假別', '事件項目', '事件發生日', '請假開始時間', '請假結束時間', '請假天數', '請假時數', '請假分鐘數', '是否計入出勤時數', '請假原因', '紀錄來源', '狀態', '申請時間', '附件1'],
+    ['範例部門', 'employee01', '範例員工一', '特休', '', '', '2026/01/05 09:00:00', '2026/01/05 18:00:00', '1', '', '', '否', '', '請假申請單', '已生效', '2026/01/01 10:00', ''],
+    ['範例部門', 'employee02', '範例員工二', '病假', '', '', '2026/01/06 17:00:00', '2026/01/06 18:00:00', '', '1', '', '否', '去看醫生', '請假申請單', '已生效', '2026/01/06 16:00', ''],
+  ];
+  const worksheet = XLSX.utils.aoa_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '請假紀錄範例');
+  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="leave-import-template.xlsx"');
+  res.send(buffer);
 });
 
 // 請假紀錄匯入 API（僅 HR/主管）：資料來自外部打卡系統匯出的「請假紀錄」.xls，

@@ -14,6 +14,7 @@
     "fileLabel": "Choose File",
     "importButton": "Start Import",
     "importing": "Importing...",
+    "downloadTemplate": "Download Sample Template",
     "unmatchedTitle": "The following attendance accounts could not be matched to any employee and were not imported:",
     "summaryTitle": "Monthly Attendance Summary",
     "summaryDescription": "Statistics after matching by attendance account; switch year/month to view different periods",
@@ -60,6 +61,7 @@
     "fileLabel": "Choose File",
     "importButton": "Start Import",
     "importing": "Importing...",
+    "downloadTemplate": "Download Sample Template",
     "toasts": {
       "importSuccess": "Import complete: {{count}} records",
       "importPartial": "Import complete: {{count}} records, but some accounts could not be matched",

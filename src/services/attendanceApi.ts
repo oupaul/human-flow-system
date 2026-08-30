@@ -1,7 +1,11 @@
 import { AttendanceImportResult, AttendanceRecord, AttendanceSummaryRow } from "@/types/attendance";
-import { apiFetch } from "@/lib/apiClient";
+import { apiFetch, apiFetchBlob } from "@/lib/apiClient";
 
 export const attendanceApi = {
+  async downloadImportTemplate(): Promise<Blob> {
+    return apiFetchBlob("/attendance/import-template");
+  },
+
   async importAttendance(file: File, year: number): Promise<AttendanceImportResult> {
     const formData = new FormData();
     formData.append("file", file);

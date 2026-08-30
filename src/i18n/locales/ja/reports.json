@@ -14,6 +14,7 @@
     "fileLabel": "ファイルを選択",
     "importButton": "インポート開始",
     "importing": "インポート中...",
+    "downloadTemplate": "サンプル形式をダウンロード",
     "unmatchedTitle": "以下の勤怠アカウントは対応する従業員が見つからず、インポートされませんでした：",
     "summaryTitle": "月次勤怠統計",
     "summaryDescription": "勤怠アカウントで照合した後の統計結果です。年月を切り替えて表示できます",
@@ -60,6 +61,7 @@
     "fileLabel": "ファイルを選択",
     "importButton": "インポート開始",
     "importing": "インポート中...",
+    "downloadTemplate": "サンプル形式をダウンロード",
     "toasts": {
       "importSuccess": "インポートが完了しました（{{count}} 件）",
       "importPartial": "インポートが完了しました（{{count}} 件）が、一部のアカウントは照合できませんでした",
