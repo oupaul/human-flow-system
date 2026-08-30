@@ -1844,16 +1844,21 @@ api.post('/attendance/import', requireRole(...STAFF_ROLES), (req, res, next) => 
   }
 });
 
-// 某年月的考勤明細（可選員工篩選），供報表明細表使用
+// 某年月的考勤明細（可選員工篩選），供報表明細表使用。isLate/isEarlyLeave
+// 判斷邏輯與 /attendance/summary 的遲到早退次數統計一致（同樣的容許緩衝分鐘數），
+// 讓「明細列表」跟「統計次數」永遠對得上，不會各自維護一套邏輯而算出不同結果
 api.get('/attendance/records', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { year, month, employeeId } = req.query;
     if (!year || !month) {
       return res.status(400).json({ error: '請提供年月' });
     }
-    const params = [String(year), String(month).padStart(2, '0')];
+    const graceTime = `00:${String(ATTENDANCE_GRACE_MINUTES).padStart(2, '0')}:00`;
+    const params = [graceTime, graceTime, String(year), String(month).padStart(2, '0')];
     let query = `
-      SELECT a.*, e.name as employeeName, e.department
+      SELECT a.*, e.name as employeeName, e.department,
+        (a.status = 'normal' AND a.shiftStart IS NOT NULL AND a.clockIn > ADDTIME(a.shiftStart, ?)) as isLate,
+        (a.status = 'normal' AND a.shiftEnd IS NOT NULL AND a.shiftEnd > a.shiftStart AND a.clockOut < SUBTIME(a.shiftEnd, ?)) as isEarlyLeave
       FROM attendance_records a
       LEFT JOIN employees e ON a.employeeId = e.employeeId
       WHERE DATE_FORMAT(a.date, '%Y-%m') = CONCAT(?, '-', ?)

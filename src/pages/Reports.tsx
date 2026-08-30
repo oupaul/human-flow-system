@@ -55,6 +55,8 @@ import { Download, Calendar, Upload } from "lucide-react";
 import { dashboardApi, LeaveDistributionDetailRow } from "@/services/dashboardApi";
 import { useAttendance } from "@/hooks/useAttendance";
 import { useLeaveImport } from "@/hooks/useLeaveImport";
+import { attendanceApi } from "@/services/attendanceApi";
+import { AttendanceRecord } from "@/types/attendance";
 
 type DepartmentRange = "currentMonth" | "lastMonth" | "currentQuarter" | "lastQuarter" | "currentYear" | "lastYear";
 
@@ -95,6 +97,24 @@ const Reports = () => {
   const [importYear, setImportYear] = useState(currentDate.getFullYear());
   const [importFile, setImportFile] = useState<File | null>(null);
   const { summary, loading: loadingAttendance, isImporting, importFile: doImport } = useAttendance(attendanceYear, attendanceMonth);
+
+  const [attendanceException, setAttendanceException] = useState<{ employeeId: string; employeeName: string; type: "late" | "early" } | null>(null);
+  const [attendanceExceptionRecords, setAttendanceExceptionRecords] = useState<AttendanceRecord[]>([]);
+  const [loadingAttendanceException, setLoadingAttendanceException] = useState(false);
+
+  const openAttendanceException = async (employeeId: string, employeeName: string, type: "late" | "early") => {
+    setAttendanceException({ employeeId, employeeName, type });
+    setLoadingAttendanceException(true);
+    try {
+      const records = await attendanceApi.getRecords(attendanceYear, attendanceMonth, employeeId);
+      const filtered = records.filter((r) => (type === "late" ? r.isLate : r.isEarlyLeave));
+      setAttendanceExceptionRecords(filtered);
+    } catch (e) {
+      setAttendanceExceptionRecords([]);
+    } finally {
+      setLoadingAttendanceException(false);
+    }
+  };
 
   const handleImport = async () => {
     if (!importFile) return;
@@ -306,8 +326,32 @@ const Reports = () => {
                         <TableCell>{row.department}</TableCell>
                         <TableCell>{row.normalDays}</TableCell>
                         <TableCell className={row.missingDays > 0 ? "text-red-600" : undefined}>{row.missingDays}</TableCell>
-                        <TableCell className={row.lateCount > 0 ? "text-orange-600" : undefined}>{row.lateCount}</TableCell>
-                        <TableCell className={row.earlyLeaveCount > 0 ? "text-orange-600" : undefined}>{row.earlyLeaveCount}</TableCell>
+                        <TableCell>
+                          {row.lateCount > 0 ? (
+                            <button
+                              type="button"
+                              className="text-orange-600 underline underline-offset-2 hover:text-orange-700"
+                              onClick={() => openAttendanceException(row.employeeId, row.employeeName, "late")}
+                            >
+                              {row.lateCount}
+                            </button>
+                          ) : (
+                            row.lateCount
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {row.earlyLeaveCount > 0 ? (
+                            <button
+                              type="button"
+                              className="text-orange-600 underline underline-offset-2 hover:text-orange-700"
+                              onClick={() => openAttendanceException(row.employeeId, row.employeeName, "early")}
+                            >
+                              {row.earlyLeaveCount}
+                            </button>
+                          ) : (
+                            row.earlyLeaveCount
+                          )}
+                        </TableCell>
                         <TableCell>{row.leaveDays}</TableCell>
                         <TableCell>{row.dayOffDays}</TableCell>
                       </TableRow>
@@ -322,6 +366,9 @@ const Reports = () => {
                   </TableBody>
                 </Table>
               </div>
+              {!loadingAttendance && summary.length > 0 && (
+                <div className="text-center text-sm text-muted-foreground mt-2">{t("reports:attendance.exceptionHint")}</div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -561,6 +608,47 @@ const Reports = () => {
                   <TableRow>
                     <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                       {t("reports:leave.detailNoData")}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={attendanceException !== null} onOpenChange={(open) => !open && setAttendanceException(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {attendanceException?.employeeName}
+              {attendanceException?.type === "late" ? t("reports:attendance.exceptionLateTitle") : t("reports:attendance.exceptionEarlyTitle")}
+            </DialogTitle>
+            <DialogDescription>{t("reports:attendance.exceptionDescription")}</DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md border max-h-96 overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("reports:attendance.exceptionColumns.date")}</TableHead>
+                  <TableHead>{t("reports:attendance.exceptionColumns.shift")}</TableHead>
+                  <TableHead>{t("reports:attendance.exceptionColumns.clockIn")}</TableHead>
+                  <TableHead>{t("reports:attendance.exceptionColumns.clockOut")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {attendanceExceptionRecords.map((record) => (
+                  <TableRow key={record.id}>
+                    <TableCell>{record.date}</TableCell>
+                    <TableCell>{record.shiftStart} ~ {record.shiftEnd}</TableCell>
+                    <TableCell className={attendanceException?.type === "late" ? "text-orange-600" : undefined}>{record.clockIn}</TableCell>
+                    <TableCell className={attendanceException?.type === "early" ? "text-orange-600" : undefined}>{record.clockOut}</TableCell>
+                  </TableRow>
+                ))}
+                {!loadingAttendanceException && attendanceExceptionRecords.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                      {t("reports:attendance.exceptionNoData")}
                     </TableCell>
                   </TableRow>
                 )}

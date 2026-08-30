@@ -36,6 +36,17 @@
       "importPartial": "匯入完成，共 {{count}} 筆，但有部分帳號找不到對應員工",
       "unmatchedAccounts": "找不到對應員工的考勤帳號：{{accounts}}，請至「員工管理」補上考勤帳號後重新匯入",
       "importFailed": "匯入考勤資料失敗"
+    },
+    "exceptionHint": "點選遲到／早退次數可查看是哪幾天",
+    "exceptionLateTitle": "的遲到明細",
+    "exceptionEarlyTitle": "的早退明細",
+    "exceptionDescription": "排班時間與實際簽到退時間對照",
+    "exceptionNoData": "查無明細資料",
+    "exceptionColumns": {
+      "date": "日期",
+      "shift": "排班時間",
+      "clockIn": "實際簽到",
+      "clockOut": "實際簽退"
     }
   },
   "leave": {

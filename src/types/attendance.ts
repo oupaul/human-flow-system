@@ -12,6 +12,8 @@ export interface AttendanceRecord {
   clockOut: string | null;
   status: AttendanceStatus;
   note: string | null;
+  isLate: boolean | number;
+  isEarlyLeave: boolean | number;
 }
 
 export interface AttendanceSummaryRow {

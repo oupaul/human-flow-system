@@ -36,6 +36,17 @@
       "importPartial": "Import complete: {{count}} records, but some accounts could not be matched",
       "unmatchedAccounts": "Unmatched attendance accounts: {{accounts}}. Please add the attendance account in Employee Management and re-import.",
       "importFailed": "Failed to import attendance data"
+    },
+    "exceptionHint": "Click the late/early count to see which days",
+    "exceptionLateTitle": "'s Late Arrivals",
+    "exceptionEarlyTitle": "'s Early Departures",
+    "exceptionDescription": "Scheduled shift vs. actual clock-in/out times",
+    "exceptionNoData": "No detail records found",
+    "exceptionColumns": {
+      "date": "Date",
+      "shift": "Scheduled Shift",
+      "clockIn": "Actual Clock-In",
+      "clockOut": "Actual Clock-Out"
     }
   },
   "leave": {

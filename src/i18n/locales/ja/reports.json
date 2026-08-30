@@ -36,6 +36,17 @@
       "importPartial": "インポートが完了しました（{{count}} 件）が、一部のアカウントは照合できませんでした",
       "unmatchedAccounts": "対応する従業員が見つからなかった勤怠アカウント：{{accounts}}。「従業員管理」で勤怠アカウントを設定してから再度インポートしてください",
       "importFailed": "勤怠データのインポートに失敗しました"
+    },
+    "exceptionHint": "遅刻／早退回数をクリックすると、どの日か確認できます",
+    "exceptionLateTitle": "の遅刻明細",
+    "exceptionEarlyTitle": "の早退明細",
+    "exceptionDescription": "シフト時間と実際の出退勤時刻の比較",
+    "exceptionNoData": "明細データがありません",
+    "exceptionColumns": {
+      "date": "日付",
+      "shift": "シフト時間",
+      "clockIn": "実際の出勤",
+      "clockOut": "実際の退勤"
     }
   },
   "leave": {
