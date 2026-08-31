@@ -123,36 +123,51 @@ const Departments = () => {
               </Button>
             </div>
           ) : (
-            departmentHierarchy.map((hierarchy) => (
-              <div key={hierarchy.main.id} className="space-y-4">
-                <div className="flex items-center">
-                  <h2 className="text-lg font-semibold">{hierarchy.main.name}</h2>
-                  <span className="ml-2 rounded-full bg-hrms-primary px-2.5 py-0.5 text-xs text-white">
-                    {t("departments:shared.employeeCount", { count: hierarchy.main.employeeCount })}
-                  </span>
-                </div>
-                
-                <div className="grid gap-6 md:grid-cols-2">
+            // 沒有子部門的部門直接放進同一個共用網格，讓沒有階層關係的部門
+            // 彼此也能一列兩欄排列；有子部門的才需要獨立區塊（跨兩欄）顯示
+            // 標題與主/子部門群組，避免階層關係被拆散
+            <div className="grid gap-6 md:grid-cols-2">
+              {departmentHierarchy.map((hierarchy) =>
+                hierarchy.sub.length === 0 ? (
                   <DepartmentCard
+                    key={hierarchy.main.id}
                     department={hierarchy.main}
                     onView={openViewDialog}
                     onEdit={openEditDialog}
                     onDelete={openDeleteDialog}
                   />
-                  
-                  {hierarchy.sub.map((subDept) => (
-                    <DepartmentCard
-                      key={subDept.id}
-                      department={subDept}
-                      isSubDepartment={true}
-                      onView={openViewDialog}
-                      onEdit={openEditDialog}
-                      onDelete={openDeleteDialog}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))
+                ) : (
+                  <div key={hierarchy.main.id} className="space-y-4 md:col-span-2">
+                    <div className="flex items-center">
+                      <h2 className="text-lg font-semibold">{hierarchy.main.name}</h2>
+                      <span className="ml-2 rounded-full bg-hrms-primary px-2.5 py-0.5 text-xs text-white">
+                        {t("departments:shared.employeeCount", { count: hierarchy.main.employeeCount })}
+                      </span>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <DepartmentCard
+                        department={hierarchy.main}
+                        onView={openViewDialog}
+                        onEdit={openEditDialog}
+                        onDelete={openDeleteDialog}
+                      />
+
+                      {hierarchy.sub.map((subDept) => (
+                        <DepartmentCard
+                          key={subDept.id}
+                          department={subDept}
+                          isSubDepartment={true}
+                          onView={openViewDialog}
+                          onEdit={openEditDialog}
+                          onDelete={openDeleteDialog}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
           )
         )}
       </div>
