@@ -49,7 +49,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null);
-    throw new ApiError(response.status, errorBody?.error || `HTTP error! status: ${response.status}`);
+    throw new ApiError(response.status, formatApiErrorMessage(errorBody, response.status));
   }
 
   if (response.status === 204) {
@@ -57,6 +57,17 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
 
   return response.json();
+}
+
+// 後端幾乎每個錯誤都會回 { error, detail }，detail 是實際的底層錯誤訊息
+// （如 SMTP 認證失敗的原因、SQL 錯誤等），對排查問題很關鍵，不能只顯示
+// 前面那句通用的中文訊息就把它丟掉
+function formatApiErrorMessage(errorBody: { error?: string; detail?: string } | null, status: number): string {
+  const base = errorBody?.error || `HTTP error! status: ${status}`;
+  if (errorBody?.detail) {
+    return `${base}：${errorBody.detail}`;
+  }
+  return base;
 }
 
 // 下載二進位檔案（如請假附件）用，apiFetch 的 response.json() 不適用
@@ -68,7 +79,7 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null);
-    throw new ApiError(response.status, errorBody?.error || `HTTP error! status: ${response.status}`);
+    throw new ApiError(response.status, formatApiErrorMessage(errorBody, response.status));
   }
 
   return response.blob();
