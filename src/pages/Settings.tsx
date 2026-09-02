@@ -29,6 +29,7 @@ const emptyForm: NotificationSettingsFormData = {
   smtpHost: "",
   smtpPort: "587",
   smtpSecure: false,
+  smtpAllowSelfSignedCert: false,
   smtpFrom: "",
   notificationToEmails: "",
   smtpAuthMethod: "basic",
@@ -65,6 +66,7 @@ const Settings = () => {
         smtpHost: settings.smtpHost || "",
         smtpPort: settings.smtpPort ? String(settings.smtpPort) : "587",
         smtpSecure: settings.smtpSecure,
+        smtpAllowSelfSignedCert: settings.smtpAllowSelfSignedCert,
         smtpFrom: settings.smtpFrom || "",
         notificationToEmails: settings.notificationToEmails || "",
         smtpAuthMethod: settings.smtpAuthMethod,
@@ -180,6 +182,17 @@ const Settings = () => {
               <div className="flex items-center gap-2">
                 <Switch id="smtpSecure" checked={form.smtpSecure} onCheckedChange={(checked) => setForm({ ...form, smtpSecure: checked })} />
                 <Label htmlFor="smtpSecure">{t("settings:smtp.secure")}</Label>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="smtpAllowSelfSignedCert"
+                    checked={form.smtpAllowSelfSignedCert}
+                    onCheckedChange={(checked) => setForm({ ...form, smtpAllowSelfSignedCert: checked })}
+                  />
+                  <Label htmlFor="smtpAllowSelfSignedCert">{t("settings:smtp.allowSelfSignedCert")}</Label>
+                </div>
+                <p className="text-xs text-muted-foreground pl-11">{t("settings:smtp.allowSelfSignedCertHint")}</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="smtpFrom">{t("settings:smtp.from")}</Label>

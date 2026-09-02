@@ -89,6 +89,9 @@ docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_datab
 
 # 請假紀錄匯入功能（報表「請假分析」可匯入外部系統匯出的請假紀錄）
 docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/009_leave_import.sql
+
+# 通知設定新增「允許自簽憑證」選項（公司自架郵件伺服器常見需要）
+docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/010_smtp_self_signed.sql
 ```
 
 全新安裝（第一次啟動 `db` 容器）不需要這步，`schema.sql` 已經包含最新結構。

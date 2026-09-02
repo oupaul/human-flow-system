@@ -20,6 +20,8 @@
     "host": "SMTP Host",
     "port": "Port",
     "secure": "Use SSL/TLS (usually required for port 465)",
+    "allowSelfSignedCert": "Allow self-signed certificate (skip certificate verification)",
+    "allowSelfSignedCertHint": "Self-hosted mail servers often use self-signed certificates, causing sending to fail with \"unable to get local issuer certificate\". Enable this to skip verification. Only recommended on a trusted internal network — this reduces protection against man-in-the-middle attacks on the SMTP connection.",
     "from": "From Email Address",
     "authMethod": "Authentication Method",
     "authBasic": "Username & Password",

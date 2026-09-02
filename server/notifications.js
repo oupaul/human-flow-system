@@ -12,6 +12,7 @@ function envDefaults() {
     smtp_host: process.env.SMTP_HOST || null,
     smtp_port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : null,
     smtp_secure: process.env.SMTP_SECURE === 'true',
+    smtp_allow_self_signed_cert: process.env.SMTP_ALLOW_SELF_SIGNED_CERT === 'true',
     smtp_from: process.env.SMTP_FROM || null,
     notification_to_emails: process.env.NOTIFICATION_TO_EMAILS || null,
     smtp_auth_method: process.env.SMTP_AUTH_METHOD || 'basic',
@@ -35,12 +36,12 @@ export async function getNotificationSettings(pool) {
   const defaults = envDefaults();
   await pool.execute(
     `INSERT INTO notification_settings
-      (id, channel, smtp_host, smtp_port, smtp_secure, smtp_from, notification_to_emails,
+      (id, channel, smtp_host, smtp_port, smtp_secure, smtp_allow_self_signed_cert, smtp_from, notification_to_emails,
        smtp_auth_method, smtp_user, smtp_password, smtp_oauth_user, smtp_oauth_client_id,
        smtp_oauth_client_secret, smtp_oauth_refresh_token, teams_webhook_url)
-     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      defaults.channel, defaults.smtp_host, defaults.smtp_port, defaults.smtp_secure, defaults.smtp_from,
+      defaults.channel, defaults.smtp_host, defaults.smtp_port, defaults.smtp_secure, defaults.smtp_allow_self_signed_cert, defaults.smtp_from,
       defaults.notification_to_emails, defaults.smtp_auth_method, defaults.smtp_user, defaults.smtp_password,
       defaults.smtp_oauth_user, defaults.smtp_oauth_client_id, defaults.smtp_oauth_client_secret,
       defaults.smtp_oauth_refresh_token, defaults.teams_webhook_url,
@@ -70,6 +71,10 @@ function buildTransporter(settings) {
     port: settings.smtp_port || 587,
     secure: !!settings.smtp_secure,
     auth,
+    // 公司自架郵件伺服器常見自簽憑證或憑證鏈不完整，預設驗證會失敗
+    // （unable to get local issuer certificate）；管理員在「系統設定」勾選
+    // 「允許自簽憑證」後才會略過驗證，只建議在信任的內部網路環境使用
+    tls: { rejectUnauthorized: !settings.smtp_allow_self_signed_cert },
   });
 }
 

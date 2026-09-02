@@ -64,6 +64,8 @@ mysql -u root -p hrms_database < server/migrations/008_attendance.sql   # 考勤
 
 mysql -u root -p hrms_database < server/migrations/009_leave_import.sql   # 請假紀錄匯入功能（報表「請假分析」可匯入外部系統匯出的請假紀錄）
 
+mysql -u root -p hrms_database < server/migrations/010_smtp_self_signed.sql   # 通知設定新增「允許自簽憑證」選項
+
 npm run fix:leave-periods   # 修正舊版 bug 造成的錯誤特休週年紀錄（到職日回填多年前時發放天數算錯），可重複執行
 ```
 
@@ -127,6 +129,7 @@ npm run dev
 
 - 一般帳密登入：填 SMTP 帳號、密碼即可。
 - OAuth2（適用 Microsoft 365、Google Workspace 等已停用密碼登入 Basic Auth 的信箱）：需要你自行到該信箱服務商後台申請一組應用程式並取得 refresh token（Microsoft：在 Entra ID/Azure AD 註冊應用程式並授予寄信權限；Google：在 Google Cloud Console 啟用 Gmail API 並建立 OAuth 用戶端，可用 [OAuth 2.0 Playground](https://developers.google.com/oauthplayground) 取得測試用 refresh token）。這是信箱服務商的一次性設定，本系統不提供 OAuth 授權流程頁面，拿到 Client ID/Secret/refresh token 後直接貼進設定頁面即可。
+- 如果 `SMTP_HOST` 是公司自架的內部郵件伺服器，常見會用自簽憑證或憑證鏈不完整，測試通知時會看到「測試通知發送失敗：unable to get local issuer certificate」——這是 Node.js 驗證 SMTP 伺服器憑證找不到完整信任鏈的錯誤。設定頁面裡的「允許自簽憑證（略過憑證驗證）」開關可以解決這個問題，但**只建議在信任的內部網路環境使用**，開啟後會降低對 SMTP 連線中間人攻擊的防護。
 
 **Teams 通道**：在目標頻道設定「傳入 Webhook」連接器，取得 Webhook 網址後貼進設定頁面。目前是用傳統 MessageCard 格式；如果貴組織改用較新的 Power Automate 工作流程 Webhook，payload 格式不同，需要調整 `server/notifications.js` 的 `sendTeams` 函式。
 

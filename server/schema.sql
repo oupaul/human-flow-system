@@ -256,6 +256,11 @@ CREATE TABLE IF NOT EXISTS notification_settings (
   smtp_host VARCHAR(255) NULL,
   smtp_port INT NULL,
   smtp_secure BOOLEAN DEFAULT FALSE,
+  -- 公司自架郵件伺服器常見是自簽憑證或憑證鏈不完整，Node.js 驗證會噴
+  -- 「unable to get local issuer certificate」導致寄信失敗；開啟這個選項會
+  -- 略過憑證驗證（等同 nodemailer 的 tls.rejectUnauthorized = false）。
+  -- 只建議在信任的內部網路環境使用，會降低對 SMTP 連線中間人攻擊的防護
+  smtp_allow_self_signed_cert BOOLEAN NOT NULL DEFAULT FALSE,
   smtp_from VARCHAR(255) NULL,
   notification_to_emails VARCHAR(500) NULL,
   smtp_auth_method ENUM('basic', 'oauth2') DEFAULT 'basic',

@@ -20,6 +20,8 @@
     "host": "SMTP 主機",
     "port": "連接埠",
     "secure": "使用 SSL/TLS（465 埠通常需要開啟）",
+    "allowSelfSignedCert": "允許自簽憑證（略過憑證驗證）",
+    "allowSelfSignedCertHint": "公司自架郵件伺服器常見自簽憑證，導致寄送失敗並出現「unable to get local issuer certificate」錯誤，可開啟此選項略過驗證。僅建議在信任的內部網路環境使用，會降低對 SMTP 連線中間人攻擊的防護。",
     "from": "寄件人信箱",
     "authMethod": "驗證方式",
     "authBasic": "帳號密碼",

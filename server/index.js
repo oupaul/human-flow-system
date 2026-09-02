@@ -822,6 +822,7 @@ api.get('/settings/notifications', requireRole('admin'), async (req, res) => {
       smtpHost: settings.smtp_host,
       smtpPort: settings.smtp_port,
       smtpSecure: settings.smtp_secure,
+      smtpAllowSelfSignedCert: !!settings.smtp_allow_self_signed_cert,
       smtpFrom: settings.smtp_from,
       notificationToEmails: settings.notification_to_emails,
       smtpAuthMethod: settings.smtp_auth_method,
@@ -847,7 +848,7 @@ api.put('/settings/notifications', requireRole('admin'), async (req, res) => {
 
     await pool.execute(
       `UPDATE notification_settings SET
-        channel = ?, smtp_host = ?, smtp_port = ?, smtp_secure = ?, smtp_from = ?,
+        channel = ?, smtp_host = ?, smtp_port = ?, smtp_secure = ?, smtp_allow_self_signed_cert = ?, smtp_from = ?,
         notification_to_emails = ?, smtp_auth_method = ?, smtp_user = ?, smtp_password = ?,
         smtp_oauth_user = ?, smtp_oauth_client_id = ?, smtp_oauth_client_secret = ?,
         smtp_oauth_refresh_token = ?, teams_webhook_url = ?
@@ -857,6 +858,7 @@ api.put('/settings/notifications', requireRole('admin'), async (req, res) => {
         body.smtpHost || null,
         body.smtpPort ? Number(body.smtpPort) : null,
         !!body.smtpSecure,
+        !!body.smtpAllowSelfSignedCert,
         body.smtpFrom || null,
         body.notificationToEmails || null,
         body.smtpAuthMethod || 'basic',

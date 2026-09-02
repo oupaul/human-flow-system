@@ -3,6 +3,7 @@ export interface NotificationSettings {
   smtpHost: string | null;
   smtpPort: number | null;
   smtpSecure: boolean;
+  smtpAllowSelfSignedCert: boolean;
   smtpFrom: string | null;
   notificationToEmails: string | null;
   smtpAuthMethod: "basic" | "oauth2";
@@ -20,6 +21,7 @@ export interface NotificationSettingsFormData {
   smtpHost: string;
   smtpPort: string;
   smtpSecure: boolean;
+  smtpAllowSelfSignedCert: boolean;
   smtpFrom: string;
   notificationToEmails: string;
   smtpAuthMethod: "basic" | "oauth2";
