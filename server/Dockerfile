@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 3001
 
-CMD ["node", "index.js"]
+CMD ["sh", "-c", "node auto-seed-admin.js; node index.js"]

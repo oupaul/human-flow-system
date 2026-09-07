@@ -12,7 +12,26 @@
 
 - Docker Desktop（或 Docker Engine + Docker Compose v2，`docker compose version` 需能執行）
 
-## 步驟 1：設定環境變數
+## 快速部署（新環境，兩個指令）
+
+```sh
+git clone <repo> && cd human-flow-system
+./deploy.sh
+```
+
+`deploy.sh` 會在 `.env` 不存在時自動複製 `.env.example` 並產生隨機的 `DB_PASSWORD`/`DB_ROOT_PASSWORD`/`JWT_SECRET`，接著跑 `docker compose up --build -d`。初始管理員帳號會在 `backend` 容器就緒後自動建立（僅限資料庫裡完全沒有任何管理員帳號時才會建立，不會覆蓋既有帳號），帳號密碼只會印在第一次啟動的 log 裡一次：
+
+```sh
+docker compose logs backend | grep -B1 -A4 已自動建立初始管理員帳號
+```
+
+登入後請盡快到「個人設定」修改密碼。如果之後要重設密碼或改用自訂帳號名稱，請用下面「步驟 3」的 `seed-admin.js`（跟自動建立是兩支不同的腳本，`seed-admin.js` 會覆蓋密碼，自動建立的那支不會）。
+
+如果需要在啟動前先自訂設定（M365 單一登入、SMTP、`CORS_ORIGIN` 等非隨機生成的值），請改用下面「步驟 1～3」的手動流程，或是先執行 `cp .env.example .env` 編輯好想要的值後再執行 `./deploy.sh`（腳本偵測到 `.env` 已存在就不會覆蓋，只會直接啟動）。
+
+## 手動部署（需要自訂設定時）
+
+### 步驟 1：設定環境變數
 
 ```sh
 cp .env.example .env
@@ -30,7 +49,7 @@ JWT_SECRET=改成一組長度足夠的隨機字串
 
 如果要開啟「使用 Microsoft 帳號登入」（M365 SSO，選用），需要額外設定 `MS_TENANT_ID`/`MS_CLIENT_ID`/`MS_CLIENT_SECRET`/`MS_REDIRECT_URI` 四個值，完整設定步驟見 [`API_SETUP_README.md`](API_SETUP_README.md#microsoft-365-單一登入選用)。沒設定就不會出現這個登入選項，不影響原本的帳號密碼登入。
 
-## 步驟 2：建置並啟動
+### 步驟 2：建置並啟動
 
 ```sh
 npm run docker:up
@@ -47,7 +66,7 @@ docker compose ps
 
 看到 `db`、`backend`、`frontend` 都是 `running`（`db` 需等到 `healthy`）即可。
 
-## 步驟 3：建立管理員登入帳號
+### 步驟 3：建立管理員登入帳號
 
 ```sh
 ADMIN_PASSWORD=你的密碼 docker compose run --rm -e ADMIN_PASSWORD backend node seed-admin.js
@@ -55,7 +74,7 @@ ADMIN_PASSWORD=你的密碼 docker compose run --rm -e ADMIN_PASSWORD backend no
 
 （也可以用 `npm run docker:seed-admin`，但需要先手動 `export ADMIN_PASSWORD=你的密碼`）
 
-看到 `✅ 已建立/更新管理員帳號：admin` 即成功。可用 `-e ADMIN_USERNAME=自訂帳號` 改帳號名稱。
+看到 `✅ 已建立/更新管理員帳號：admin` 即成功。可用 `-e ADMIN_USERNAME=自訂帳號` 改帳號名稱。這支腳本每次執行都會覆蓋密碼，也用於之後重設密碼；跟「快速部署」流程裡自動建立初始帳號的 `auto-seed-admin.js` 是兩支不同的腳本（那支只在完全沒有管理員帳號時才會建立一次，不會覆蓋既有密碼）。
 
 ### 既有部署升級：套用資料庫結構異動
 

@@ -24,7 +24,14 @@
 
 ## 部署與更新
 
-**正式環境請使用 Docker 部署**，完整步驟（含環境變數設定、建置啟動、既有部署升級要套用哪些 migration、健康檢查測試）請見 **[DEPLOY.md](DEPLOY.md)**。
+**正式環境請使用 Docker 部署**，全新環境最快兩個指令就能完成：
+
+```sh
+git clone <repo> && cd human-flow-system
+./deploy.sh
+```
+
+`deploy.sh` 會自動產生隨機密鑰並建立初始管理員帳號（密碼印在第一次啟動的 log 裡）。完整步驟（含需要自訂設定時的手動流程、既有部署升級要套用哪些 migration、健康檢查測試）請見 **[DEPLOY.md](DEPLOY.md)**。
 
 日常更新既有部署的流程簡述：
 
