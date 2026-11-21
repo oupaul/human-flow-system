@@ -1,7 +1,8 @@
 {
   "tabs": {
     "records": "通知と支給",
-    "rules": "手当ルール"
+    "rules": "手当ルール",
+    "holiday": "祝日手当"
   },
   "types": {
     "travel_subsidy": "旅行補助",
@@ -50,5 +51,35 @@
     "notifyHr": "HR に通知",
     "active": "有効",
     "deleteHint": "ルール「{{name}}」を削除します。通知履歴のあるルールは削除できないため、無効化してください。"
+  },
+  "holiday": {
+    "recordsTitle": "年度支給記録",
+    "recordsHint": "ルールごとに年1件、全社一括。日付の N 日前に HR へ人数と見込み総額を通知します。",
+    "rulesTitle": "祝日手当ルール",
+    "rulesHint": "仕事始めの祝儀、端午・中秋の手当など毎年日付が変わる手当（全員同額）",
+    "addRecord": "年度の日付を追加",
+    "noRecords": "年度記録がまだありません。カレンダー連動のルールは日付が通知期間に入ると自動作成されます。手動ルールは今年の日付を追加してください。",
+    "year": "年度",
+    "eventDate": "日付",
+    "headcount": "在職人数",
+    "total": "見込み／支給総額",
+    "changeDate": "日付変更",
+    "paidTotal": "実際の支給総額",
+    "selectRule": "ルールを選択",
+    "checkDone": "チェック完了：新規 {{created}} 件、通知 {{notified}} 件",
+    "addRuleTitle": "祝日手当ルールの追加",
+    "editRuleTitle": "祝日手当ルールの編集",
+    "namePlaceholder": "例：端午手当",
+    "dateSource": "日付の取得元",
+    "amountPerPerson": "1人あたり金額",
+    "sourceManual": "HR が毎年入力",
+    "sourceKeyword": "祝日名に「{{keyword}}」を含む",
+    "optKeyword": "祝日カレンダーの名称から自動取得",
+    "optManual": "HR が毎年入力",
+    "keyword": "祝日名キーワード",
+    "keywordPlaceholder": "例：端午、中秋",
+    "keywordHint": "祝日カレンダーの名称と照合するため、その年のカレンダーを先にインポートしてください。複数日一致する場合（振替休日など）は最も早い日を使います。",
+    "manualHint": "仕事始めの祝儀などは「年度支給記録」の「年度の日付を追加」から今年の日付を入力してください。",
+    "deleteRecordHint": "{{year}} 年「{{name}}」の年度記録を削除します。"
   }
 }

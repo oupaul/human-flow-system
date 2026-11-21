@@ -30,5 +30,11 @@
     "description": "資格を満たした、または間もなく満たす未支給の従業員",
     "eligible": "資格日 {{date}}",
     "more": "他 {{count}} 件 — クリックして全リストを表示"
+  },
+  "holidayBenefits": {
+    "title": "祝日手当の未支給",
+    "description": "通知済みで未支給の祝日手当",
+    "event": "日付 {{date}}",
+    "summary": "{{headcount}} 名 · 見込み NT$ {{total}}"
   }
 }

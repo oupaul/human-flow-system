@@ -1,7 +1,8 @@
 {
   "tabs": {
     "records": "Reminders & Payouts",
-    "rules": "Benefit Rules"
+    "rules": "Benefit Rules",
+    "holiday": "Holiday Benefits"
   },
   "types": {
     "travel_subsidy": "Travel Subsidy",
@@ -50,5 +51,35 @@
     "notifyHr": "Notify HR",
     "active": "Active",
     "deleteHint": "Rule \"{{name}}\" will be deleted. Rules with existing records cannot be deleted; deactivate them instead."
+  },
+  "holiday": {
+    "recordsTitle": "Yearly Payout Records",
+    "recordsHint": "One record per rule per year, company-wide. HR is notified N days before with headcount and estimated total.",
+    "rulesTitle": "Holiday Benefit Rules",
+    "rulesHint": "Benefits with a different date each year (New Year red envelope, Dragon Boat, Mid-Autumn), same amount for everyone",
+    "addRecord": "Add Yearly Date",
+    "noRecords": "No yearly records yet. Calendar-based rules are created automatically when the date enters the reminder window; manual rules need this year's date added.",
+    "year": "Year",
+    "eventDate": "Date",
+    "headcount": "Headcount",
+    "total": "Estimated / Paid total",
+    "changeDate": "Change date",
+    "paidTotal": "Actual total paid",
+    "selectRule": "Select a rule",
+    "checkDone": "Check complete: {{created}} created, {{notified}} notified",
+    "addRuleTitle": "Add Holiday Benefit Rule",
+    "editRuleTitle": "Edit Holiday Benefit Rule",
+    "namePlaceholder": "e.g. Dragon Boat bonus",
+    "dateSource": "Date source",
+    "amountPerPerson": "Amount per person",
+    "sourceManual": "HR enters date each year",
+    "sourceKeyword": "Calendar holiday name contains \"{{keyword}}\"",
+    "optKeyword": "Auto from holiday calendar name",
+    "optManual": "HR enters date each year",
+    "keyword": "Holiday name keyword",
+    "keywordPlaceholder": "e.g. Dragon Boat",
+    "keywordHint": "Matches holiday names in the holiday calendar, so the year's calendar must be imported first. If several days match (e.g. a make-up day), the earliest is used.",
+    "manualHint": "For rules like the New Year red envelope, click \"Add Yearly Date\" under Yearly Payout Records and enter this year's date.",
+    "deleteRecordHint": "The {{year}} record for \"{{name}}\" will be deleted."
   }
 }

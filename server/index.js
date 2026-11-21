@@ -12,6 +12,7 @@ import { fileURLToPath } from 'url';
 import * as XLSX from 'xlsx';
 import { sendNotification, getNotificationSettings, sendTestNotification } from './notifications.js';
 import { checkSeniorityBenefitReminders } from './seniorityBenefits.js';
+import { checkHolidayBenefitReminders } from './holidayBenefits.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -2643,6 +2644,176 @@ api.post('/seniority-benefits/check', requireRole(...BENEFIT_ROLES), async (req,
   res.json(summary);
 });
 
+// 節日福利提醒（開工紅包、端午禮金、中秋禮金等）：全公司批次，僅 admin/hr
+function parseHolidayRule(body) {
+  const name = String(body.name || '').trim();
+  const dateSource = body.dateSource === 'manual' ? 'manual' : 'holiday_name';
+  const holidayKeyword = dateSource === 'holiday_name' ? String(body.holidayKeyword || '').trim() : null;
+  const remindDaysBefore = body.remindDaysBefore === undefined ? 14 : Number(body.remindDaysBefore);
+  const amount = body.amount === null || body.amount === '' || body.amount === undefined ? null : Number(body.amount);
+
+  if (!name) return { error: '請輸入福利名稱' };
+  if (dateSource === 'holiday_name' && !holidayKeyword) return { error: '請輸入要比對的節日名稱關鍵字（如「端午」）' };
+  if (!Number.isInteger(remindDaysBefore) || remindDaysBefore < 0 || remindDaysBefore > 365) return { error: '提前提醒天數必須介於 0 到 365' };
+  if (amount !== null && (!Number.isFinite(amount) || amount < 0)) return { error: '金額必須是 0 以上的數字' };
+
+  return { values: [name, dateSource, holidayKeyword, amount, remindDaysBefore, body.active !== false, body.notes || null] };
+}
+
+api.get('/holiday-benefits/rules', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM holiday_benefit_rules ORDER BY id');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching holiday benefit rules:', error);
+    res.status(500).json({ error: '獲取節日福利規則失敗', detail: error.message });
+  }
+});
+
+api.post('/holiday-benefits/rules', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const parsed = parseHolidayRule(req.body);
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+    const [result] = await pool.execute(
+      `INSERT INTO holiday_benefit_rules (name, dateSource, holidayKeyword, amount, remindDaysBefore, active, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      parsed.values
+    );
+    res.status(201).json({ id: result.insertId, message: '節日福利規則已建立' });
+  } catch (error) {
+    console.error('Error creating holiday benefit rule:', error);
+    res.status(500).json({ error: '建立節日福利規則失敗', detail: error.message });
+  }
+});
+
+api.put('/holiday-benefits/rules/:id', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const parsed = parseHolidayRule(req.body);
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+    const [result] = await pool.execute(
+      `UPDATE holiday_benefit_rules SET name = ?, dateSource = ?, holidayKeyword = ?, amount = ?,
+        remindDaysBefore = ?, active = ?, notes = ? WHERE id = ?`,
+      [...parsed.values, req.params.id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: '找不到該規則' });
+    res.json({ message: '節日福利規則已更新' });
+  } catch (error) {
+    console.error('Error updating holiday benefit rule:', error);
+    res.status(500).json({ error: '更新節日福利規則失敗', detail: error.message });
+  }
+});
+
+api.delete('/holiday-benefits/rules/:id', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const [[{ count }]] = await pool.execute('SELECT COUNT(*) AS count FROM holiday_benefit_records WHERE ruleId = ?', [req.params.id]);
+    if (count > 0) {
+      return res.status(409).json({ error: '此規則已有提醒／核發紀錄，無法刪除，請改為停用' });
+    }
+    const [result] = await pool.execute('DELETE FROM holiday_benefit_rules WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: '找不到該規則' });
+    res.json({ message: '節日福利規則已刪除' });
+  } catch (error) {
+    console.error('Error deleting holiday benefit rule:', error);
+    res.status(500).json({ error: '刪除節日福利規則失敗', detail: error.message });
+  }
+});
+
+api.get('/holiday-benefits/records', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT r.*, hr.name AS ruleName, hr.dateSource, hr.amount AS ruleAmount
+       FROM holiday_benefit_records r JOIN holiday_benefit_rules hr ON r.ruleId = hr.id
+       ORDER BY r.eventDate DESC, r.id DESC`
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching holiday benefit records:', error);
+    res.status(500).json({ error: '獲取節日福利紀錄失敗', detail: error.message });
+  }
+});
+
+// 手動為某條規則建立當年度紀錄（開工紅包這類由 HR 填日期的規則；也可用來補建行事曆抓不到的節日）
+api.post('/holiday-benefits/records', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const { ruleId, eventDate } = req.body;
+    if (!ruleId || !/^\d{4}-\d{2}-\d{2}$/.test(String(eventDate || ''))) {
+      return res.status(400).json({ error: '請選擇規則並填寫日期（YYYY-MM-DD）' });
+    }
+    const [rules] = await pool.execute('SELECT id FROM holiday_benefit_rules WHERE id = ?', [ruleId]);
+    if (rules.length === 0) return res.status(404).json({ error: '找不到該規則' });
+    const year = Number(String(eventDate).slice(0, 4));
+    try {
+      const [result] = await pool.execute(
+        `INSERT INTO holiday_benefit_records (ruleId, year, eventDate, status) VALUES (?, ?, ?, 'pending')`,
+        [ruleId, year, eventDate]
+      );
+      res.status(201).json({ id: result.insertId, message: '年度紀錄已建立' });
+    } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: `${year} 年已有這條規則的紀錄，請直接修改該筆的日期` });
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error creating holiday benefit record:', error);
+    res.status(500).json({ error: '建立節日福利紀錄失敗', detail: error.message });
+  }
+});
+
+// 更新狀態、日期、實際核發總額與備註。已提醒的紀錄若改了日期，退回「待提醒」，讓新日期到時再提醒一次
+api.put('/holiday-benefits/records/:id', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const { status, eventDate, paidAt, paidAmount, notes } = req.body;
+    if (!['pending', 'notified', 'paid', 'skipped'].includes(status)) {
+      return res.status(400).json({ error: '狀態不正確' });
+    }
+    if (eventDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(eventDate))) {
+      return res.status(400).json({ error: '日期格式不正確' });
+    }
+    const [rows] = await pool.execute('SELECT * FROM holiday_benefit_records WHERE id = ?', [req.params.id]);
+    const current = rows[0];
+    if (!current) return res.status(404).json({ error: '找不到該紀錄' });
+
+    const newDate = eventDate || current.eventDate;
+    const dateChanged = newDate !== current.eventDate;
+    if (dateChanged && Number(String(newDate).slice(0, 4)) !== current.year) {
+      return res.status(400).json({ error: `日期必須在 ${current.year} 年內` });
+    }
+    const newStatus = dateChanged && status === 'notified' ? 'pending' : status;
+    await pool.execute(
+      'UPDATE holiday_benefit_records SET status = ?, eventDate = ?, paidAt = ?, paidAmount = ?, notes = ? WHERE id = ?',
+      [
+        newStatus, newDate,
+        newStatus === 'paid' ? (paidAt || null) : null,
+        newStatus === 'paid' && paidAmount !== '' ? (paidAmount ?? null) : null,
+        notes || null, req.params.id,
+      ]
+    );
+    res.json({ message: '紀錄已更新' });
+  } catch (error) {
+    console.error('Error updating holiday benefit record:', error);
+    res.status(500).json({ error: '更新節日福利紀錄失敗', detail: error.message });
+  }
+});
+
+api.delete('/holiday-benefits/records/:id', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const [result] = await pool.execute(
+      `DELETE FROM holiday_benefit_records WHERE id = ? AND status IN ('pending', 'notified')`,
+      [req.params.id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: '找不到該紀錄，或已核發／略過無法刪除' });
+    res.json({ message: '紀錄已刪除' });
+  } catch (error) {
+    console.error('Error deleting holiday benefit record:', error);
+    res.status(500).json({ error: '刪除節日福利紀錄失敗', detail: error.message });
+  }
+});
+
+api.post('/holiday-benefits/check', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  res.json(await checkHolidayBenefitReminders(pool));
+});
+
 app.use('/api', api);
 
 // 錯誤處理中間件
@@ -2700,4 +2871,7 @@ app.listen(PORT, () => {
 
   checkSeniorityBenefitReminders(pool);
   setInterval(() => checkSeniorityBenefitReminders(pool), 24 * 60 * 60 * 1000);
+
+  checkHolidayBenefitReminders(pool);
+  setInterval(() => checkHolidayBenefitReminders(pool), 24 * 60 * 60 * 1000);
 });

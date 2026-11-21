@@ -19,6 +19,7 @@ import { Link } from "react-router-dom";
 import { dashboardApi } from "@/services/dashboardApi";
 import { useCompTimeExpiringSoon } from "@/hooks/useCompTimeExpiringSoon";
 import { useSeniorityBenefitsOpen } from "@/hooks/useSeniorityBenefitsOpen";
+import { useHolidayBenefitsOpen } from "@/hooks/useHolidayBenefitsOpen";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -50,7 +51,9 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const { expiringSoon } = useCompTimeExpiringSoon(30);
   const { user } = useAuth();
-  const seniorityOpen = useSeniorityBenefitsOpen(user?.role === "admin" || user?.role === "hr");
+  const canSeeBenefits = user?.role === "admin" || user?.role === "hr";
+  const seniorityOpen = useSeniorityBenefitsOpen(canSeeBenefits);
+  const holidayOpen = useHolidayBenefitsOpen(canSeeBenefits);
 
   useEffect(() => {
     loadDashboardData();
@@ -293,6 +296,33 @@ const Dashboard = () => {
                   {t("dashboard:seniorityBenefits.more", { count: seniorityOpen.length - 5 })}
                 </p>
               )}
+            </CardContent>
+          </Card>
+        </Link>
+      )}
+
+      {holidayOpen.length > 0 && (
+        <Link to="/seniority-benefits?tab=holiday" className="block">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Gift className="h-5 w-5 text-hrms-accent" />
+                <CardTitle>{t("dashboard:holidayBenefits.title")}</CardTitle>
+              </div>
+              <CardDescription>{t("dashboard:holidayBenefits.description")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                {holidayOpen.map((record) => (
+                  <li key={record.id} className="flex items-center justify-between border-b pb-2 last:border-b-0 last:pb-0">
+                    <span>{record.year} {record.ruleName}</span>
+                    <span className="text-muted-foreground">
+                      {t("dashboard:holidayBenefits.event", { date: record.eventDate })}
+                      {record.headcount !== null && ` · ${t("dashboard:holidayBenefits.summary", { headcount: record.headcount, total: (record.estimatedTotal ?? 0).toLocaleString() })}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </CardContent>
           </Card>
         </Link>

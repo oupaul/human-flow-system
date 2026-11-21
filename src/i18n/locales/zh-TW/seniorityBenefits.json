@@ -1,7 +1,8 @@
 {
   "tabs": {
     "records": "提醒與核發",
-    "rules": "福利規則"
+    "rules": "福利規則",
+    "holiday": "節日福利"
   },
   "types": {
     "travel_subsidy": "旅遊補助",
@@ -50,5 +51,35 @@
     "notifyHr": "通知 HR",
     "active": "啟用",
     "deleteHint": "將刪除規則「{{name}}」。已有提醒紀錄的規則無法刪除，請改為停用。"
+  },
+  "holiday": {
+    "recordsTitle": "年度發放紀錄",
+    "recordsHint": "每條規則每年一筆，全公司批次；到日期前 N 天通知 HR 預估人數與總額",
+    "rulesTitle": "節日福利規則",
+    "rulesHint": "開工紅包、端午禮金、中秋禮金等日期每年不固定的福利，全員同額",
+    "addRecord": "新增年度日期",
+    "noRecords": "尚無年度紀錄。節日規則會在行事曆日期進入提醒期間自動建立；手動規則需自行新增當年日期",
+    "year": "年度",
+    "eventDate": "日期",
+    "headcount": "在職人數",
+    "total": "預估／實發總額",
+    "changeDate": "改日期",
+    "paidTotal": "實際核發總額",
+    "selectRule": "選擇規則",
+    "checkDone": "檢查完成：新增 {{created}} 筆，通知 {{notified}} 筆",
+    "addRuleTitle": "新增節日福利規則",
+    "editRuleTitle": "編輯節日福利規則",
+    "namePlaceholder": "例：端午禮金",
+    "dateSource": "日期來源",
+    "amountPerPerson": "每人金額",
+    "sourceManual": "HR 每年手動填日期",
+    "sourceKeyword": "行事曆節日名稱含「{{keyword}}」",
+    "optKeyword": "依行事曆節日名稱自動抓",
+    "optManual": "HR 每年手動填日期",
+    "keyword": "節日名稱關鍵字",
+    "keywordPlaceholder": "例：端午、中秋",
+    "keywordHint": "比對「假日行事曆」的節日名稱，需先在系統匯入當年度行事曆。同年有多天符合（如補假）時取最早一天。",
+    "manualHint": "此類規則（如開工紅包）請在「年度發放紀錄」按「新增年度日期」填入當年日期。",
+    "deleteRecordHint": "將刪除 {{year}} 年「{{name}}」的年度紀錄。"
   }
 }

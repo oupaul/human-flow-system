@@ -30,5 +30,11 @@
     "description": "已符合或即將符合年資福利資格、尚未核發的員工",
     "eligible": "資格日 {{date}}",
     "more": "還有 {{count}} 筆，點擊查看完整清單"
+  },
+  "holidayBenefits": {
+    "title": "節日福利待發放",
+    "description": "已提醒、尚未核發的節日福利",
+    "event": "日期 {{date}}",
+    "summary": "{{headcount}} 人 · 預估 NT$ {{total}}"
   }
 }

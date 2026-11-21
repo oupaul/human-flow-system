@@ -30,5 +30,11 @@
     "description": "Employees who are or will soon be eligible and have not been paid",
     "eligible": "eligible {{date}}",
     "more": "{{count}} more — click to view the full list"
+  },
+  "holidayBenefits": {
+    "title": "Holiday Benefits Pending",
+    "description": "Holiday benefits that have been announced but not yet paid",
+    "event": "date {{date}}",
+    "summary": "{{headcount}} people · est. NT$ {{total}}"
   }
 }

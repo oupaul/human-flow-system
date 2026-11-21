@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import RuleDialog from "@/components/seniorityBenefits/RuleDialog";
 import RecordDialog from "@/components/seniorityBenefits/RecordDialog";
+import HolidayBenefitsPanel from "@/components/seniorityBenefits/HolidayBenefitsPanel";
 import { seniorityBenefitApi } from "@/services/seniorityBenefitApi";
 import {
   SeniorityBenefitRecord, SeniorityBenefitRecordStatus, SeniorityBenefitRecordUpdate,
@@ -35,7 +36,8 @@ const errorDescription = (error: unknown) => (error instanceof Error ? error.mes
 const SeniorityBenefits = () => {
   const { t } = useTranslation(["seniorityBenefits", "common"]);
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") === "rules" ? "rules" : "records";
+  const tabParam = searchParams.get("tab");
+  const activeTab = tabParam === "rules" || tabParam === "holiday" ? tabParam : "records";
 
   const [rules, setRules] = useState<SeniorityBenefitRule[]>([]);
   const [records, setRecords] = useState<SeniorityBenefitRecord[]>([]);
@@ -143,7 +145,7 @@ const SeniorityBenefits = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">{t("common:nav.seniorityBenefits")}</h1>
-        {activeTab === "rules" ? (
+        {activeTab === "holiday" ? null : activeTab === "rules" ? (
           <Button onClick={() => openRuleDialog(null)} className="bg-hrms-accent">
             <Plus className="mr-2 h-4 w-4" /> {t("seniorityBenefits:rules.add")}
           </Button>
@@ -154,10 +156,11 @@ const SeniorityBenefits = () => {
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setSearchParams(v === "rules" ? { tab: "rules" } : {})}>
+      <Tabs value={activeTab} onValueChange={(v) => setSearchParams(v === "records" ? {} : { tab: v })}>
         <TabsList>
           <TabsTrigger value="records">{t("seniorityBenefits:tabs.records")}</TabsTrigger>
           <TabsTrigger value="rules">{t("seniorityBenefits:tabs.rules")}</TabsTrigger>
+          <TabsTrigger value="holiday">{t("seniorityBenefits:tabs.holiday")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="records" className="space-y-4">
@@ -262,6 +265,10 @@ const SeniorityBenefits = () => {
               </TableBody>
             </Table>
           </div>
+        </TabsContent>
+
+        <TabsContent value="holiday">
+          <HolidayBenefitsPanel />
         </TabsContent>
       </Tabs>
 
