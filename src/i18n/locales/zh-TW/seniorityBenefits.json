@@ -27,7 +27,7 @@
     "skip": "略過",
     "revert": "還原為待處理",
     "runCheck": "立即檢查",
-    "checkDone": "檢查完成：新增 {{created}} 筆，通知 HR {{hrNotified}} 筆，通知員工 {{employeesNotified}} 位"
+    "checkDone": "檢查完成：新增 {{created}} 筆，通知 HR {{hrNotified}} 筆"
   },
   "rules": {
     "hint": "設定哪些年資里程碑要提醒。系統每天比對在職員工的到職日，資格日前 N 天開始提醒。",
@@ -47,12 +47,7 @@
     "scheduleRepeat": "滿 {{start}} 年起，每 {{every}} 年",
     "remindDaysBefore": "提前提醒（天）",
     "daysValue": "{{count}} 天前",
-    "notifyTo": "通知對象",
     "notifyHr": "通知 HR",
-    "notifyEmployee": "通知員工本人",
-    "notifyEmployeeHint": "需通知通道為 SMTP，Teams 無法個別通知員工",
-    "toHr": "HR",
-    "toEmployee": "員工",
     "active": "啟用",
     "deleteHint": "將刪除規則「{{name}}」。已有提醒紀錄的規則無法刪除，請改為停用。"
   }

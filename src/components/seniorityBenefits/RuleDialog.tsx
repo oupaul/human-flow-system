@@ -24,7 +24,6 @@ const emptyForm = {
   amount: "",
   remindDaysBefore: "30",
   notifyHr: true,
-  notifyEmployee: true,
   active: true,
   notes: "",
 };
@@ -46,7 +45,6 @@ const RuleDialog = ({ open, onOpenChange, rule, onSubmit }: Props) => {
             amount: rule.amount === null ? "" : String(rule.amount),
             remindDaysBefore: String(rule.remindDaysBefore),
             notifyHr: rule.notifyHr,
-            notifyEmployee: rule.notifyEmployee,
             active: rule.active,
             notes: rule.notes ?? "",
           }
@@ -69,7 +67,6 @@ const RuleDialog = ({ open, onOpenChange, rule, onSubmit }: Props) => {
         amount: form.amount === "" ? null : Number(form.amount),
         remindDaysBefore: Number(form.remindDaysBefore),
         notifyHr: form.notifyHr,
-        notifyEmployee: form.notifyEmployee,
         active: form.active,
         notes: form.notes.trim() || null,
       });
@@ -130,13 +127,6 @@ const RuleDialog = ({ open, onOpenChange, rule, onSubmit }: Props) => {
             <div className="flex items-center justify-between">
               <Label>{t("seniorityBenefits:rules.notifyHr")}</Label>
               <Switch checked={form.notifyHr} onCheckedChange={(v) => set("notifyHr", v)} />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>{t("seniorityBenefits:rules.notifyEmployee")}</Label>
-                <p className="text-xs text-muted-foreground">{t("seniorityBenefits:rules.notifyEmployeeHint")}</p>
-              </div>
-              <Switch checked={form.notifyEmployee} onCheckedChange={(v) => set("notifyEmployee", v)} />
             </div>
             <div className="flex items-center justify-between">
               <Label>{t("seniorityBenefits:rules.active")}</Label>

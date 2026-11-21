@@ -2529,7 +2529,7 @@ function parseBenefitRule(body) {
   return {
     values: [
       name, type, startYears, repeatEveryYears, amount, remindDaysBefore,
-      body.notifyHr !== false, body.notifyEmployee !== false, body.active !== false, body.notes || null,
+      body.notifyHr !== false, body.active !== false, body.notes || null,
     ],
   };
 }
@@ -2550,8 +2550,8 @@ api.post('/seniority-benefits/rules', requireRole(...BENEFIT_ROLES), async (req,
     if (parsed.error) return res.status(400).json({ error: parsed.error });
     const [result] = await pool.execute(
       `INSERT INTO seniority_benefit_rules
-        (name, type, startYears, repeatEveryYears, amount, remindDaysBefore, notifyHr, notifyEmployee, active, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (name, type, startYears, repeatEveryYears, amount, remindDaysBefore, notifyHr, active, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       parsed.values
     );
     res.status(201).json({ id: result.insertId, message: '年資福利規則已建立' });
@@ -2567,7 +2567,7 @@ api.put('/seniority-benefits/rules/:id', requireRole(...BENEFIT_ROLES), async (r
     if (parsed.error) return res.status(400).json({ error: parsed.error });
     const [result] = await pool.execute(
       `UPDATE seniority_benefit_rules SET name = ?, type = ?, startYears = ?, repeatEveryYears = ?, amount = ?,
-        remindDaysBefore = ?, notifyHr = ?, notifyEmployee = ?, active = ?, notes = ? WHERE id = ?`,
+        remindDaysBefore = ?, notifyHr = ?, active = ?, notes = ? WHERE id = ?`,
       [...parsed.values, req.params.id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: '找不到該規則' });

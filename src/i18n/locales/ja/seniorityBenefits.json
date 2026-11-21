@@ -27,7 +27,7 @@
     "skip": "スキップ",
     "revert": "未処理に戻す",
     "runCheck": "今すぐチェック",
-    "checkDone": "チェック完了：新規 {{created}} 件、HR通知 {{hrNotified}} 件、従業員通知 {{employeesNotified}} 名"
+    "checkDone": "チェック完了：新規 {{created}} 件、HR通知 {{hrNotified}} 件"
   },
   "rules": {
     "hint": "通知する勤続年数の節目を設定します。毎日、在職者の入社日を確認し、資格日の N 日前から通知します。",
@@ -47,12 +47,7 @@
     "scheduleRepeat": "満 {{start}} 年から {{every}} 年ごと",
     "remindDaysBefore": "事前通知（日）",
     "daysValue": "{{count}} 日前",
-    "notifyTo": "通知先",
     "notifyHr": "HR に通知",
-    "notifyEmployee": "従業員本人に通知",
-    "notifyEmployeeHint": "通知チャネルが SMTP の場合のみ。Teams では個別通知できません",
-    "toHr": "HR",
-    "toEmployee": "従業員",
     "active": "有効",
     "deleteHint": "ルール「{{name}}」を削除します。通知履歴のあるルールは削除できないため、無効化してください。"
   }

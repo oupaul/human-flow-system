@@ -1,10 +1,10 @@
 // 年資福利提醒（旅遊補助、留任獎金等依年資觸發的福利）。
 // 規則由 HR 在系統內設定（seniority_benefit_rules），每天排程比對在職員工的到職日，
 // 資格日落在「今天 ~ 今天 + 提前提醒天數」內、且尚無紀錄的，就建立一筆紀錄
-// （seniority_benefit_records，同時作為防重複提醒用）並通知 HR 與員工本人。
+// （seniority_benefit_records，同時作為防重複提醒用）並通知 HR／管理員（不直接通知員工本人）。
 // 以「有沒有紀錄」判斷而非「剛好某一天」，所以伺服器某天沒在跑、重啟多次都不會漏發或重發。
 
-import { sendNotification, sendNotificationToEmail } from './notifications.js';
+import { sendNotification } from './notifications.js';
 
 // 資格日已過幾天內仍會補提醒（涵蓋伺服器停機、或規則剛建立當天剛好是資格日的情況）
 const CATCH_UP_DAYS = 7;
@@ -48,14 +48,17 @@ export function eligibleDatesInWindow(joinDate, rule, from, to) {
   return dates;
 }
 
-function describe(rule, employee, eligibleDate, years) {
+// 資格日已到或已過用「已符合」，還沒到用「將於…符合」，避免措辭與實際狀態不符
+function describe(rule, employee, eligibleDate, years, today) {
   const amount = rule.amount ? `，參考金額 NT$ ${Number(rule.amount).toLocaleString()}` : '';
-  return `${employee.name}（${employee.employeeId}，${employee.department}）年資滿 ${years} 年，` +
-    `符合「${rule.name}」資格，資格日 ${eligibleDate}${amount}`;
+  const timing = eligibleDate <= today
+    ? `年資已滿 ${years} 年，已符合「${rule.name}」資格，資格日 ${eligibleDate}`
+    : `年資將滿 ${years} 年，將於 ${eligibleDate} 符合「${rule.name}」資格`;
+  return `${employee.name}（${employee.employeeId}，${employee.department}）${timing}${amount}`;
 }
 
 export async function checkSeniorityBenefitReminders(pool) {
-  const summary = { created: 0, hrNotified: 0, employeesNotified: 0 };
+  const summary = { created: 0, hrNotified: 0 };
   try {
     const [[{ today }]] = await pool.execute('SELECT CURDATE() AS today');
     const [rules] = await pool.execute('SELECT * FROM seniority_benefit_rules WHERE active = TRUE');
@@ -81,19 +84,8 @@ export async function checkSeniorityBenefitReminders(pool) {
           if (result.affectedRows === 0) continue; // 已提醒過
 
           summary.created += 1;
-          if (rule.notifyHr) hrLines.push(`[${label}] ${describe(rule, employee, date, years)}`);
+          if (rule.notifyHr) hrLines.push(`[${label}] ${describe(rule, employee, date, years, today)}`);
 
-          if (rule.notifyEmployee) {
-            const amount = rule.amount ? `（金額 NT$ ${Number(rule.amount).toLocaleString()}）` : '';
-            const sent = await sendNotificationToEmail(
-              pool,
-              employee.email,
-              `${rule.name}資格提醒`,
-              `${employee.name} 您好：\n\n恭喜您年資即將滿 ${years} 年，將於 ${date} 符合公司「${rule.name}」${amount}資格。` +
-                `詳細申請方式請洽人資部門。`
-            );
-            if (sent) summary.employeesNotified += 1;
-          }
           await pool.execute(
             `UPDATE seniority_benefit_records SET status = 'notified', notifiedAt = NOW() WHERE ruleId = ? AND employeeId = ? AND eligibleDate = ?`,
             [rule.id, employee.employeeId, date]
@@ -103,7 +95,7 @@ export async function checkSeniorityBenefitReminders(pool) {
     }
 
     if (hrLines.length > 0) {
-      await sendNotification(pool, '年資福利資格提醒', `以下員工即將或已符合年資福利資格，請安排核發：\n${hrLines.join('\n')}`);
+      await sendNotification(pool, '年資福利資格提醒', `以下員工已符合或即將符合年資福利資格，請安排核發：\n${hrLines.join('\n')}`);
       summary.hrNotified = hrLines.length;
     }
   } catch (error) {

@@ -27,7 +27,7 @@
     "skip": "Skip",
     "revert": "Reopen",
     "runCheck": "Check now",
-    "checkDone": "Check complete: {{created}} created, {{hrNotified}} HR items notified, {{employeesNotified}} employees notified"
+    "checkDone": "Check complete: {{created}} created, {{hrNotified}} HR items notified"
   },
   "rules": {
     "hint": "Define which seniority milestones trigger reminders. Each day the system checks active employees' hire dates and reminds N days before the eligible date.",
@@ -47,12 +47,7 @@
     "scheduleRepeat": "From {{start}} years, every {{every}} years",
     "remindDaysBefore": "Remind before (days)",
     "daysValue": "{{count}} days before",
-    "notifyTo": "Notify",
     "notifyHr": "Notify HR",
-    "notifyEmployee": "Notify the employee",
-    "notifyEmployeeHint": "Requires the SMTP channel; Teams cannot message individual employees",
-    "toHr": "HR",
-    "toEmployee": "Employee",
     "active": "Active",
     "deleteHint": "Rule \"{{name}}\" will be deleted. Rules with existing records cannot be deleted; deactivate them instead."
   }

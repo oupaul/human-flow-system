@@ -234,7 +234,7 @@ const SeniorityBenefits = () => {
                   <TableHead>{t("seniorityBenefits:rules.schedule")}</TableHead>
                   <TableHead>{t("seniorityBenefits:rules.amount")}</TableHead>
                   <TableHead>{t("seniorityBenefits:rules.remindDaysBefore")}</TableHead>
-                  <TableHead>{t("seniorityBenefits:rules.notifyTo")}</TableHead>
+                  <TableHead>{t("seniorityBenefits:rules.notifyHr")}</TableHead>
                   <TableHead>{t("seniorityBenefits:rules.active")}</TableHead>
                   <TableHead className="text-right">{t("common:table.actions")}</TableHead>
                 </TableRow>
@@ -250,10 +250,7 @@ const SeniorityBenefits = () => {
                       <TableCell>{schedule(rule)}</TableCell>
                       <TableCell>{money(rule.amount)}</TableCell>
                       <TableCell>{t("seniorityBenefits:rules.daysValue", { count: rule.remindDaysBefore })}</TableCell>
-                      <TableCell>
-                        {[rule.notifyHr && t("seniorityBenefits:rules.toHr"), rule.notifyEmployee && t("seniorityBenefits:rules.toEmployee")]
-                          .filter(Boolean).join(" / ") || "—"}
-                      </TableCell>
+                      <TableCell>{rule.notifyHr ? t("common:common.yes") : t("common:common.no")}</TableCell>
                       <TableCell><Switch checked={rule.active} onCheckedChange={(v) => handleToggleRule(rule, v)} /></TableCell>
                       <TableCell className="space-x-2 text-right">
                         <Button size="sm" variant="outline" onClick={() => openRuleDialog(rule)}>{t("common:actions.edit")}</Button>

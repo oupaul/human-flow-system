@@ -10,7 +10,6 @@ export interface SeniorityBenefitRule {
   amount: number | null;
   remindDaysBefore: number;
   notifyHr: boolean;
-  notifyEmployee: boolean;
   active: boolean;
   notes: string | null;
 }
@@ -45,5 +44,4 @@ export interface SeniorityBenefitRecordUpdate {
 export interface SeniorityBenefitCheckResult {
   created: number;
   hrNotified: number;
-  employeesNotified: number;
 }

@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS seniority_benefit_rules (
   amount DECIMAL(10,0) NULL,                 -- 參考金額，可留空
   remindDaysBefore INT NOT NULL DEFAULT 30,  -- 資格日前幾天開始提醒
   notifyHr BOOLEAN NOT NULL DEFAULT TRUE,
-  notifyEmployee BOOLEAN NOT NULL DEFAULT TRUE,
   active BOOLEAN NOT NULL DEFAULT TRUE,
   notes TEXT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
