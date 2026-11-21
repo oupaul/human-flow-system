@@ -9,6 +9,7 @@ import Employees from "./pages/Employees";
 import Departments from "./pages/Departments";
 import LeaveManagement from "./pages/LeaveManagement";
 import Reports from "./pages/Reports";
+import SeniorityBenefits from "./pages/SeniorityBenefits";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import SsoCallback from "./pages/SsoCallback";
@@ -46,6 +47,9 @@ const App = () => (
                   <Route path="departments" element={<Departments />} />
                   <Route path="leave-management" element={<LeaveManagement />} />
                   <Route path="reports" element={<Reports />} />
+                  <Route element={<RoleRoute allow={["admin", "hr"]} fallback="/" />}>
+                    <Route path="seniority-benefits" element={<SeniorityBenefits />} />
+                  </Route>
                   <Route element={<RoleRoute allow={["admin"]} fallback="/" />}>
                     <Route path="settings" element={<Settings />} />
                   </Route>

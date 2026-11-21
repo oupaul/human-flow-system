@@ -1,0 +1,59 @@
+{
+  "tabs": {
+    "records": "通知と支給",
+    "rules": "手当ルール"
+  },
+  "types": {
+    "travel_subsidy": "旅行補助",
+    "retention_bonus": "定着奨励金",
+    "other": "その他の勤続手当"
+  },
+  "status": {
+    "pending": "未通知",
+    "notified": "通知済み",
+    "paid": "支給済み",
+    "skipped": "スキップ"
+  },
+  "records": {
+    "hint": "勤続年数がルールの節目に近づくと毎日自動で通知し、ここにタスクを作成します。",
+    "filterOpen": "未処理",
+    "filterAll": "すべて",
+    "benefit": "手当",
+    "eligibleDate": "資格日",
+    "paidAt": "支給日",
+    "paidAmount": "金額",
+    "markPaid": "支給済みにする",
+    "markPaidTitle": "支給済みにする",
+    "skip": "スキップ",
+    "revert": "未処理に戻す",
+    "runCheck": "今すぐチェック",
+    "checkDone": "チェック完了：新規 {{created}} 件、HR通知 {{hrNotified}} 件、従業員通知 {{employeesNotified}} 名"
+  },
+  "rules": {
+    "hint": "通知する勤続年数の節目を設定します。毎日、在職者の入社日を確認し、資格日の N 日前から通知します。",
+    "add": "ルールを追加",
+    "addTitle": "勤続年数手当ルールの追加",
+    "editTitle": "勤続年数手当ルールの編集",
+    "empty": "ルールがまだ設定されていません",
+    "name": "手当名",
+    "type": "種類",
+    "amount": "金額（参考）",
+    "startYears": "開始勤続年数（満何年）",
+    "repeatEveryYears": "繰り返し間隔（年）",
+    "repeatPlaceholder": "空欄＝1回のみ",
+    "scheduleHint": "例：定着奨励金「満3年・繰り返しなし」、旅行補助「満1年・1年ごと」。",
+    "schedule": "条件",
+    "scheduleOnce": "満 {{start}} 年（1回）",
+    "scheduleRepeat": "満 {{start}} 年から {{every}} 年ごと",
+    "remindDaysBefore": "事前通知（日）",
+    "daysValue": "{{count}} 日前",
+    "notifyTo": "通知先",
+    "notifyHr": "HR に通知",
+    "notifyEmployee": "従業員本人に通知",
+    "notifyEmployeeHint": "通知チャネルが SMTP の場合のみ。Teams では個別通知できません",
+    "toHr": "HR",
+    "toEmployee": "従業員",
+    "active": "有効",
+    "deleteHint": "ルール「{{name}}」を削除します。通知履歴のあるルールは削除できないため、無効化してください。"
+  }
+}

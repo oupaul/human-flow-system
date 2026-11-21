@@ -78,15 +78,16 @@ function buildTransporter(settings) {
   });
 }
 
-async function sendEmail(settings, subject, message) {
-  if (!settings.notification_to_emails) {
+async function sendEmail(settings, subject, message, toOverride) {
+  const to = toOverride || settings.notification_to_emails;
+  if (!to) {
     console.warn('[notifications] 未設定收件信箱，略過寄送 email 通知');
     return;
   }
 
   const from = settings.smtp_from || settings.smtp_user || settings.smtp_oauth_user;
   const transporter = buildTransporter(settings);
-  await transporter.sendMail({ from, to: settings.notification_to_emails, subject, text: message });
+  await transporter.sendMail({ from, to, subject, text: message });
 }
 
 // Microsoft Teams「傳入 Webhook」連接器格式（MessageCard）。若貴組織改用較新的
@@ -143,4 +144,20 @@ export async function sendTestNotification(pool) {
     throw new Error('尚未選擇通知通道');
   }
   await dispatch(settings, 'HRMS 測試通知', '這是一封測試通知，收到代表通知設定正確。');
+}
+
+// 寄給指定收件人（例如員工本人）。Teams Webhook 只能發到固定頻道、無法指定個人，
+// 所以只有 SMTP 通道才會寄出；其他通道回傳 false 讓呼叫端知道沒有送達。
+// 同樣不拋例外，失敗只記錄 log
+export async function sendNotificationToEmail(pool, toEmail, subject, message) {
+  try {
+    if (!toEmail) return false;
+    const settings = await getNotificationSettings(pool);
+    if (settings.channel !== 'smtp') return false;
+    await sendEmail(settings, subject, message, toEmail);
+    return true;
+  } catch (error) {
+    console.error('[notifications] 寄送個人通知失敗：', error.message);
+    return false;
+  }
 }

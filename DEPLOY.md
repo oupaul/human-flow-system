@@ -111,6 +111,9 @@ docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_datab
 
 # 通知設定新增「允許自簽憑證」選項（公司自架郵件伺服器常見需要）
 docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/010_smtp_self_signed.sql
+
+# 年資福利提醒（旅遊補助、留任獎金等依年資觸發的提醒）
+docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/011_seniority_benefits.sql
 ```
 
 全新安裝（第一次啟動 `db` 容器）不需要這步，`schema.sql` 已經包含最新結構。

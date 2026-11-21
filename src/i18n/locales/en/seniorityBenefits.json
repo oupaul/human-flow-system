@@ -1,0 +1,59 @@
+{
+  "tabs": {
+    "records": "Reminders & Payouts",
+    "rules": "Benefit Rules"
+  },
+  "types": {
+    "travel_subsidy": "Travel Subsidy",
+    "retention_bonus": "Retention Bonus",
+    "other": "Other Seniority Benefit"
+  },
+  "status": {
+    "pending": "Pending",
+    "notified": "Notified",
+    "paid": "Paid",
+    "skipped": "Skipped"
+  },
+  "records": {
+    "hint": "Reminders are sent daily as employees approach a rule's milestone; a to-do is created here.",
+    "filterOpen": "Open",
+    "filterAll": "All",
+    "benefit": "Benefit",
+    "eligibleDate": "Eligible date",
+    "paidAt": "Payout date",
+    "paidAmount": "Amount",
+    "markPaid": "Mark paid",
+    "markPaidTitle": "Mark as paid",
+    "skip": "Skip",
+    "revert": "Reopen",
+    "runCheck": "Check now",
+    "checkDone": "Check complete: {{created}} created, {{hrNotified}} HR items notified, {{employeesNotified}} employees notified"
+  },
+  "rules": {
+    "hint": "Define which seniority milestones trigger reminders. Each day the system checks active employees' hire dates and reminds N days before the eligible date.",
+    "add": "Add Rule",
+    "addTitle": "Add Seniority Benefit Rule",
+    "editTitle": "Edit Seniority Benefit Rule",
+    "empty": "No rules configured yet",
+    "name": "Benefit name",
+    "type": "Type",
+    "amount": "Amount (reference)",
+    "startYears": "Start (years of service)",
+    "repeatEveryYears": "Repeat every (years)",
+    "repeatPlaceholder": "Blank = one time only",
+    "scheduleHint": "E.g. Retention bonus: 3 years, no repeat; Travel subsidy: 1 year, repeat every 1 year.",
+    "schedule": "Condition",
+    "scheduleOnce": "At {{start}} years (once)",
+    "scheduleRepeat": "From {{start}} years, every {{every}} years",
+    "remindDaysBefore": "Remind before (days)",
+    "daysValue": "{{count}} days before",
+    "notifyTo": "Notify",
+    "notifyHr": "Notify HR",
+    "notifyEmployee": "Notify the employee",
+    "notifyEmployeeHint": "Requires the SMTP channel; Teams cannot message individual employees",
+    "toHr": "HR",
+    "toEmployee": "Employee",
+    "active": "Active",
+    "deleteHint": "Rule \"{{name}}\" will be deleted. Rules with existing records cannot be deleted; deactivate them instead."
+  }
+}

@@ -24,5 +24,11 @@
     "remaining": "剩餘 {{hours}} 小時",
     "deadline": "期限 {{date}}",
     "more": "還有 {{count}} 筆，點擊查看完整清單"
+  },
+  "seniorityBenefits": {
+    "title": "年資福利待處理",
+    "description": "已符合或即將符合年資福利資格、尚未核發的員工",
+    "eligible": "資格日 {{date}}",
+    "more": "還有 {{count}} 筆，點擊查看完整清單"
   }
 }

@@ -13,11 +13,13 @@ import {
   Pie,
   Cell
 } from "recharts";
-import { Users, Calendar, Clock, Briefcase, AlertTriangle } from "lucide-react";
+import { Users, Calendar, Clock, Briefcase, AlertTriangle, Gift } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { dashboardApi } from "@/services/dashboardApi";
 import { useCompTimeExpiringSoon } from "@/hooks/useCompTimeExpiringSoon";
+import { useSeniorityBenefitsOpen } from "@/hooks/useSeniorityBenefitsOpen";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 interface DashboardStats {
@@ -47,6 +49,8 @@ const Dashboard = () => {
   const [leaveDistribution, setLeaveDistribution] = useState<LeaveDistribution[]>([]);
   const [loading, setLoading] = useState(true);
   const { expiringSoon } = useCompTimeExpiringSoon(30);
+  const { user } = useAuth();
+  const seniorityOpen = useSeniorityBenefitsOpen(user?.role === "admin" || user?.role === "hr");
 
   useEffect(() => {
     loadDashboardData();
@@ -257,6 +261,36 @@ const Dashboard = () => {
               {expiringSoon.length > 5 && (
                 <p className="mt-2 text-sm text-muted-foreground">
                   {t("dashboard:compExpiringSoon.more", { count: expiringSoon.length - 5 })}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </Link>
+      )}
+      {seniorityOpen.length > 0 && (
+        <Link to="/seniority-benefits" className="block">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Gift className="h-5 w-5 text-hrms-accent" />
+                <CardTitle>{t("dashboard:seniorityBenefits.title")}</CardTitle>
+              </div>
+              <CardDescription>{t("dashboard:seniorityBenefits.description")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                {seniorityOpen.slice(0, 5).map((record) => (
+                  <li key={record.id} className="flex items-center justify-between border-b pb-2 last:border-b-0 last:pb-0">
+                    <span>{record.employeeName}（{record.employeeId}）· {record.ruleName}</span>
+                    <span className="text-muted-foreground">
+                      {t("dashboard:seniorityBenefits.eligible", { date: record.eligibleDate })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {seniorityOpen.length > 5 && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {t("dashboard:seniorityBenefits.more", { count: seniorityOpen.length - 5 })}
                 </p>
               )}
             </CardContent>

@@ -1,0 +1,59 @@
+{
+  "tabs": {
+    "records": "提醒與核發",
+    "rules": "福利規則"
+  },
+  "types": {
+    "travel_subsidy": "旅遊補助",
+    "retention_bonus": "留任獎金",
+    "other": "其他年資福利"
+  },
+  "status": {
+    "pending": "待提醒",
+    "notified": "已提醒",
+    "paid": "已核發",
+    "skipped": "已略過"
+  },
+  "records": {
+    "hint": "員工年資即將符合規則時，系統每天自動提醒並在此建立待辦",
+    "filterOpen": "待處理",
+    "filterAll": "全部",
+    "benefit": "福利",
+    "eligibleDate": "資格日",
+    "paidAt": "核發日期",
+    "paidAmount": "金額",
+    "markPaid": "標記已核發",
+    "markPaidTitle": "標記為已核發",
+    "skip": "略過",
+    "revert": "還原為待處理",
+    "runCheck": "立即檢查",
+    "checkDone": "檢查完成：新增 {{created}} 筆，通知 HR {{hrNotified}} 筆，通知員工 {{employeesNotified}} 位"
+  },
+  "rules": {
+    "hint": "設定哪些年資里程碑要提醒。系統每天比對在職員工的到職日，資格日前 N 天開始提醒。",
+    "add": "新增規則",
+    "addTitle": "新增年資福利規則",
+    "editTitle": "編輯年資福利規則",
+    "empty": "尚未設定任何規則",
+    "name": "福利名稱",
+    "type": "類型",
+    "amount": "金額（參考）",
+    "startYears": "起算年資（滿幾年）",
+    "repeatEveryYears": "每隔幾年重複",
+    "repeatPlaceholder": "留空＝只有一次",
+    "scheduleHint": "例：留任獎金「滿 3 年、不重複」；旅遊補助「滿 1 年、每 1 年重複」。",
+    "schedule": "條件",
+    "scheduleOnce": "滿 {{start}} 年（一次）",
+    "scheduleRepeat": "滿 {{start}} 年起，每 {{every}} 年",
+    "remindDaysBefore": "提前提醒（天）",
+    "daysValue": "{{count}} 天前",
+    "notifyTo": "通知對象",
+    "notifyHr": "通知 HR",
+    "notifyEmployee": "通知員工本人",
+    "notifyEmployeeHint": "需通知通道為 SMTP，Teams 無法個別通知員工",
+    "toHr": "HR",
+    "toEmployee": "員工",
+    "active": "啟用",
+    "deleteHint": "將刪除規則「{{name}}」。已有提醒紀錄的規則無法刪除，請改為停用。"
+  }
+}

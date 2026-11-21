@@ -11,6 +11,7 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import * as XLSX from 'xlsx';
 import { sendNotification, getNotificationSettings, sendTestNotification } from './notifications.js';
+import { checkSeniorityBenefitReminders } from './seniorityBenefits.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -2506,6 +2507,142 @@ api.get('/dashboard/leaves/detail', requireRole(...STAFF_ROLES), async (req, res
   }
 });
 
+// 年資福利提醒（旅遊補助、留任獎金等）：規則與核發紀錄，僅 admin/hr（含金額等敏感資訊）
+const BENEFIT_ROLES = ['admin', 'hr'];
+const BENEFIT_TYPES = ['travel_subsidy', 'retention_bonus', 'other'];
+
+function parseBenefitRule(body) {
+  const name = String(body.name || '').trim();
+  const type = BENEFIT_TYPES.includes(body.type) ? body.type : 'other';
+  const startYears = Number(body.startYears);
+  const repeatEveryYears = body.repeatEveryYears === null || body.repeatEveryYears === '' || body.repeatEveryYears === undefined
+    ? null : Number(body.repeatEveryYears);
+  const remindDaysBefore = body.remindDaysBefore === undefined ? 30 : Number(body.remindDaysBefore);
+  const amount = body.amount === null || body.amount === '' || body.amount === undefined ? null : Number(body.amount);
+
+  if (!name) return { error: '請輸入福利名稱' };
+  if (!Number.isInteger(startYears) || startYears < 0) return { error: '起算年資必須是 0 以上的整數' };
+  if (repeatEveryYears !== null && (!Number.isInteger(repeatEveryYears) || repeatEveryYears < 1)) return { error: '重複間隔必須是 1 以上的整數，或留空表示僅一次' };
+  if (!Number.isInteger(remindDaysBefore) || remindDaysBefore < 0 || remindDaysBefore > 365) return { error: '提前提醒天數必須介於 0 到 365' };
+  if (amount !== null && (!Number.isFinite(amount) || amount < 0)) return { error: '金額必須是 0 以上的數字' };
+
+  return {
+    values: [
+      name, type, startYears, repeatEveryYears, amount, remindDaysBefore,
+      body.notifyHr !== false, body.notifyEmployee !== false, body.active !== false, body.notes || null,
+    ],
+  };
+}
+
+api.get('/seniority-benefits/rules', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM seniority_benefit_rules ORDER BY type, startYears, id');
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching seniority benefit rules:', error);
+    res.status(500).json({ error: '獲取年資福利規則失敗', detail: error.message });
+  }
+});
+
+api.post('/seniority-benefits/rules', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const parsed = parseBenefitRule(req.body);
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+    const [result] = await pool.execute(
+      `INSERT INTO seniority_benefit_rules
+        (name, type, startYears, repeatEveryYears, amount, remindDaysBefore, notifyHr, notifyEmployee, active, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      parsed.values
+    );
+    res.status(201).json({ id: result.insertId, message: '年資福利規則已建立' });
+  } catch (error) {
+    console.error('Error creating seniority benefit rule:', error);
+    res.status(500).json({ error: '建立年資福利規則失敗', detail: error.message });
+  }
+});
+
+api.put('/seniority-benefits/rules/:id', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const parsed = parseBenefitRule(req.body);
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+    const [result] = await pool.execute(
+      `UPDATE seniority_benefit_rules SET name = ?, type = ?, startYears = ?, repeatEveryYears = ?, amount = ?,
+        remindDaysBefore = ?, notifyHr = ?, notifyEmployee = ?, active = ?, notes = ? WHERE id = ?`,
+      [...parsed.values, req.params.id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: '找不到該規則' });
+    res.json({ message: '年資福利規則已更新' });
+  } catch (error) {
+    console.error('Error updating seniority benefit rule:', error);
+    res.status(500).json({ error: '更新年資福利規則失敗', detail: error.message });
+  }
+});
+
+api.delete('/seniority-benefits/rules/:id', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const [[{ count }]] = await pool.execute('SELECT COUNT(*) AS count FROM seniority_benefit_records WHERE ruleId = ?', [req.params.id]);
+    if (count > 0) {
+      return res.status(409).json({ error: '此規則已有提醒／核發紀錄，無法刪除，請改為停用' });
+    }
+    const [result] = await pool.execute('DELETE FROM seniority_benefit_rules WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: '找不到該規則' });
+    res.json({ message: '年資福利規則已刪除' });
+  } catch (error) {
+    console.error('Error deleting seniority benefit rule:', error);
+    res.status(500).json({ error: '刪除年資福利規則失敗', detail: error.message });
+  }
+});
+
+api.get('/seniority-benefits/records', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const params = [];
+    let where = '';
+    if (['pending', 'notified', 'paid', 'skipped'].includes(req.query.status)) {
+      where = 'WHERE r.status = ?';
+      params.push(req.query.status);
+    }
+    const [rows] = await pool.execute(
+      `SELECT r.*, e.name AS employeeName, e.department, e.joinDate,
+        sr.name AS ruleName, sr.type AS ruleType, sr.amount AS ruleAmount
+       FROM seniority_benefit_records r
+       JOIN seniority_benefit_rules sr ON r.ruleId = sr.id
+       LEFT JOIN employees e ON r.employeeId = e.employeeId
+       ${where}
+       ORDER BY r.eligibleDate DESC, r.id DESC`,
+      params
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching seniority benefit records:', error);
+    res.status(500).json({ error: '獲取年資福利紀錄失敗', detail: error.message });
+  }
+});
+
+// HR 標記核發／略過／還原狀態，並可填實際核發日期與金額
+api.put('/seniority-benefits/records/:id', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  try {
+    const { status, paidAt, paidAmount, notes } = req.body;
+    if (!['pending', 'notified', 'paid', 'skipped'].includes(status)) {
+      return res.status(400).json({ error: '狀態不正確' });
+    }
+    const [result] = await pool.execute(
+      'UPDATE seniority_benefit_records SET status = ?, paidAt = ?, paidAmount = ?, notes = ? WHERE id = ?',
+      [status, status === 'paid' ? (paidAt || null) : null, status === 'paid' && paidAmount !== '' ? (paidAmount ?? null) : null, notes || null, req.params.id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: '找不到該紀錄' });
+    res.json({ message: '紀錄已更新' });
+  } catch (error) {
+    console.error('Error updating seniority benefit record:', error);
+    res.status(500).json({ error: '更新年資福利紀錄失敗', detail: error.message });
+  }
+});
+
+// 手動立即執行一次檢查（排程每天自動跑；此入口方便設定完規則後立刻驗證）
+api.post('/seniority-benefits/check', requireRole(...BENEFIT_ROLES), async (req, res) => {
+  const summary = await checkSeniorityBenefitReminders(pool);
+  res.json(summary);
+});
+
 app.use('/api', api);
 
 // 錯誤處理中間件
@@ -2560,4 +2697,7 @@ app.listen(PORT, () => {
 
   checkCompTimeExpiryReminders();
   setInterval(checkCompTimeExpiryReminders, 24 * 60 * 60 * 1000);
+
+  checkSeniorityBenefitReminders(pool);
+  setInterval(() => checkSeniorityBenefitReminders(pool), 24 * 60 * 60 * 1000);
 });

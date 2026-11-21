@@ -7,7 +7,8 @@
     "leaveManagement": "Leave Management",
     "reports": "Reports",
     "settings": "Settings",
-    "myPortal": "My Portal"
+    "myPortal": "My Portal",
+    "seniorityBenefits": "Seniority Benefits"
   },
   "actions": {
     "save": "Save",

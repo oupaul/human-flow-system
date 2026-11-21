@@ -24,5 +24,11 @@
     "remaining": "残り {{hours}} 時間",
     "deadline": "期限 {{date}}",
     "more": "他 {{count}} 件 — クリックして全リストを表示"
+  },
+  "seniorityBenefits": {
+    "title": "勤続年数手当の未処理",
+    "description": "資格を満たした、または間もなく満たす未支給の従業員",
+    "eligible": "資格日 {{date}}",
+    "more": "他 {{count}} 件 — クリックして全リストを表示"
   }
 }

@@ -24,5 +24,11 @@
     "remaining": "{{hours}} hours remaining",
     "deadline": "due {{date}}",
     "more": "{{count}} more — click to view the full list"
+  },
+  "seniorityBenefits": {
+    "title": "Seniority Benefits Pending",
+    "description": "Employees who are or will soon be eligible and have not been paid",
+    "eligible": "eligible {{date}}",
+    "more": "{{count}} more — click to view the full list"
   }
 }
