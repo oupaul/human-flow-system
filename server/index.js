@@ -13,6 +13,7 @@ import * as XLSX from 'xlsx';
 import { sendNotification, getNotificationSettings, sendTestNotification } from './notifications.js';
 import { checkSeniorityBenefitReminders } from './seniorityBenefits.js';
 import { checkHolidayBenefitReminders } from './holidayBenefits.js';
+import { syncHolidaysFromTaipei, checkHolidayCalendar } from './holidaySync.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -1760,6 +1761,17 @@ api.post('/holidays', requireRole(...STAFF_ROLES), async (req, res) => {
 });
 
 // 匯入人事行政總處公布的政府行政機關辦公日曆表 CSV（西元日期,星期,是否放假,備註）
+// 從臺北市政府資料開放平台自動同步假日行事曆（今年起的資料；手動新增的日期不會被覆蓋）
+api.post('/holidays/sync', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    const result = await syncHolidaysFromTaipei(pool);
+    res.json({ message: '假日行事曆同步成功', ...result });
+  } catch (error) {
+    console.error('Error syncing holidays:', error);
+    res.status(502).json({ error: '同步假日行事曆失敗', detail: error.message });
+  }
+});
+
 api.post('/holidays/import', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { csv } = req.body;
@@ -2872,6 +2884,11 @@ app.listen(PORT, () => {
   checkSeniorityBenefitReminders(pool);
   setInterval(() => checkSeniorityBenefitReminders(pool), 24 * 60 * 60 * 1000);
 
-  checkHolidayBenefitReminders(pool);
-  setInterval(() => checkHolidayBenefitReminders(pool), 24 * 60 * 60 * 1000);
+  // 先確認行事曆（缺就自動同步），再用行事曆日期檢查節日福利，順序不能反
+  const runHolidayChecks = async () => {
+    await checkHolidayCalendar(pool);
+    await checkHolidayBenefitReminders(pool);
+  };
+  runHolidayChecks();
+  setInterval(runHolidayChecks, 24 * 60 * 60 * 1000);
 });

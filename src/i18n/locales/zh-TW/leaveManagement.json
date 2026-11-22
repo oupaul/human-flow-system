@@ -290,7 +290,13 @@
       "createSuccess": "假日新增成功",
       "createFailedTitle": "新增假日失敗",
       "deleteSuccess": "假日已刪除",
-      "deleteFailedTitle": "刪除假日失敗"
-    }
+      "deleteFailedTitle": "刪除假日失敗",
+      "syncSuccessTitle": "同步成功",
+      "syncSuccessDescription": "已同步 {{years}} 年共 {{count}} 筆假日資料",
+      "syncFailedTitle": "同步假日行事曆失敗"
+    },
+    "syncButton": "從臺北市資料開放平台同步",
+    "syncHint": "自動下載「政府行政機關辦公日曆表」，更新今年起的假日。手動新增的日期不會被覆蓋；系統也會每天檢查，缺明年資料時自動同步。",
+    "orManual": "或手動貼上 CSV"
   }
 }

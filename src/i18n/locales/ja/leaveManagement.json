@@ -290,7 +290,13 @@
       "createSuccess": "祝日を追加しました",
       "createFailedTitle": "祝日の追加に失敗しました",
       "deleteSuccess": "祝日を削除しました",
-      "deleteFailedTitle": "祝日の削除に失敗しました"
-    }
+      "deleteFailedTitle": "祝日の削除に失敗しました",
+      "syncSuccessTitle": "同期完了",
+      "syncSuccessDescription": "{{years}} 年分、{{count}} 件を同期しました",
+      "syncFailedTitle": "祝日カレンダーの同期に失敗しました"
+    },
+    "syncButton": "台北市オープンデータから同期",
+    "syncHint": "政府機関の執務カレンダーをダウンロードし、今年以降の休日を更新します。手動で追加した日付は上書きされません。翌年のデータがない場合は毎日自動でチェック・同期します。",
+    "orManual": "または CSV を手動で貼り付け"
   }
 }

@@ -3,6 +3,6 @@ export interface Holiday {
   date: string;
   name: string | null;
   isHoliday: boolean;
-  source: "manual" | "dgpa";
+  source: "manual" | "dgpa" | "taipei";
   created_at?: string;
 }

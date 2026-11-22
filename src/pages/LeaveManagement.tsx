@@ -123,7 +123,7 @@ const LeaveManagement = () => {
 
   const currentYear = new Date().getFullYear();
   const [holidayYear, setHolidayYear] = useState(currentYear);
-  const { holidays, importHolidays, deleteHoliday } = useHolidays(holidayYear);
+  const { holidays, importHolidays, syncHolidays, syncing, deleteHoliday } = useHolidays(holidayYear);
   const [holidayCsv, setHolidayCsv] = useState("");
   const [holidayCalendarMonth, setHolidayCalendarMonth] = useState(new Date(holidayYear, 0, 1));
 
@@ -1524,6 +1524,14 @@ const LeaveManagement = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                  <Button onClick={syncHolidays} disabled={syncing} className="w-full">
+                    {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+                    {t("leaveManagement:holidays.syncButton")}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">{t("leaveManagement:holidays.syncHint")}</p>
+                </div>
+                <p className="text-center text-xs text-muted-foreground">{t("leaveManagement:holidays.orManual")}</p>
                 <Textarea
                   placeholder={t("leaveManagement:holidays.csvPlaceholder")}
                   rows={8}

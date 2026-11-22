@@ -43,6 +43,29 @@ export const useHolidays = (year: number) => {
     }
   };
 
+  const [syncing, setSyncing] = useState(false);
+
+  const syncHolidays = async () => {
+    try {
+      setSyncing(true);
+      const result = await holidayApi.syncHolidays();
+      await loadHolidays();
+      toast.success(t("leaveManagement:holidays.toasts.syncSuccessTitle"), {
+        description: t("leaveManagement:holidays.toasts.syncSuccessDescription", {
+          count: result.imported,
+          years: result.years.join("、"),
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to sync holidays:", error);
+      toast.error(t("leaveManagement:holidays.toasts.syncFailedTitle"), {
+        description: error instanceof Error ? error.message : t("common:common.networkErrorHint"),
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const createHoliday = async (data: { date: string; name?: string; isHoliday: boolean }) => {
     try {
       await holidayApi.createHoliday(data);
@@ -73,6 +96,8 @@ export const useHolidays = (year: number) => {
     holidays,
     loading,
     importHolidays,
+    syncHolidays,
+    syncing,
     createHoliday,
     deleteHoliday,
     reload: loadHolidays,

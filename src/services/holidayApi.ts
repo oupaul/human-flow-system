@@ -21,6 +21,12 @@ export const holidayApi = {
     });
   },
 
+  async syncHolidays(): Promise<{ message: string; imported: number; years: string[] }> {
+    return apiFetch<{ message: string; imported: number; years: string[] }>("/holidays/sync", {
+      method: "POST",
+    });
+  },
+
   async deleteHoliday(id: number): Promise<void> {
     await apiFetch<void>(`/holidays/${id}`, {
       method: "DELETE",

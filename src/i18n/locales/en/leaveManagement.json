@@ -290,7 +290,13 @@
       "createSuccess": "Holiday added successfully",
       "createFailedTitle": "Failed to add holiday",
       "deleteSuccess": "Holiday deleted",
-      "deleteFailedTitle": "Failed to delete holiday"
-    }
+      "deleteFailedTitle": "Failed to delete holiday",
+      "syncSuccessTitle": "Sync complete",
+      "syncSuccessDescription": "Synced {{count}} entries for {{years}}",
+      "syncFailedTitle": "Failed to sync the holiday calendar"
+    },
+    "syncButton": "Sync from Taipei Open Data",
+    "syncHint": "Downloads the government office calendar and updates holidays from this year onward. Manually added dates are never overwritten. The system also checks daily and syncs automatically when next year's data is missing.",
+    "orManual": "or paste a CSV manually"
   }
 }
