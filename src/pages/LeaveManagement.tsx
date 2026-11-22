@@ -43,7 +43,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, FileText, CheckCircle2, XCircle, Loader2, RefreshCcw, Upload, Trash2, Clock, Paperclip } from "lucide-react";
+import { Plus, FileText, CheckCircle2, XCircle, Loader2, RefreshCcw, Upload, Trash2, Clock, Paperclip, History } from "lucide-react";
 import { Calendar as HolidayCalendar } from "@/components/ui/calendar";
 import { zhTW, ja as jaLocale, enUS } from "date-fns/locale";
 import { useLeaveManagement } from "@/hooks/useLeaveManagement";
@@ -55,6 +55,7 @@ import { useCompTimeGrants } from "@/hooks/useCompTimeGrants";
 import { useCompTimeSettlements } from "@/hooks/useCompTimeSettlements";
 import { useCompTimeExpiringSoon } from "@/hooks/useCompTimeExpiringSoon";
 import { useAuth } from "@/contexts/AuthContext";
+import LeaveAdjustmentLogDialog from "@/components/LeaveAdjustmentLogDialog";
 import { canViewSalary } from "@/services/authApi";
 import { LeaveApplicationFormData, LeaveApplication, LeaveBalance } from "@/types/leave";
 import { OvertimeApplication, OvertimeApplicationFormData } from "@/types/overtime";
@@ -100,6 +101,7 @@ const LeaveManagement = () => {
   const { pendingSettlements: pendingCompSettlements, settleGrant: settleCompGrant } = useCompTimeSettlements();
   const { expiringSoon: expiringSoonCompGrants } = useCompTimeExpiringSoon();
   const [viewingCompLedgerFor, setViewingCompLedgerFor] = useState<LeaveBalance | null>(null);
+  const [adjustLogOpen, setAdjustLogOpen] = useState(false);
 
   const VALID_TABS = ["applications", "overtime", "balance", "settlement", "grants", "types", "holidays"];
   const [searchParams, setSearchParams] = useSearchParams();
@@ -957,9 +959,14 @@ const LeaveManagement = () => {
                   {t("leaveManagement:balance.description")}
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={recalculateAnnualLeave}>
-                <RefreshCcw className="mr-2 h-4 w-4" /> {t("leaveManagement:balance.recalculate")}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setAdjustLogOpen(true)}>
+                  <History className="mr-2 h-4 w-4" /> {t("leaveManagement:adjustLog.button")}
+                </Button>
+                <Button variant="outline" size="sm" onClick={recalculateAnnualLeave}>
+                  <RefreshCcw className="mr-2 h-4 w-4" /> {t("leaveManagement:balance.recalculate")}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="rounded-md border">
@@ -1092,6 +1099,8 @@ const LeaveManagement = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <LeaveAdjustmentLogDialog open={adjustLogOpen} onOpenChange={setAdjustLogOpen} />
 
         <Dialog open={!!viewingCompLedgerFor} onOpenChange={(open) => !open && setViewingCompLedgerFor(null)}>
           <DialogContent className="sm:max-w-[600px]">

@@ -16,6 +16,7 @@ import { checkHolidayBenefitReminders } from './holidayBenefits.js';
 import { syncHolidaysFromTaipei, checkHolidayCalendar } from './holidaySync.js';
 import { computeSettlementSplit, checkLeaveSettlementReminders } from './leaveSettlement.js';
 import { syncCurrentSalary, recordSalaryChange, parseCompensation } from './compensation.js';
+import { logLeaveAdjustment, listLeaveAdjustments } from './leaveAudit.js';
 import {
   PayrollError, isValidMonth, importRatesCsv, importBracketsCsv, listRates, listBracketSets, generateSnapshot,
   listSnapshots, getSnapshot, setSnapshotLock, deleteDraftSnapshot, snapshotToXlsx,
@@ -1265,6 +1266,10 @@ api.post('/leave-grants', requireRole(...STAFF_ROLES), async (req, res) => {
       LEFT JOIN leave_types lt ON lg.leaveTypeId = lt.id
       WHERE lg.id = ?
     `, [result.insertId]);
+    await logLeaveAdjustment(pool, req.user, {
+      employeeId, action: 'grant_create', refId: result.insertId, after: `${totalDays} 天`,
+      detail: `${newGrant[0]?.leaveTypeName ?? '假別'}額度核給${deadline ? `，期限 ${deadline}` : ''}${note ? `，備註：${note}` : ''}`,
+    });
     res.json(newGrant[0]);
   } catch (error) {
     console.error('Error creating leave grant:', error);
@@ -1275,7 +1280,11 @@ api.post('/leave-grants', requireRole(...STAFF_ROLES), async (req, res) => {
 api.delete('/leave-grants/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const [rows] = await pool.execute('SELECT usedDays FROM leave_grants WHERE id = ?', [id]);
+    const [rows] = await pool.execute(
+      `SELECT lg.usedDays, lg.totalDays, lg.employeeId, lt.name AS leaveTypeName
+       FROM leave_grants lg LEFT JOIN leave_types lt ON lg.leaveTypeId = lt.id WHERE lg.id = ?`,
+      [id]
+    );
     if (!rows[0]) {
       return res.status(404).json({ error: '找不到該筆核給紀錄' });
     }
@@ -1283,6 +1292,10 @@ api.delete('/leave-grants/:id', requireRole(...STAFF_ROLES), async (req, res) =>
       return res.status(400).json({ error: '已有請假申請使用這筆核給，無法刪除' });
     }
     await pool.execute('DELETE FROM leave_grants WHERE id = ?', [id]);
+    await logLeaveAdjustment(pool, req.user, {
+      employeeId: rows[0].employeeId, action: 'grant_delete', refId: Number(id), before: `${rows[0].totalDays} 天`,
+      detail: `${rows[0].leaveTypeName ?? '假別'}額度核給已刪除`,
+    });
     res.json({ message: '核給紀錄已刪除' });
   } catch (error) {
     console.error('Error deleting leave grant:', error);
@@ -1619,10 +1632,19 @@ api.put('/leave-balances/:employeeId', requireRole(...STAFF_ROLES), async (req, 
     const { employeeId } = req.params;
     const { sickLeave, sickLeaveUsed } = req.body;
 
+    const [beforeRows] = await pool.execute('SELECT sickLeave, sickLeaveUsed FROM leave_balances WHERE employeeId = ?', [employeeId]);
     await pool.execute(
       'UPDATE leave_balances SET sickLeave = ?, sickLeaveUsed = ? WHERE employeeId = ?',
       [sickLeave, sickLeaveUsed, employeeId]
     );
+    const before = beforeRows[0];
+    if (before) {
+      for (const [field, label, value] of [['sickLeave', '病假可用天數', sickLeave], ['sickLeaveUsed', '病假已用天數', sickLeaveUsed]]) {
+        if (value !== undefined && Number(value) !== Number(before[field])) {
+          await logLeaveAdjustment(pool, req.user, { employeeId, action: 'sick_balance', before: before[field], after: Number(value), detail: label });
+        }
+      }
+    }
 
     const [updatedBalance] = await pool.execute(`${LEAVE_BALANCE_SELECT} WHERE lb.employeeId = ?`, [employeeId]);
 
@@ -1644,6 +1666,12 @@ api.post('/leave-balances/recalculate', requireRole(...STAFF_ROLES), async (req,
       const period = await getOrCreateActivePeriod(employee.employeeId, employee.joinDate);
       const grantedDays = computePeriodGrant(employee.joinDate, period.periodEnd);
       await pool.execute('UPDATE leave_periods SET grantedDays = ? WHERE id = ?', [grantedDays, period.id]);
+      if (grantedDays !== Number(period.grantedDays)) {
+        await logLeaveAdjustment(pool, req.user, {
+          employeeId: employee.employeeId, action: 'annual_granted', refId: period.id,
+          before: period.grantedDays, after: grantedDays, detail: `重新計算特休天數（${period.periodStart} ~ ${period.periodEnd}）`,
+        });
+      }
       updated += 1;
     }
 
@@ -1651,6 +1679,16 @@ api.post('/leave-balances/recalculate', requireRole(...STAFF_ROLES), async (req,
   } catch (error) {
     console.error('Error recalculating annual leave:', error);
     res.status(500).json({ error: '重新計算特休天數失敗', detail: error.message });
+  }
+});
+
+// 特休／補休調整異動記錄（STAFF_ROLES 可查看；內容不含任何金額）
+api.get('/leave-adjustments', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    res.json(await listLeaveAdjustments(pool, req.query));
+  } catch (error) {
+    console.error('Error fetching leave adjustment logs:', error);
+    res.status(500).json({ error: '獲取調整記錄失敗', detail: error.message });
   }
 });
 
@@ -1720,9 +1758,21 @@ api.put('/leave-periods/:id', requireRole(...STAFF_ROLES), async (req, res) => {
         return res.status(400).json({ error: '這是員工到職後的第一期，沒有上一期特休可以遞延，上期遞延天數請填 0' });
       }
       await pool.execute('UPDATE leave_periods SET carriedInDays = ? WHERE id = ?', [days, id]);
+      if (days !== Number(period.carriedInDays)) {
+        await logLeaveAdjustment(pool, req.user, {
+          employeeId: period.employeeId, action: 'annual_carried_in', refId: period.id,
+          before: period.carriedInDays, after: days, detail: `特休週年期間 ${period.periodStart} ~ ${period.periodEnd}`,
+        });
+      }
     }
     if (hasUsed) {
       await pool.execute('UPDATE leave_periods SET usedDays = ? WHERE id = ?', [Number(usedDays), id]);
+      if (Number(usedDays) !== Number(period.usedDays)) {
+        await logLeaveAdjustment(pool, req.user, {
+          employeeId: period.employeeId, action: 'annual_used', refId: period.id,
+          before: period.usedDays, after: Number(usedDays), detail: `特休週年期間 ${period.periodStart} ~ ${period.periodEnd}`,
+        });
+      }
     }
 
     const [rows] = await pool.execute('SELECT * FROM leave_periods WHERE id = ?', [id]);
@@ -1789,6 +1839,14 @@ api.post('/leave-periods/:id/settle', requireRole(...SALARY_ROLES), async (req, 
       'UPDATE leave_periods SET settledAt = NOW(), carriedOutDays = ?, cashOutDays = ?, cashOutAmount = ? WHERE id = ?',
       [carryOverDays, cashOutDays, cashOutAmount, id]
     );
+
+    // 異動記錄刻意不含折現金額
+    await logLeaveAdjustment(pool, req.user, {
+      employeeId: period.employeeId, action: 'annual_settle', refId: period.id,
+      before: `可用 ${Number(period.grantedDays) + Number(period.carriedInDays)} 天、已休 ${period.usedDays} 天`,
+      after: `折現 ${cashOutDays} 天、遞延 ${carryOverDays} 天`,
+      detail: `特休週年結算（${period.periodStart} ~ ${period.periodEnd}）`,
+    });
 
     // 開出下一期
     const nextPeriodEnd = addOneYear(period.periodEnd);
@@ -2359,6 +2417,11 @@ api.post('/comp-time-grants/:id/settle', requireRole(...SALARY_ROLES), async (re
       'UPDATE comp_time_grants SET settledAt = NOW(), cashOutHours = ?, cashOutAmount = ? WHERE id = ?',
       [cashOutHours, cashOutAmount, id]
     );
+    await logLeaveAdjustment(pool, req.user, {
+      employeeId: grant.employeeId, action: 'comp_settle', refId: grant.id,
+      before: `剩餘 ${cashOutHours} 小時`, after: `折算 ${cashOutHours} 小時`,
+      detail: `補休到期結算（期限 ${grant.deadline}）`,
+    });
 
     res.json({
       message: '結算完成',

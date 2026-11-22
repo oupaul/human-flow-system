@@ -303,5 +303,34 @@
     "syncButton": "台北市オープンデータから同期",
     "syncHint": "政府機関の執務カレンダーをダウンロードし、今年以降の休日を更新します。手動で追加した日付は上書きされません。翌年のデータがない場合は毎日自動でチェック・同期します。",
     "orManual": "または CSV を手動で貼り付け"
+  },
+  "adjustLog": {
+    "button": "調整履歴",
+    "title": "有給・代休の調整履歴",
+    "description": "誰がいつ、どの従業員の休暇データを手動で調整したか（変更前後）を記録します。承認された休暇の差し引きや残業による代休付与などの自動変更は含まれません。金額は記録されません。",
+    "searchPlaceholder": "従業員名または社員番号で検索",
+    "allActions": "すべての種類",
+    "total": "{{count}} 件",
+    "empty": "調整履歴はまだありません",
+    "prev": "前へ",
+    "next": "次へ",
+    "columns": {
+      "time": "日時",
+      "employee": "従業員",
+      "action": "種類",
+      "change": "変更",
+      "detail": "内容",
+      "actor": "操作者"
+    },
+    "actions": {
+      "annual_used": "有給の取得日数",
+      "annual_carried_in": "有給の前期繰越",
+      "annual_granted": "有給の再計算",
+      "annual_settle": "有給の期末精算",
+      "comp_settle": "代休の期限精算",
+      "sick_balance": "病気休暇の残日数",
+      "grant_create": "休暇枠の付与",
+      "grant_delete": "休暇枠の付与削除"
+    }
   }
 }

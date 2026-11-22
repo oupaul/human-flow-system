@@ -420,6 +420,23 @@ CREATE TABLE IF NOT EXISTS payroll_snapshot_items (
   FOREIGN KEY (snapshotId) REFERENCES payroll_snapshots(id) ON DELETE CASCADE
 );
 
+-- 特休／補休調整異動記錄：誰在什麼時候調整了哪位員工的什麼（變更前後），只新增、不修改
+CREATE TABLE IF NOT EXISTS leave_adjustment_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  employeeId VARCHAR(50) NOT NULL,           -- 不設外鍵：員工日後離職或刪除，異動記錄仍要保留
+  employeeName VARCHAR(255) NULL,            -- 當時的姓名快照
+  action VARCHAR(30) NOT NULL,               -- annual_used、annual_carried_in、annual_granted、annual_settle、comp_settle、sick_balance、grant_create、grant_delete
+  refId INT NULL,                            -- 對應的特休週年期間／補休額度／核給紀錄 id
+  beforeValue VARCHAR(255) NULL,
+  afterValue VARCHAR(255) NULL,
+  detail VARCHAR(500) NULL,
+  actorUsername VARCHAR(100) NULL,
+  actorRole VARCHAR(20) NULL,
+  INDEX idx_employee (employeeId),
+  INDEX idx_created (created_at)
+);
+
 -- 範例假別類型（可依需求刪減）
 INSERT INTO leave_types (name, code, unit, needProof, affectAttendance, isPaid, maxDays, advanceApply, canSplit) VALUES
 ('特休', 'AL', '天', FALSE, FALSE, TRUE, '依年資', '3天', TRUE),

@@ -303,5 +303,34 @@
     "syncButton": "從臺北市資料開放平台同步",
     "syncHint": "自動下載「政府行政機關辦公日曆表」，更新今年起的假日。手動新增的日期不會被覆蓋；系統也會每天檢查，缺明年資料時自動同步。",
     "orManual": "或手動貼上 CSV"
+  },
+  "adjustLog": {
+    "button": "調整記錄",
+    "title": "特休／補休調整記錄",
+    "description": "記錄誰在什麼時候手動調整了哪位員工的假期資料（變更前後）。請假核准扣抵、加班產生補休等系統自動變動不在此列；記錄不含任何金額。",
+    "searchPlaceholder": "搜尋員工姓名或編號",
+    "allActions": "全部類別",
+    "total": "共 {{count}} 筆",
+    "empty": "尚無調整記錄",
+    "prev": "上一頁",
+    "next": "下一頁",
+    "columns": {
+      "time": "時間",
+      "employee": "員工",
+      "action": "類別",
+      "change": "變更",
+      "detail": "說明",
+      "actor": "操作者"
+    },
+    "actions": {
+      "annual_used": "特休已用天數",
+      "annual_carried_in": "特休上期遞延",
+      "annual_granted": "特休重新計算",
+      "annual_settle": "特休週年結算",
+      "comp_settle": "補休到期結算",
+      "sick_balance": "病假餘額",
+      "grant_create": "額度核給",
+      "grant_delete": "額度核給刪除"
+    }
   }
 }

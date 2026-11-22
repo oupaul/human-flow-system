@@ -303,5 +303,34 @@
     "syncButton": "Sync from Taipei Open Data",
     "syncHint": "Downloads the government office calendar and updates holidays from this year onward. Manually added dates are never overwritten. The system also checks daily and syncs automatically when next year's data is missing.",
     "orManual": "or paste a CSV manually"
+  },
+  "adjustLog": {
+    "button": "Adjustment Log",
+    "title": "Annual & Comp Leave Adjustment Log",
+    "description": "Records who manually adjusted whose leave data and when (before and after). Automatic changes such as approved leave deductions or overtime-generated comp time are not included, and no monetary amounts are recorded.",
+    "searchPlaceholder": "Search by employee name or ID",
+    "allActions": "All types",
+    "total": "{{count}} records",
+    "empty": "No adjustments recorded yet",
+    "prev": "Previous",
+    "next": "Next",
+    "columns": {
+      "time": "Time",
+      "employee": "Employee",
+      "action": "Type",
+      "change": "Change",
+      "detail": "Details",
+      "actor": "Changed by"
+    },
+    "actions": {
+      "annual_used": "Annual leave used",
+      "annual_carried_in": "Annual leave carried over",
+      "annual_granted": "Annual leave recalculated",
+      "annual_settle": "Annual leave settlement",
+      "comp_settle": "Comp time settlement",
+      "sick_balance": "Sick leave balance",
+      "grant_create": "Leave grant created",
+      "grant_delete": "Leave grant deleted"
+    }
   }
 }
