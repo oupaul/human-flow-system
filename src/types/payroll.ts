@@ -9,9 +9,14 @@ export interface PayrollSnapshotSummary {
   generatedBy: string | null;
   lockedAt: string | null;
   lockedBy: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
   salary: number;
+  overtimePay: number;
+  leaveDeduction: number;
   employeeTotal: number;
   employerTotal: number;
+  netTotal: number;
   totalCost: number;
 }
 
@@ -32,13 +37,30 @@ export interface PayrollItem {
   healthEmployer: number | null;
   pensionEmployer: number | null;
   pensionEmployee: number | null;
+  overtimeHours: number | null;
+  overtimePay: number | null;
+  leaveDays: number | null;
+  leaveDeduction: number | null;
+  variableDetail: string | null;
+  employeeInsurance: number | null;
+  employerInsurance: number | null;
+  grossPay: number | null;
+  netPay: number | null;
   warnings: string | null;
 }
 
-export interface PayrollSnapshotDetail extends Omit<PayrollSnapshotSummary, "salary" | "employeeTotal" | "employerTotal" | "totalCost"> {
+export interface OvertimeDetailLine { id: number; date: string; hours: number; dayType: string; factor: number; amount: number }
+export interface LeaveDetailLine { id: number; date: string; endDate: string; days: number; leaveType: string; ratio: number; amount: number }
+
+export interface PayrollSnapshotDetail extends Omit<PayrollSnapshotSummary, "salary" | "overtimePay" | "leaveDeduction" | "employeeTotal" | "employerTotal" | "netTotal" | "totalCost"> {
   items: PayrollItem[];
-  totals: { salary: number; employee: number; employer: number; totalCost: number };
+  totals: { salary: number; overtimePay: number; leaveDeduction: number; gross: number; employee: number; employer: number; net: number; totalCost: number };
 }
+
+export interface PayrollSettings { cutoffDay: number; daysPerMonth: number; hoursPerDay: number }
+export interface OvertimeRule { dayType: "weekday" | "rest_day" | "holiday"; fromHours: number; toHours: number | null; multiplier: number }
+export interface LeaveDeduction { leaveTypeId: number; name: string; isPaid: boolean; deductRatio: number | null }
+export interface PayrollRules { settings: PayrollSettings; overtimeRules: OvertimeRule[]; leaveDeductions: LeaveDeduction[] }
 
 export interface InsuranceRate {
   effectiveDate: string;

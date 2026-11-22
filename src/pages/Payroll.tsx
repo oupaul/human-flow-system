@@ -16,7 +16,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { payrollApi } from "@/services/payrollApi";
-import { BracketSet, InsuranceRate, PayrollSnapshotDetail, PayrollSnapshotSummary } from "@/types/payroll";
+import PayrollRulesPanel from "@/components/PayrollRulesPanel";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { BracketSet, InsuranceRate, LeaveDetailLine, OvertimeDetailLine, PayrollItem, PayrollSnapshotDetail, PayrollSnapshotSummary } from "@/types/payroll";
 
 const RATE_KEYS = [
   "laborRate", "laborEmployeeShare", "laborEmployerShare", "laborEmployerOnlyRate",
@@ -39,11 +41,13 @@ const Payroll = () => {
   const { t } = useTranslation(["payroll", "common"]);
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") === "rates" ? "rates" : "snapshots";
+  const tabParam = searchParams.get("tab");
+  const activeTab = tabParam === "rates" || tabParam === "rules" ? tabParam : "snapshots";
 
   const [snapshots, setSnapshots] = useState<PayrollSnapshotSummary[]>([]);
   const [detail, setDetail] = useState<PayrollSnapshotDetail | null>(null);
   const [month, setMonth] = useState(currentMonth());
+  const [detailItem, setDetailItem] = useState<PayrollItem | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState<{ kind: "lock" | "unlock" | "delete" | "regenerate"; month: string } | null>(null);
 
@@ -168,9 +172,10 @@ const Payroll = () => {
         <p className="text-sm text-muted-foreground">{t("payroll:disclaimer")}</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(v) => setSearchParams(v === "rates" ? { tab: "rates" } : {})}>
+      <Tabs value={activeTab} onValueChange={(v) => setSearchParams(v === "snapshots" ? {} : { tab: v })}>
         <TabsList>
           <TabsTrigger value="snapshots">{t("payroll:tabs.snapshots")}</TabsTrigger>
+          <TabsTrigger value="rules">{t("payroll:tabs.rules")}</TabsTrigger>
           <TabsTrigger value="rates">{t("payroll:tabs.rates")}</TabsTrigger>
         </TabsList>
 
@@ -195,24 +200,28 @@ const Payroll = () => {
                   <TableHead>{t("payroll:snapshots.month")}</TableHead>
                   <TableHead>{t("common:table.status")}</TableHead>
                   <TableHead>{t("payroll:snapshots.headcount")}</TableHead>
+                  <TableHead>{t("payroll:snapshots.period")}</TableHead>
                   <TableHead>{t("payroll:snapshots.salary")}</TableHead>
-                  <TableHead>{t("payroll:snapshots.employee")}</TableHead>
-                  <TableHead>{t("payroll:snapshots.employer")}</TableHead>
+                  <TableHead>{t("payroll:snapshots.overtimePay")}</TableHead>
+                  <TableHead>{t("payroll:snapshots.leaveDeduction")}</TableHead>
+                  <TableHead>{t("payroll:snapshots.net")}</TableHead>
                   <TableHead>{t("payroll:snapshots.totalCost")}</TableHead>
                   <TableHead className="text-right">{t("common:table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {snapshots.length === 0 ? (
-                  <TableRow><TableCell colSpan={8} className="py-8 text-center text-muted-foreground">{t("payroll:snapshots.empty")}</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={10} className="py-8 text-center text-muted-foreground">{t("payroll:snapshots.empty")}</TableCell></TableRow>
                 ) : snapshots.map((s) => (
                   <TableRow key={s.id} className={detail?.month === s.month ? "bg-muted/40" : ""}>
                     <TableCell className="font-medium">{s.month}</TableCell>
                     <TableCell>{statusBadge(s.status)}</TableCell>
                     <TableCell>{s.headcount}</TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">{s.periodStart && s.periodEnd ? `${s.periodStart.slice(5)} ~ ${s.periodEnd.slice(5)}` : "—"}</TableCell>
                     <TableCell>{money(s.salary)}</TableCell>
-                    <TableCell>{money(s.employeeTotal)}</TableCell>
-                    <TableCell>{money(s.employerTotal)}</TableCell>
+                    <TableCell>{money(s.overtimePay)}</TableCell>
+                    <TableCell>{money(s.leaveDeduction)}</TableCell>
+                    <TableCell>{money(s.netTotal)}</TableCell>
                     <TableCell className="font-medium">{money(s.totalCost)}</TableCell>
                     <TableCell className="space-x-2 text-right">
                       <Button size="sm" onClick={() => openDetail(s.month)}>{t("common:actions.view")}</Button>
@@ -240,13 +249,15 @@ const Payroll = () => {
                   {statusBadge(detail.status)}
                 </div>
                 <CardDescription>
+                  {detail.periodStart && detail.periodEnd && `${t("payroll:detail.period", { start: detail.periodStart, end: detail.periodEnd })} · `}
                   {t("payroll:detail.meta", { by: detail.generatedBy ?? "—", at: detail.generatedAt ?? "—" })}
                   {detail.status === "locked" && ` · ${t("payroll:detail.lockedMeta", { by: detail.lockedBy ?? "—", at: detail.lockedAt ?? "—" })}`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  {([["salary", detail.totals.salary], ["employee", detail.totals.employee], ["employer", detail.totals.employer], ["totalCost", detail.totals.totalCost]] as const).map(([k, v]) => (
+                  {([["salary", detail.totals.salary], ["overtimePay", detail.totals.overtimePay], ["leaveDeduction", detail.totals.leaveDeduction], ["gross", detail.totals.gross],
+                    ["employee", detail.totals.employee], ["net", detail.totals.net], ["employer", detail.totals.employer], ["totalCost", detail.totals.totalCost]] as const).map(([k, v]) => (
                     <div key={k} className="rounded-md border p-3">
                       <p className="text-xs text-muted-foreground">{t(`payroll:snapshots.${k}`)}</p>
                       <p className="text-lg font-semibold">NT$ {money(v)}</p>
@@ -259,39 +270,40 @@ const Payroll = () => {
                       <TableRow>
                         <TableHead>{t("common:table.name")}</TableHead>
                         <TableHead>{t("payroll:detail.salary")}</TableHead>
-                        <TableHead>{t("payroll:detail.insured")}</TableHead>
+                        <TableHead>{t("payroll:detail.overtime")}</TableHead>
+                        <TableHead>{t("payroll:detail.leave")}</TableHead>
+                        <TableHead>{t("payroll:snapshots.gross")}</TableHead>
                         <TableHead>{t("payroll:detail.labor")}</TableHead>
                         <TableHead>{t("payroll:detail.health")}</TableHead>
                         <TableHead>{t("payroll:detail.pension")}</TableHead>
-                        <TableHead>{t("payroll:snapshots.employee")}</TableHead>
+                        <TableHead>{t("payroll:snapshots.net")}</TableHead>
                         <TableHead>{t("payroll:snapshots.employer")}</TableHead>
                         <TableHead>{t("payroll:detail.warnings")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {detail.items.map((i) => {
-                        // 完全沒有試算出任何項目時顯示「—」，避免誤解成「不用付」
-                        const employeeParts = [i.laborEmployee, i.healthEmployee, i.pensionEmployee];
-                        const employerParts = [i.laborEmployer, i.healthEmployer, i.pensionEmployer];
-                        const sumOrNull = (parts: (number | null)[]) => (parts.every((p) => p === null) ? null : parts.reduce<number>((t, p) => t + (p ?? 0), 0));
-                        const employee = sumOrNull(employeeParts);
-                        const employer = sumOrNull(employerParts);
-                        return (
-                          <TableRow key={i.id}>
-                            <TableCell className="whitespace-nowrap">{i.employeeName}（{i.employeeId}）</TableCell>
-                            <TableCell>{money(i.monthlySalary)}</TableCell>
-                            <TableCell className="whitespace-nowrap text-xs">{money(i.laborInsured)} / {money(i.healthInsured)} / {money(i.pensionWage)}</TableCell>
-                            <TableCell className="whitespace-nowrap text-xs">{money(i.laborEmployee)} / {money(i.laborEmployer)}</TableCell>
-                            <TableCell className="whitespace-nowrap text-xs">{money(i.healthEmployee)} / {money(i.healthEmployer)}</TableCell>
-                            <TableCell className="whitespace-nowrap text-xs">{money(i.pensionEmployee)} / {money(i.pensionEmployer)}</TableCell>
-                            <TableCell>{money(employee)}</TableCell>
-                            <TableCell>{money(employer)}</TableCell>
-                            <TableCell className="min-w-[220px] text-xs text-amber-700">
-                              {i.warnings && <span className="flex gap-1"><AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />{i.warnings}</span>}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                      {detail.items.map((i) => (
+                        <TableRow key={i.id}>
+                          <TableCell className="whitespace-nowrap">{i.employeeName}（{i.employeeId}）</TableCell>
+                          <TableCell>{money(i.monthlySalary)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {i.overtimePay === null ? "—" : <>{money(i.overtimePay)}<span className="text-muted-foreground"> ({i.overtimeHours}h)</span></>}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {i.leaveDeduction === null ? "—" : <>{i.leaveDeduction > 0 ? "-" : ""}{money(i.leaveDeduction)}<span className="text-muted-foreground"> ({i.leaveDays}{t("common:table.days")})</span></>}
+                          </TableCell>
+                          <TableCell className="font-medium">{money(i.grossPay)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">{money(i.laborEmployee)} / {money(i.laborEmployer)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">{money(i.healthEmployee)} / {money(i.healthEmployer)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">{money(i.pensionEmployee)} / {money(i.pensionEmployer)}</TableCell>
+                          <TableCell className="font-medium">{money(i.netPay)}</TableCell>
+                          <TableCell>{money(i.employerInsurance)}</TableCell>
+                          <TableCell className="min-w-[220px] text-xs text-amber-700">
+                            {i.variableDetail && <Button size="sm" variant="outline" className="mb-1 h-6 px-2 text-xs" onClick={() => setDetailItem(i)}>{t("payroll:detail.viewLines")}</Button>}
+                            {i.warnings && <span className="flex gap-1"><AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />{i.warnings}</span>}
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
@@ -299,6 +311,10 @@ const Payroll = () => {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="rules">
+          <PayrollRulesPanel />
         </TabsContent>
 
         <TabsContent value="rates" className="space-y-6">
@@ -378,6 +394,82 @@ const Payroll = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{detailItem?.employeeName}（{detailItem?.employeeId}）</DialogTitle>
+            <DialogDescription>
+              {detail?.periodStart && detail?.periodEnd ? t("payroll:detail.period", { start: detail.periodStart, end: detail.periodEnd }) : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {detailItem?.variableDetail && (() => {
+            const lines = JSON.parse(detailItem.variableDetail) as { overtime: OvertimeDetailLine[]; leave: LeaveDetailLine[] };
+            return (
+              <div className="space-y-4">
+                <div>
+                  <h4 className="mb-1 text-sm font-semibold">{t("payroll:detail.overtimeLines")}</h4>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t("common:table.date")}</TableHead>
+                          <TableHead>{t("payroll:detail.dayType")}</TableHead>
+                          <TableHead>{t("common:table.hours")}</TableHead>
+                          <TableHead>{t("payroll:detail.factor")}</TableHead>
+                          <TableHead className="text-right">{t("payroll:detail.amount")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {lines.overtime.length === 0 ? (
+                          <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">{t("common:common.none")}</TableCell></TableRow>
+                        ) : lines.overtime.map((o) => (
+                          <TableRow key={o.id}>
+                            <TableCell>{o.date}</TableCell>
+                            <TableCell>{t(`payroll:dayTypes.${o.dayType}`)}</TableCell>
+                            <TableCell>{o.hours}</TableCell>
+                            <TableCell>{o.factor}</TableCell>
+                            <TableCell className="text-right">{money(o.amount)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="mb-1 text-sm font-semibold">{t("payroll:detail.leaveLines")}</h4>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t("common:table.date")}</TableHead>
+                          <TableHead>{t("payroll:detail.leaveType")}</TableHead>
+                          <TableHead>{t("common:table.days")}</TableHead>
+                          <TableHead>{t("payroll:detail.ratio")}</TableHead>
+                          <TableHead className="text-right">{t("payroll:detail.amount")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {lines.leave.length === 0 ? (
+                          <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">{t("common:common.none")}</TableCell></TableRow>
+                        ) : lines.leave.map((l) => (
+                          <TableRow key={l.id}>
+                            <TableCell>{l.date}{l.endDate !== l.date ? ` ~ ${l.endDate}` : ""}</TableCell>
+                            <TableCell>{l.leaveType}</TableCell>
+                            <TableCell>{l.days}</TableCell>
+                            <TableCell>{l.ratio}</TableCell>
+                            <TableCell className="text-right">{l.amount > 0 ? "-" : ""}{money(l.amount)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!confirm} onOpenChange={(open) => !open && setConfirm(null)}>
         <AlertDialogContent>

@@ -1,5 +1,5 @@
 import { apiFetch, apiFetchBlob } from "@/lib/apiClient";
-import { BracketSet, InsuranceRate, PayrollSnapshotDetail, PayrollSnapshotSummary } from "@/types/payroll";
+import { BracketSet, InsuranceRate, PayrollRules, PayrollSettings, PayrollSnapshotDetail, PayrollSnapshotSummary } from "@/types/payroll";
 
 export const payrollApi = {
   getRates(): Promise<{ rates: InsuranceRate[]; brackets: BracketSet[] }> {
@@ -10,6 +10,24 @@ export const payrollApi = {
   },
   importBrackets(csv: string): Promise<{ message: string; imported: number; sets: number }> {
     return apiFetch("/payroll/brackets/import", { method: "POST", body: JSON.stringify({ csv }) });
+  },
+  getRules(): Promise<PayrollRules> {
+    return apiFetch("/payroll/rules");
+  },
+  saveSettings(data: PayrollSettings): Promise<{ message: string }> {
+    return apiFetch("/payroll/settings", { method: "PUT", body: JSON.stringify(data) });
+  },
+  importOvertimeRules(csv: string): Promise<{ message: string; imported: number }> {
+    return apiFetch("/payroll/overtime-rules/import", { method: "POST", body: JSON.stringify({ csv }) });
+  },
+  loadOvertimeTemplate(): Promise<{ message: string; imported: number }> {
+    return apiFetch("/payroll/overtime-rules/template", { method: "POST" });
+  },
+  saveLeaveDeductions(items: { leaveTypeId: number; deductRatio: number }[]): Promise<{ message: string }> {
+    return apiFetch("/payroll/leave-deductions", { method: "PUT", body: JSON.stringify({ items }) });
+  },
+  prefillLeaveDeductions(): Promise<{ message: string; added: number }> {
+    return apiFetch("/payroll/leave-deductions/prefill", { method: "POST" });
   },
   listSnapshots(): Promise<PayrollSnapshotSummary[]> {
     return apiFetch("/payroll/snapshots");

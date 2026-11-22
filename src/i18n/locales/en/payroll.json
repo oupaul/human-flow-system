@@ -1,8 +1,9 @@
 {
-  "disclaimer": "Labor insurance, health insurance and pension figures are estimates only; actual amounts follow the official premium notices. Employees who join or leave mid-month are not prorated. Visible to HR and admin only.",
+  "disclaimer": "Payroll figures are estimates: base salary and labor/health/pension use the full calendar month (mid-month joiners/leavers are not prorated); overtime pay and leave deductions use approved records within the pay period. Net pay only deducts labor/health/pension and excludes income tax and other deductions. Visible to HR and admin only.",
   "tabs": {
     "snapshots": "Monthly Estimates",
-    "rates": "Rates & Brackets"
+    "rates": "Rates & Brackets",
+    "rules": "Pay Rules"
   },
   "status": {
     "draft": "Draft",
@@ -10,7 +11,7 @@
   },
   "snapshots": {
     "generateTitle": "Generate Monthly Estimate",
-    "generateHint": "Calculated from the salary and insurance data in effect on the last day of the month. Drafts can be regenerated; once locked the figures are frozen and later rate or salary changes do not affect them.",
+    "generateHint": "Base salary and insurance use the data in effect on the last day of the month; overtime pay and leave deductions use approved records within the pay period (e.g. 9/26–10/25 for October). Drafts can be regenerated; locking freezes them.",
     "generate": "Generate",
     "generateFailed": "Failed to generate the estimate",
     "lockedCannotRegenerate": "This month is locked. An admin must unlock it before it can be regenerated.",
@@ -22,7 +23,12 @@
     "totalCost": "Total employer cost",
     "empty": "No estimates yet",
     "lock": "Lock",
-    "unlock": "Unlock"
+    "unlock": "Unlock",
+    "period": "Pay period",
+    "overtimePay": "Overtime pay",
+    "leaveDeduction": "Leave deduction",
+    "gross": "Gross pay",
+    "net": "Net pay (after insurance)"
   },
   "detail": {
     "title": "{{month}} Details",
@@ -34,7 +40,18 @@
     "health": "Health (Emp. / Co.)",
     "pension": "Pension (Voluntary / Co.)",
     "warnings": "Notes",
-    "columnsHint": "Employee pays = labor + health + voluntary pension; Employer pays = labor + health + employer pension; Total employer cost = salary + employer pays."
+    "columnsHint": "Gross pay = salary + overtime pay − leave deduction; Net pay = gross − employee insurance (incl. voluntary pension; excludes income tax and other deductions); Employer pays = labor + health + employer pension; Total employer cost = gross pay + employer pays.",
+    "overtime": "Overtime pay (hours)",
+    "leave": "Leave deduction (days)",
+    "period": "Leave & overtime period: {{start}} ~ {{end}}",
+    "viewLines": "Overtime & leave lines",
+    "overtimeLines": "Overtime lines",
+    "leaveLines": "Leave lines",
+    "dayType": "Day type",
+    "factor": "Weighted hours",
+    "amount": "Amount",
+    "leaveType": "Leave type",
+    "ratio": "Deduction ratio"
   },
   "confirm": {
     "lockTitle": "Lock {{month}}?",
@@ -77,5 +94,39 @@
     "labor": "Labor",
     "health": "Health",
     "pension": "Pension"
+  },
+  "dayTypes": {
+    "weekday": "Weekday",
+    "rest_day": "Rest day",
+    "holiday": "National holiday"
+  },
+  "rules": {
+    "settingsTitle": "Pay Period & Wage Basis",
+    "settingsHint": "Base salary and insurance use the full calendar month; only overtime and leave use the period from (cutoff + 1) of the previous month to the cutoff day of this month. Daily wage = monthly salary ÷ days per month; hourly wage = daily wage ÷ hours per day.",
+    "cutoffDay": "Cutoff day",
+    "daysPerMonth": "Days per month (daily wage basis)",
+    "hoursPerDay": "Hours per day (hourly wage basis)",
+    "periodExample": "E.g. for October payroll, overtime and leave use 9/{{start}} ~ 10/{{end}}.",
+    "overtimeTitle": "Overtime Multipliers",
+    "overtimeHint": "Only approved overtime paid as cash counts; overtime converted to comp time does not. Multiple entries on the same day are accumulated before applying tiers. Day type: not on a holiday = weekday; on a holiday with a holiday name in the calendar = national holiday; otherwise = rest day.",
+    "noOvertimeRules": "No overtime multipliers set yet. Set them before generating payroll.",
+    "loadTemplate": "Load statutory template",
+    "templateWarning": "The template is only a prefill; verify it against company policy and current regulations. You can replace it entirely with CSV afterwards.",
+    "loadFailed": "Failed to load the template",
+    "dayType": "Day type",
+    "hoursRange": "Cumulative overtime hours",
+    "range": "{{from}} ~ {{to}} h",
+    "rangeOpen": "{{from}} h and above",
+    "multiplier": "Multiplier",
+    "importReplace": "Import (replace all)",
+    "csvHint": "CSV columns: dayType (weekday / rest_day / holiday), fromHours, toHours (blank = no upper limit), multiplier. Each day type must start at 0 and be contiguous; if any row is invalid nothing is imported.",
+    "leaveTitle": "Leave Deduction Ratios",
+    "leaveHint": "0 = no deduction, 0.5 = half pay, 1 = full deduction. A leave type used in the pay period without a ratio makes generation fail. Leave is attributed to the period containing its start date; leave spanning periods is counted entirely at its start.",
+    "leaveType": "Leave type",
+    "paidFlag": "Marked paid",
+    "deductRatio": "Deduction ratio",
+    "unset": "Not set",
+    "unsetWarning": "{{count}} leave type(s) still have no deduction ratio.",
+    "prefill": "Prefill blanks from the paid/unpaid flag"
   }
 }

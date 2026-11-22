@@ -4,7 +4,8 @@
 
 import * as XLSX from 'xlsx';
 import { parseCsv } from './csv.js';
-import { RATE_KEYS, BRACKET_TYPES, calculateItem, sumItems } from './insuranceCalc.js';
+import { RATE_KEYS, BRACKET_TYPES, calculateItem } from './insuranceCalc.js';
+import { getSettings, payPeriodFor, classifyOvertimeDay, calculateOvertimePay, calculateLeaveDeduction } from './payrollVariable.js';
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -138,10 +139,64 @@ async function loadBracketsForMonth(pool, month) {
 // ---- 快照 ---------------------------------------------------------------------------
 
 const ITEM_COLUMNS = ['monthlySalary', 'laborInsured', 'healthInsured', 'pensionWage', 'voluntaryPensionRate', 'healthDependents',
-  'laborEmployee', 'laborEmployer', 'healthEmployee', 'healthEmployer', 'pensionEmployer', 'pensionEmployee'];
+  'laborEmployee', 'laborEmployer', 'healthEmployee', 'healthEmployer', 'pensionEmployer', 'pensionEmployee',
+  'overtimeHours', 'overtimePay', 'leaveDays', 'leaveDeduction'];
 
 export class PayrollError extends Error {
   constructor(status, message) { super(message); this.status = status; }
+}
+
+// 載入計薪區間內已核准的加班（領加班費者）與請假，並檢查規則是否齊全：
+// 倍率沒設定、請假用到的假別沒設扣薪比例，都直接報錯，不用預設值代替
+async function loadVariableInputs(pool, period, employeeIds) {
+  const [overtime] = await pool.execute(
+    `SELECT o.id, o.employeeId, o.date, o.startTime, o.hours, o.onHoliday, h.name AS holidayName
+     FROM overtime_applications o
+     LEFT JOIN holidays h ON h.date = o.date AND h.isHoliday = TRUE
+     WHERE o.status = 'approved' AND o.compensationType = 'pay' AND o.date BETWEEN ? AND ?`,
+    [period.start, period.end]
+  );
+  const [leaves] = await pool.execute(
+    `SELECT la.id, la.employeeId, la.leaveTypeId, la.startDate, la.endDate, la.days, lt.name AS leaveTypeName
+     FROM leave_applications la JOIN leave_types lt ON lt.id = la.leaveTypeId
+     WHERE la.status = 'approved' AND la.startDate BETWEEN ? AND ?`,
+    [period.start, period.end]
+  );
+  const [tierRows] = await pool.execute('SELECT dayType, fromHours, toHours, multiplier FROM overtime_pay_rules');
+  const [ratioRows] = await pool.execute('SELECT leaveTypeId, deductRatio FROM leave_type_deductions');
+
+  const tiersByDay = {};
+  for (const t of tierRows) {
+    (tiersByDay[t.dayType] ||= []).push({ fromHours: Number(t.fromHours), toHours: t.toHours === null ? null : Number(t.toHours), multiplier: Number(t.multiplier) });
+  }
+  const ratioByType = {};
+  for (const r of ratioRows) ratioByType[r.leaveTypeId] = Number(r.deductRatio);
+
+  const overtimeByEmployee = new Map();
+  const neededDayTypes = new Set();
+  for (const o of overtime) {
+    if (!employeeIds.has(o.employeeId)) continue;
+    if (!overtimeByEmployee.has(o.employeeId)) overtimeByEmployee.set(o.employeeId, []);
+    overtimeByEmployee.get(o.employeeId).push(o);
+    neededDayTypes.add(classifyOvertimeDay(o));
+  }
+  const missingTiers = [...neededDayTypes].filter((d) => !tiersByDay[d]);
+  if (missingTiers.length > 0) {
+    throw new PayrollError(400, `計薪區間內有領加班費的加班，但尚未設定加班費倍率（${missingTiers.join('、')}）。請先到「計薪規則」設定或載入範本。`);
+  }
+
+  const leaveByEmployee = new Map();
+  const missingLeaveTypes = new Map();
+  for (const l of leaves) {
+    if (!employeeIds.has(l.employeeId)) continue;
+    if (!leaveByEmployee.has(l.employeeId)) leaveByEmployee.set(l.employeeId, []);
+    leaveByEmployee.get(l.employeeId).push(l);
+    if (!(l.leaveTypeId in ratioByType)) missingLeaveTypes.set(l.leaveTypeId, l.leaveTypeName);
+  }
+  if (missingLeaveTypes.size > 0) {
+    throw new PayrollError(400, `計薪區間內用到的假別尚未設定扣薪比例：${[...missingLeaveTypes.values()].join('、')}。請先到「計薪規則」設定。`);
+  }
+  return { overtimeByEmployee, leaveByEmployee, tiersByDay, ratioByType };
 }
 
 // 產生（或重新產生草稿）某月的試算快照。已鎖定的月份不能重新產生
@@ -174,39 +229,61 @@ export async function generateSnapshot(pool, month, username) {
   );
   const compByEmployee = new Map(comps.map((c) => [c.employeeId, c]));
 
+  // 計薪區間內的加班與請假（底薪、勞健退仍是完整日曆月，只有這兩項取區間）
+  const settings = await getSettings(pool);
+  const period = payPeriodFor(month, settings.cutoffDay);
+  const variable = await loadVariableInputs(pool, period, new Set(employees.map((e) => e.employeeId)));
+
   const items = employees.map((e) => {
-    const item = calculateItem(compByEmployee.get(e.employeeId) ?? null, rates, brackets);
+    const comp = compByEmployee.get(e.employeeId) ?? null;
+    const item = calculateItem(comp, rates, brackets);
     if (e.joinDate > start) item.warnings.push('當月到職，未依天數折算');
     if (e.terminationDate && e.terminationDate >= start && e.terminationDate < end) item.warnings.push('當月離職，未依天數折算');
-    return { employeeId: e.employeeId, employeeName: e.name, department: e.department, ...item };
+
+    const ot = variable.overtimeByEmployee.get(e.employeeId) ?? [];
+    const lv = variable.leaveByEmployee.get(e.employeeId) ?? [];
+    item.overtimeHours = null; item.overtimePay = null; item.leaveDays = null; item.leaveDeduction = null;
+    let detail = null;
+    if (comp && (ot.length > 0 || lv.length > 0)) {
+      const daily = comp.monthlySalary / settings.daysPerMonth;
+      const hourly = daily / settings.hoursPerDay;
+      const o = calculateOvertimePay(ot, variable.tiersByDay, hourly);
+      const l = calculateLeaveDeduction(lv, variable.ratioByType, daily, period);
+      item.overtimeHours = o.hours; item.overtimePay = o.pay; item.leaveDays = l.days; item.leaveDeduction = l.deduction;
+      item.warnings.push(...o.warnings, ...l.warnings);
+      detail = JSON.stringify({ overtime: o.lines, leave: l.lines });
+    } else if (!comp && (ot.length > 0 || lv.length > 0)) {
+      item.warnings.push('計薪區間內有加班或請假，但找不到薪資紀錄，加班費與請假扣薪未計算');
+    }
+    return { employeeId: e.employeeId, employeeName: e.name, department: e.department, ...item, variableDetail: detail };
   });
 
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
     let snapshotId = existing[0]?.id;
-    const ratesUsed = JSON.stringify({ rates, effectiveDates: effective });
+    const ratesUsed = JSON.stringify({ rates, effectiveDates: effective, variable: { settings, period, tiers: variable.tiersByDay, leaveRatios: variable.ratioByType } });
     if (snapshotId) {
       await connection.execute('DELETE FROM payroll_snapshot_items WHERE snapshotId = ?', [snapshotId]);
       await connection.execute(
-        'UPDATE payroll_snapshots SET ratesUsed = ?, headcount = ?, generatedAt = NOW(), generatedBy = ? WHERE id = ?',
-        [ratesUsed, items.length, username, snapshotId]
+        'UPDATE payroll_snapshots SET ratesUsed = ?, headcount = ?, generatedAt = NOW(), generatedBy = ?, periodStart = ?, periodEnd = ? WHERE id = ?',
+        [ratesUsed, items.length, username, period.start, period.end, snapshotId]
       );
     } else {
       const [result] = await connection.execute(
-        `INSERT INTO payroll_snapshots (month, status, ratesUsed, headcount, generatedAt, generatedBy) VALUES (?, 'draft', ?, ?, NOW(), ?)`,
-        [month, ratesUsed, items.length, username]
+        `INSERT INTO payroll_snapshots (month, status, ratesUsed, headcount, generatedAt, generatedBy, periodStart, periodEnd) VALUES (?, 'draft', ?, ?, NOW(), ?, ?, ?)`,
+        [month, ratesUsed, items.length, username, period.start, period.end]
       );
       snapshotId = result.insertId;
     }
     if (items.length > 0) {
       await connection.query(
-        `INSERT INTO payroll_snapshot_items (snapshotId, employeeId, employeeName, department, ${ITEM_COLUMNS.join(', ')}, warnings) VALUES ?`,
-        [items.map((i) => [snapshotId, i.employeeId, i.employeeName, i.department, ...ITEM_COLUMNS.map((c) => i[c] ?? null), i.warnings.join('；') || null])]
+        `INSERT INTO payroll_snapshot_items (snapshotId, employeeId, employeeName, department, ${ITEM_COLUMNS.join(', ')}, variableDetail, warnings) VALUES ?`,
+        [items.map((i) => [snapshotId, i.employeeId, i.employeeName, i.department, ...ITEM_COLUMNS.map((c) => i[c] ?? null), i.variableDetail ?? null, i.warnings.join('；') || null])]
       );
     }
     await connection.commit();
-    return { month, headcount: items.length, warnings: items.filter((i) => i.warnings.length > 0).length };
+    return { month, headcount: items.length, warnings: items.filter((i) => i.warnings.length > 0).length, periodStart: period.start, periodEnd: period.end };
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -215,22 +292,51 @@ export async function generateSnapshot(pool, month, username) {
   }
 }
 
+const num = (v) => (v === null || v === undefined ? 0 : Number(v));
+
+// 每位員工：員工自付勞健退、公司負擔勞健退、應發薪資（月薪＋加班費－請假扣薪）、實領（應發－員工自付）。
+// 實領只扣勞健退（自提），不含所得稅等其他扣項。沒有月薪（沒有薪資紀錄）的員工，應發與實領為 null
+function decorateItem(i) {
+  const sumOrNull = (parts) => (parts.every((p) => p === null || p === undefined) ? null : parts.reduce((t, p) => t + num(p), 0));
+  const employeeInsurance = sumOrNull([i.laborEmployee, i.healthEmployee, i.pensionEmployee]);
+  const employerInsurance = sumOrNull([i.laborEmployer, i.healthEmployer, i.pensionEmployer]);
+  const hasSalary = i.monthlySalary !== null && i.monthlySalary !== undefined;
+  const grossPay = hasSalary ? num(i.monthlySalary) + num(i.overtimePay) - num(i.leaveDeduction) : null;
+  return { ...i, employeeInsurance, employerInsurance, grossPay, netPay: grossPay === null ? null : grossPay - num(employeeInsurance) };
+}
+
+function computeTotals(items) {
+  const sum = (key) => items.reduce((t, i) => t + num(i[key]), 0);
+  const salary = sum('monthlySalary');
+  const overtimePay = sum('overtimePay');
+  const leaveDeduction = sum('leaveDeduction');
+  const employee = sum('employeeInsurance');
+  const employer = sum('employerInsurance');
+  const gross = salary + overtimePay - leaveDeduction;
+  return { salary, overtimePay, leaveDeduction, gross, employee, employer, net: gross - employee, totalCost: gross + employer };
+}
+
 export async function listSnapshots(pool) {
-  const [rows] = await pool.execute(
-    `SELECT s.*, COALESCE(SUM(i.monthlySalary), 0) AS salary,
-       COALESCE(SUM(i.laborEmployee), 0) + COALESCE(SUM(i.healthEmployee), 0) + COALESCE(SUM(i.pensionEmployee), 0) AS employeeTotal,
-       COALESCE(SUM(i.laborEmployer), 0) + COALESCE(SUM(i.healthEmployer), 0) + COALESCE(SUM(i.pensionEmployer), 0) AS employerTotal
-     FROM payroll_snapshots s LEFT JOIN payroll_snapshot_items i ON i.snapshotId = s.id
-     GROUP BY s.id ORDER BY s.month DESC`
-  );
-  return rows.map((r) => ({ ...r, totalCost: Number(r.salary) + Number(r.employerTotal) }));
+  const [snapshots] = await pool.execute('SELECT * FROM payroll_snapshots ORDER BY month DESC');
+  if (snapshots.length === 0) return [];
+  const [items] = await pool.query('SELECT * FROM payroll_snapshot_items WHERE snapshotId IN (?)', [snapshots.map((s) => s.id)]);
+  const bySnapshot = new Map();
+  for (const i of items) {
+    if (!bySnapshot.has(i.snapshotId)) bySnapshot.set(i.snapshotId, []);
+    bySnapshot.get(i.snapshotId).push(decorateItem(i));
+  }
+  return snapshots.map((s) => {
+    const t = computeTotals(bySnapshot.get(s.id) ?? []);
+    return { ...s, salary: t.salary, overtimePay: t.overtimePay, leaveDeduction: t.leaveDeduction, employeeTotal: t.employee, employerTotal: t.employer, netTotal: t.net, totalCost: t.totalCost };
+  });
 }
 
 export async function getSnapshot(pool, month) {
   const [snaps] = await pool.execute('SELECT * FROM payroll_snapshots WHERE month = ?', [month]);
   if (!snaps[0]) return null;
-  const [items] = await pool.execute('SELECT * FROM payroll_snapshot_items WHERE snapshotId = ? ORDER BY employeeId', [snaps[0].id]);
-  return { ...snaps[0], items, totals: sumItems(items.map((i) => ({ ...i }))) };
+  const [rows] = await pool.execute('SELECT * FROM payroll_snapshot_items WHERE snapshotId = ? ORDER BY employeeId', [snaps[0].id]);
+  const items = rows.map(decorateItem);
+  return { ...snaps[0], items, totals: computeTotals(items) };
 }
 
 export async function setSnapshotLock(pool, month, lock, username) {
@@ -252,30 +358,43 @@ export async function deleteDraftSnapshot(pool, month) {
   await pool.execute('DELETE FROM payroll_snapshots WHERE id = ?', [rows[0].id]);
 }
 
-// 匯出 Excel：第一張表是明細，第二張是合計與使用的費率
+// 匯出 Excel：明細、合計與費率、加班請假明細（逐筆，供核對）
 export function snapshotToXlsx(snapshot) {
-  const header = ['員工編號', '姓名', '部門', '月薪', '勞保投保薪資', '健保投保薪資', '勞退提繳工資', '自提率(%)', '健保眷屬',
-    '勞保-員工', '勞保-公司', '健保-員工', '健保-公司', '勞退-公司', '勞退-員工自提', '員工自付合計', '公司負擔合計', '公司總成本', '警告'];
+  const header = ['員工編號', '姓名', '部門', '月薪', '加班時數', '加班費', '請假扣薪天數', '請假扣款', '應發薪資',
+    '勞保投保薪資', '健保投保薪資', '勞退提繳工資', '自提率(%)', '健保眷屬',
+    '勞保-員工', '勞保-公司', '健保-員工', '健保-公司', '勞退-公司', '勞退-員工自提',
+    '員工自付合計', '實領(扣勞健退後)', '公司負擔合計', '公司總成本', '警告'];
   const n = (v) => (v === null || v === undefined ? '' : Number(v));
-  const rows = snapshot.items.map((i) => {
-    const employee = Number(i.laborEmployee ?? 0) + Number(i.healthEmployee ?? 0) + Number(i.pensionEmployee ?? 0);
-    const employer = Number(i.laborEmployer ?? 0) + Number(i.healthEmployer ?? 0) + Number(i.pensionEmployer ?? 0);
-    return [i.employeeId, i.employeeName, i.department, n(i.monthlySalary), n(i.laborInsured), n(i.healthInsured), n(i.pensionWage),
-      n(i.voluntaryPensionRate), n(i.healthDependents), n(i.laborEmployee), n(i.laborEmployer), n(i.healthEmployee), n(i.healthEmployer),
-      n(i.pensionEmployer), n(i.pensionEmployee), employee, employer, Number(i.monthlySalary ?? 0) + employer, i.warnings || ''];
-  });
+  const rows = snapshot.items.map((i) => [
+    i.employeeId, i.employeeName, i.department, n(i.monthlySalary), n(i.overtimeHours), n(i.overtimePay), n(i.leaveDays), n(i.leaveDeduction), n(i.grossPay),
+    n(i.laborInsured), n(i.healthInsured), n(i.pensionWage), n(i.voluntaryPensionRate), n(i.healthDependents),
+    n(i.laborEmployee), n(i.laborEmployer), n(i.healthEmployee), n(i.healthEmployer), n(i.pensionEmployer), n(i.pensionEmployee),
+    n(i.employeeInsurance), n(i.netPay), n(i.employerInsurance), i.grossPay === null ? '' : i.grossPay + num(i.employerInsurance), i.warnings || '',
+  ]);
   const sheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
+  const t = snapshot.totals;
+  const used = JSON.parse(snapshot.ratesUsed || '{}');
   const summary = [
     ['月份', snapshot.month], ['狀態', snapshot.status === 'locked' ? '已鎖定' : '草稿'], ['人數', snapshot.headcount],
-    ['月薪合計', snapshot.totals.salary], ['員工自付合計', snapshot.totals.employee],
-    ['公司負擔合計', snapshot.totals.employer], ['公司總成本', snapshot.totals.totalCost], [],
+    ['請假、加班計薪區間', snapshot.periodStart && snapshot.periodEnd ? `${snapshot.periodStart} ~ ${snapshot.periodEnd}` : ''],
+    ['月薪合計', t.salary], ['加班費合計', t.overtimePay], ['請假扣款合計', t.leaveDeduction], ['應發薪資合計', t.gross],
+    ['員工自付(勞健退)合計', t.employee], ['實領合計(扣勞健退後)', t.net], ['公司負擔(勞健退)合計', t.employer], ['公司總成本', t.totalCost], [],
     ['使用的費率（產生當下）'],
-    ...Object.entries(JSON.parse(snapshot.ratesUsed || '{}').rates || {}).map(([k, v]) => [RATE_KEYS[k] || k, v]),
-    [], ['注意：試算值僅供參考，實際金額以勞保局、健保署繳款單為準；當月到職／離職未依天數折算。'],
+    ...Object.entries(used.rates || {}).map(([k, v]) => [RATE_KEYS[k] || k, v]), [],
+    ['注意：試算值僅供參考；實領只扣勞健退，未含所得稅等其他扣項；底薪與勞健退按整個日曆月，當月到職／離職未按天數折算。'],
   ];
+  const detailHeader = ['員工編號', '姓名', '類別', '日期', '時數／天數', '日別／假別', '倍率／扣薪比例', '金額'];
+  const detailRows = [];
+  for (const i of snapshot.items) {
+    if (!i.variableDetail) continue;
+    const d = JSON.parse(i.variableDetail);
+    for (const o of d.overtime || []) detailRows.push([i.employeeId, i.employeeName, '加班費', o.date, o.hours, o.dayType, o.factor, o.amount]);
+    for (const l of d.leave || []) detailRows.push([i.employeeId, i.employeeName, '請假', l.date, l.days, l.leaveType, l.ratio, -l.amount]);
+  }
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, sheet, '明細');
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(summary), '合計與費率');
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([detailHeader, ...detailRows]), '加班請假明細');
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 }
 

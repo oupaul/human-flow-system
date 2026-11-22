@@ -1,8 +1,9 @@
 {
-  "disclaimer": "勞保、健保、勞退試算值僅供參考，實際金額以勞保局、健保署繳款單為準；當月到職或離職未依天數折算。僅人資與管理者可見。",
+  "disclaimer": "薪資試算僅供參考：底薪與勞保、健保、勞退按完整日曆月計算（當月到職或離職未按天數折算）；加班費、請假扣薪取「計薪區間」內已核准的資料。實領只扣勞健退，未含所得稅等其他扣項。僅人資與管理者可見。",
   "tabs": {
     "snapshots": "每月試算",
-    "rates": "費率與級距"
+    "rates": "費率與級距",
+    "rules": "計薪規則"
   },
   "status": {
     "draft": "草稿",
@@ -10,7 +11,7 @@
   },
   "snapshots": {
     "generateTitle": "產生每月試算",
-    "generateHint": "依該月最後一天仍有效的薪資與投保資料計算。草稿可重新產生；鎖定後凍結，之後調整費率或薪資都不會改動。",
+    "generateHint": "底薪與勞健退依該月最後一天仍有效的薪資與投保資料；加班費與請假扣薪取計薪區間（如 9/26～10/25 對應 10 月薪資）內已核准的資料。草稿可重新產生，鎖定後凍結。",
     "generate": "產生試算",
     "generateFailed": "產生試算失敗",
     "lockedCannotRegenerate": "該月份已鎖定，需由管理者解除鎖定後才能重新產生",
@@ -22,7 +23,12 @@
     "totalCost": "公司總成本",
     "empty": "尚未產生任何試算",
     "lock": "鎖定",
-    "unlock": "解除鎖定"
+    "unlock": "解除鎖定",
+    "period": "計薪區間",
+    "overtimePay": "加班費",
+    "leaveDeduction": "請假扣款",
+    "gross": "應發薪資",
+    "net": "實領（扣勞健退）"
   },
   "detail": {
     "title": "{{month}} 試算明細",
@@ -34,7 +40,18 @@
     "health": "健保（員工／公司）",
     "pension": "勞退（自提／公司）",
     "warnings": "提醒",
-    "columnsHint": "員工自付 = 勞保 + 健保 + 自願提繳；公司負擔 = 勞保 + 健保 + 雇主提繳；公司總成本 = 月薪 + 公司負擔。"
+    "columnsHint": "應發薪資 = 月薪 + 加班費 − 請假扣款；實領 = 應發 − 員工自付勞健退（含自願提繳，不含所得稅等其他扣項）；公司負擔 = 勞保 + 健保 + 雇主提繳；公司總成本 = 應發薪資 + 公司負擔。",
+    "overtime": "加班費（時數）",
+    "leave": "請假扣款（天數）",
+    "period": "請假、加班區間：{{start}} ~ {{end}}",
+    "viewLines": "加班請假明細",
+    "overtimeLines": "加班費明細",
+    "leaveLines": "請假明細",
+    "dayType": "日別",
+    "factor": "倍率加權時數",
+    "amount": "金額",
+    "leaveType": "假別",
+    "ratio": "扣薪比例"
   },
   "confirm": {
     "lockTitle": "鎖定 {{month}}？",
@@ -77,5 +94,39 @@
     "labor": "勞保",
     "health": "健保",
     "pension": "勞退"
+  },
+  "dayTypes": {
+    "weekday": "平日",
+    "rest_day": "休息日",
+    "holiday": "國定假日"
+  },
+  "rules": {
+    "settingsTitle": "計薪區間與換算基準",
+    "settingsHint": "底薪與勞健退按完整日曆月；只有加班與請假取「上月（截止日+1）日 ~ 本月截止日」的區間。日薪＝月薪÷每月天數，時薪＝日薪÷每日工時。",
+    "cutoffDay": "截止日",
+    "daysPerMonth": "每月天數（日薪基準）",
+    "hoursPerDay": "每日工時（時薪基準）",
+    "periodExample": "例：計算 10 月薪資時，加班與請假取 9/{{start}} ~ 10/{{end}}。",
+    "overtimeTitle": "加班費倍率",
+    "overtimeHint": "只計入已核准、且選擇「領加班費」的加班；換補休的不算。同一天的多筆加班合併累計時數後依分段計算。日別判斷：未勾假日出勤＝平日；假日出勤且行事曆上有節日名稱＝國定假日；其餘＝休息日。",
+    "noOvertimeRules": "尚未設定加班費倍率，產生薪資前請先設定。",
+    "loadTemplate": "載入勞基法範本",
+    "templateWarning": "範本僅供預填，請依公司規定與最新法規確認後再使用；載入後可用 CSV 整份取代。",
+    "loadFailed": "載入範本失敗",
+    "dayType": "日別",
+    "hoursRange": "累計加班時數",
+    "range": "{{from}} ~ {{to}} 小時",
+    "rangeOpen": "{{from}} 小時以上",
+    "multiplier": "倍率",
+    "importReplace": "匯入（整份取代）",
+    "csvHint": "CSV 欄位：dayType（weekday／rest_day／holiday）、fromHours、toHours（留空＝沒有上限）、multiplier。每種日別須從 0 小時開始且連續；任何一列有誤都不匯入。",
+    "leaveTitle": "請假扣薪比例",
+    "leaveHint": "0＝不扣、0.5＝扣半薪、1＝全扣。計薪區間內用到、但尚未設定的假別，產生薪資時會報錯。以請假起日所在區間計算，跨區間的請假整筆算在起日。",
+    "leaveType": "假別",
+    "paidFlag": "系統標記有薪",
+    "deductRatio": "扣薪比例",
+    "unset": "未設定",
+    "unsetWarning": "還有 {{count}} 個假別尚未設定扣薪比例。",
+    "prefill": "依「是否有薪」預填空白項目"
   }
 }

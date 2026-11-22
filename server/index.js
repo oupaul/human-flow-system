@@ -21,6 +21,10 @@ import {
   PayrollError, isValidMonth, importRatesCsv, importBracketsCsv, listRates, listBracketSets, generateSnapshot,
   listSnapshots, getSnapshot, setSnapshotLock, deleteDraftSnapshot, snapshotToXlsx,
 } from './payroll.js';
+import {
+  getSettings as getPayrollSettings, saveSettings as savePayrollSettings, listOvertimeRules, importOvertimeRulesCsv, loadOvertimeTemplate,
+  listLeaveDeductions, saveLeaveDeductions, prefillLeaveDeductions,
+} from './payrollVariable.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -3078,6 +3082,62 @@ function handlePayrollError(res, error, fallback) {
   console.error(fallback, error);
   return res.status(500).json({ error: fallback, detail: error.message });
 }
+
+// 計薪規則：計薪區間、加班費倍率、各假別請假扣薪比例（僅 admin/hr）
+api.get('/payroll/rules', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    res.json({
+      settings: await getPayrollSettings(pool),
+      overtimeRules: await listOvertimeRules(pool),
+      leaveDeductions: await listLeaveDeductions(pool),
+    });
+  } catch (error) {
+    handlePayrollError(res, error, '獲取計薪規則失敗');
+  }
+});
+
+api.put('/payroll/settings', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    await savePayrollSettings(pool, req.body);
+    res.json({ message: '計薪設定已儲存' });
+  } catch (error) {
+    res.status(400).json({ error: '儲存計薪設定失敗', detail: error.message });
+  }
+});
+
+api.post('/payroll/overtime-rules/import', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    if (!req.body.csv) return res.status(400).json({ error: '請提供 CSV 內容' });
+    res.json({ message: '加班費倍率匯入成功', ...(await importOvertimeRulesCsv(pool, req.body.csv)) });
+  } catch (error) {
+    res.status(400).json({ error: '匯入加班費倍率失敗', detail: error.message });
+  }
+});
+
+api.post('/payroll/overtime-rules/template', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    res.json({ message: '已載入勞基法範本，請依公司規定確認後調整', ...(await loadOvertimeTemplate(pool)) });
+  } catch (error) {
+    res.status(409).json({ error: '載入範本失敗', detail: error.message });
+  }
+});
+
+api.put('/payroll/leave-deductions', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    await saveLeaveDeductions(pool, req.body.items);
+    res.json({ message: '請假扣薪比例已儲存' });
+  } catch (error) {
+    res.status(400).json({ error: '儲存請假扣薪比例失敗', detail: error.message });
+  }
+});
+
+api.post('/payroll/leave-deductions/prefill', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    res.json({ message: '已依「是否有薪」預填尚未設定的假別', ...(await prefillLeaveDeductions(pool)) });
+  } catch (error) {
+    handlePayrollError(res, error, '預填失敗');
+  }
+});
 
 api.get('/payroll/rates', requireRole(...SALARY_ROLES), async (req, res) => {
   try {
