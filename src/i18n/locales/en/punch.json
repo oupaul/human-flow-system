@@ -9,7 +9,8 @@
     "devices": "Devices",
     "settings": "Settings",
     "exceptions": "Missed Punches & Alerts",
-    "requests": "Requests"
+    "requests": "Requests",
+    "stats": "Anomaly Stats"
   },
   "types": {
     "in": "Clock in",
@@ -197,5 +198,83 @@
     "myRequests": "My requests",
     "correctionLine": "Correction: {{date}} {{type}} {{time}}",
     "outingLine": "Outing: {{start}} ~ {{end}}  {{destination}}"
+  },
+  "stats": {
+    "last4Weeks": "Last 4 weeks",
+    "last3Months": "Last 3 months",
+    "thisMonth": "This month",
+    "sinceNote": "Blocked punch attempts have been recorded since {{since}}; earlier ones were not recorded, so earlier periods look lower.",
+    "noRejectionsYet": "No blocked punch attempts recorded yet.",
+    "cards": {
+      "users": "Using system punch",
+      "usersSub": "{{n}} punched in the period",
+      "punches": "Successful punches",
+      "ipBlocked": "Blocked by IP",
+      "deviceBlocked": "Blocked by device rules",
+      "rateSub": "{{rate}} of attempts",
+      "exceptions": "Missed punches",
+      "openSub": "{{n}} open",
+      "late": "Late rate",
+      "lateSub": "{{late}} / {{total}} days"
+    },
+    "charts": {
+      "blockedTitle": "Blocked punches per week",
+      "blockedHint": "IP not allowed, device not approved or bound to someone else",
+      "qualityTitle": "Missed punches & corrections per week",
+      "qualityHint": "Detected misses, employee correction requests, HR corrections"
+    },
+    "series": {
+      "ipBlocked": "IP mismatch",
+      "deviceBlocked": "Device blocked",
+      "exceptions": "Missed punches",
+      "correctionRequests": "Correction requests",
+      "hrCorrections": "HR corrections"
+    },
+    "weekOf": "Week of {{date}}",
+    "weeklyTable": "Weekly details",
+    "week": "Week (Mon start)",
+    "byCodeTitle": "Why punches were blocked",
+    "byCodeHint": "Includes operational mistakes (double clock-in, clock-out without clock-in); those are not protection issues",
+    "reason": "Reason",
+    "count": "Count",
+    "people": "People",
+    "none": "No data",
+    "topIpsTitle": "Top blocked network sources",
+    "topIpsHint": "Homes, phone hotspots and other sites show up here; widely scattered sources mean more people punch outside the company network",
+    "lastSeen": "Last seen",
+    "topEmployeesTitle": "Most blocked people",
+    "topEmployeesHint": "Find out whether there is a legitimate reason (field work, forgot an outing request) before treating it as fraud",
+    "othersTitle": "Other Indicators",
+    "others": {
+      "newDevices": "New devices registered",
+      "multiDevice": "Employees with 2+ approved devices",
+      "outingPunches": "Punches during outings",
+      "hrCorrections": "Punches added by HR",
+      "voided": "Voided punches",
+      "operational": "Operational mistakes (double clock-in etc.)",
+      "corrections": "Correction requests",
+      "outings": "Outing requests"
+    },
+    "codes": {
+      "IP_BLOCKED": "IP not in allowlist",
+      "DEVICE_OTHER": "Device bound to another employee",
+      "DEVICE_PENDING": "New device awaiting approval",
+      "DEVICE_REVOKED": "Device revoked",
+      "DEVICE_LIMIT": "Device limit exceeded",
+      "DEVICE_MISSING": "Device not identified",
+      "ALREADY_IN": "Clocked in twice",
+      "NOT_IN": "Clock-out without clock-in",
+      "TOO_FAST": "Pressed too quickly",
+      "NOT_ENABLED": "System punch not enabled",
+      "NO_EMPLOYEE": "No matching employee"
+    },
+    "readTitle": "How to read this (deciding on QR codes or location)",
+    "readHint": "These numbers are for reference only and draw no automatic conclusion. Collect one to two months first.",
+    "read": {
+      "ip": "High IP-blocked share: look at the sources first. If concentrated in a few people or IPs, it is usually field staff without an outing request or a missing site in the allowlist — fix the rules or exempt them. Widely scattered sources (homes, hotspots) combined with a need to prove on-site presence is the reason to consider QR codes.",
+      "device": "Many device blocks: \"bound to another employee\" means someone used another person's or a shared device — find out why; many \"new device awaiting approval\" is usually a process issue (new phone, cleared browser data), not fraud.",
+      "quality": "Many missed punches and corrections: mostly reminder or process issues, not fraud, and QR codes would not fix them; check for missing schedules or unfiled outings first.",
+      "decision": "If all of these are low, the existing IP restriction plus device binding is enough and adds no maintenance cost. If many punches happen off-network and fraud is a concern, then evaluate QR codes (web GPS can be spoofed and is not recommended as a safeguard)."
+    }
   }
 }

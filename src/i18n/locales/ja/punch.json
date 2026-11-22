@@ -9,7 +9,8 @@
     "devices": "端末の紐付け",
     "settings": "打刻設定",
     "exceptions": "打刻漏れと警告",
-    "requests": "申請の承認"
+    "requests": "申請の承認",
+    "stats": "異常統計"
   },
   "types": {
     "in": "出勤",
@@ -197,5 +198,83 @@
     "myRequests": "自分の申請",
     "correctionLine": "補正：{{date}} {{type}} {{time}}",
     "outingLine": "外出：{{start}} ～ {{end}}　{{destination}}"
+  },
+  "stats": {
+    "last4Weeks": "直近4週間",
+    "last3Months": "直近3か月",
+    "thisMonth": "今月",
+    "sinceNote": "ブロックされた打刻の試行は {{since}} から記録しています。それ以前は記録がないため、古い期間の数値は低く出ます。",
+    "noRejectionsYet": "ブロックされた打刻の試行はまだ記録されていません。",
+    "cards": {
+      "users": "システム打刻の利用者",
+      "usersSub": "期間内に打刻 {{n}} 名",
+      "punches": "成功した打刻",
+      "ipBlocked": "IP でブロック",
+      "deviceBlocked": "端末ルールでブロック",
+      "rateSub": "試行の {{rate}}",
+      "exceptions": "打刻漏れ",
+      "openSub": "未処理 {{n}}",
+      "late": "遅刻率",
+      "lateSub": "{{late}} / {{total}} 日"
+    },
+    "charts": {
+      "blockedTitle": "週ごとのブロックされた打刻",
+      "blockedHint": "IP が許可リスト外、端末が未承認または他人に紐付け済み",
+      "qualityTitle": "週ごとの打刻漏れと補正",
+      "qualityHint": "検出された打刻漏れ、従業員の補正申請、HR の補正"
+    },
+    "series": {
+      "ipBlocked": "IP 不一致",
+      "deviceBlocked": "端末でブロック",
+      "exceptions": "打刻漏れ",
+      "correctionRequests": "補正申請",
+      "hrCorrections": "HR 補正"
+    },
+    "weekOf": "{{date}} の週",
+    "weeklyTable": "週ごとの明細",
+    "week": "週（月曜始まり）",
+    "byCodeTitle": "ブロックの理由",
+    "byCodeHint": "操作ミス（二重の出勤打刻、出勤せずに退勤）も含みます。これらは防御の問題ではありません",
+    "reason": "理由",
+    "count": "件数",
+    "people": "人数",
+    "none": "データなし",
+    "topIpsTitle": "ブロックの多いネットワーク",
+    "topIpsHint": "自宅、スマホのテザリング、他拠点などが表示されます。発信元が分散しているほど、社内ネットワーク外で打刻する人が多いことを示します",
+    "lastSeen": "最終",
+    "topEmployeesTitle": "ブロックの多い従業員",
+    "topEmployeesHint": "不正と決めつける前に、外勤や外出申請の漏れなど正当な理由がないか確認してください",
+    "othersTitle": "その他の指標",
+    "others": {
+      "newDevices": "新規登録された端末",
+      "multiDevice": "承認済み端末が2台以上の従業員",
+      "outingPunches": "外出期間中の打刻",
+      "hrCorrections": "HR が追加した打刻",
+      "voided": "取り消された打刻",
+      "operational": "操作ミス（二重の出勤打刻など）",
+      "corrections": "補正申請",
+      "outings": "外出申請"
+    },
+    "codes": {
+      "IP_BLOCKED": "IP が許可リスト外",
+      "DEVICE_OTHER": "端末が他の従業員に紐付け済み",
+      "DEVICE_PENDING": "新しい端末が承認待ち",
+      "DEVICE_REVOKED": "端末が無効",
+      "DEVICE_LIMIT": "端末数の上限超過",
+      "DEVICE_MISSING": "端末を識別できない",
+      "ALREADY_IN": "出勤を二重に打刻",
+      "NOT_IN": "出勤せずに退勤を打刻",
+      "TOO_FAST": "連続で押しすぎ",
+      "NOT_ENABLED": "システム打刻が未有効",
+      "NO_EMPLOYEE": "対応する従業員なし"
+    },
+    "readTitle": "見方（QR コードや位置情報を追加するかの判断）",
+    "readHint": "これらの数値は参考であり、自動で結論は出しません。1〜2か月ほど蓄積してから確認してください。",
+    "read": {
+      "ip": "IP でのブロックの割合が高い場合：まず発信元を確認します。少数の人や IP に集中していれば、外出申請の漏れや許可リストの拠点漏れが多いので、ルールを直すか除外設定を行います。発信元が広く分散していて（自宅、テザリング）、かつ現地にいる証明が必要な場合が、QR コードを検討する理由です。",
+      "device": "端末ブロックが多い場合：「他の従業員に紐付け済み」は他人や共用の端末が使われたことを示すので理由を確認します。「新しい端末が承認待ち」が多いのは、機種変更やブラウザデータの消去など運用上の問題で、不正とは限りません。",
+      "quality": "打刻漏れや補正が多い場合：多くはリマインドや運用の問題で、不正防止ではなく QR コードでも解決しません。シフトの未登録や外出申請の漏れを先に確認します。",
+      "decision": "これらがすべて低ければ、現在の IP 制限と端末の紐付けで十分で、運用コストも増えません。社内ネットワーク外の打刻が多く不正の懸念がある場合に QR コードを検討します（Web の GPS は偽造できるため、防御としては推奨しません）。"
+    }
   }
 }

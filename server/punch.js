@@ -284,7 +284,28 @@ export async function getPunchStatus(pool, user, { ip, deviceToken }) {
   };
 }
 
-export async function punch(pool, user, { type, ip, userAgent, deviceToken }) {
+// 對外的打卡入口：失敗時（IP 不符、裝置未核准…）先記一筆拒絕紀錄再把錯誤丟回去。
+// 記錄失敗只寫 log，不能影響打卡本身的回應
+export async function punch(pool, user, context) {
+  try {
+    return await punchInner(pool, user, context);
+  } catch (error) {
+    if (error instanceof PunchError) {
+      try {
+        await pool.execute(
+          `INSERT INTO punch_rejections (employeeId, attemptedAt, type, code, ip, deviceLabel) VALUES (?, ?, ?, ?, ?, ?)`,
+          [user?.employeeId ?? null, taipeiNow().dateTime, ['in', 'out'].includes(context?.type) ? context.type : null, error.code,
+            normalizeIp(context?.ip) || null, deviceLabel(context?.userAgent)]
+        );
+      } catch (logError) {
+        console.error('[punch] 寫入拒絕紀錄失敗：', logError.message);
+      }
+    }
+    throw error;
+  }
+}
+
+async function punchInner(pool, user, { type, ip, userAgent, deviceToken }) {
   if (!['in', 'out'].includes(type)) throw new PunchError(400, 'BAD_TYPE', '打卡類型不正確');
   const employee = user.employeeId ? await getEmployee(pool, user.employeeId) : null;
   if (!employee || !employee.active) throw new PunchError(403, 'NO_EMPLOYEE', '此帳號沒有對應的在職員工，無法打卡');

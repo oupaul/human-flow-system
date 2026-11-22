@@ -8,6 +8,7 @@ import DevicesTab from "@/components/punch/DevicesTab";
 import AttendanceSettingsTab from "@/components/punch/AttendanceSettingsTab";
 import ExceptionsTab from "@/components/punch/ExceptionsTab";
 import RequestsTab from "@/components/punch/RequestsTab";
+import StatsTab from "@/components/punch/StatsTab";
 
 // HR／主管的打卡管理：今日出勤、打卡紀錄（admin/hr 可作廢與補登）、裝置綁定與設定（僅 admin/hr）
 const Punch = () => {
@@ -16,7 +17,7 @@ const Punch = () => {
   const canManage = user?.role === "admin" || user?.role === "hr";
   const [searchParams, setSearchParams] = useSearchParams();
   const requested = searchParams.get("tab") ?? "today";
-  const tab = !canManage && (requested === "devices" || requested === "settings") ? "today" : requested;
+  const tab = !canManage && (requested === "devices" || requested === "settings" || requested === "stats") ? "today" : requested;
 
   return (
     <div className="space-y-6">
@@ -30,6 +31,7 @@ const Punch = () => {
           <TabsTrigger value="exceptions">{t("punch:tabs.exceptions")}</TabsTrigger>
           <TabsTrigger value="requests">{t("punch:tabs.requests")}</TabsTrigger>
           <TabsTrigger value="events">{t("punch:tabs.events")}</TabsTrigger>
+          {canManage && <TabsTrigger value="stats">{t("punch:tabs.stats")}</TabsTrigger>}
           {canManage && <TabsTrigger value="devices">{t("punch:tabs.devices")}</TabsTrigger>}
           {canManage && <TabsTrigger value="settings">{t("punch:tabs.settings")}</TabsTrigger>}
         </TabsList>
@@ -37,6 +39,7 @@ const Punch = () => {
         <TabsContent value="exceptions"><ExceptionsTab canRun={canManage} /></TabsContent>
         <TabsContent value="requests"><RequestsTab /></TabsContent>
         <TabsContent value="events"><EventsTab canEdit={canManage} /></TabsContent>
+        {canManage && <TabsContent value="stats"><StatsTab /></TabsContent>}
         {canManage && <TabsContent value="devices"><DevicesTab /></TabsContent>}
         {canManage && <TabsContent value="settings"><AttendanceSettingsTab /></TabsContent>}
       </Tabs>

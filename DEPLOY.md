@@ -141,6 +141,9 @@ docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_datab
 
 # 自建打卡階段 B：班別與月份班表、補卡申請、公出、缺卡異常記錄
 docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/020_schedule_requests.sql
+
+# 打卡異常統計：記錄被擋下的打卡嘗試（只從套用後開始記錄）
+docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/021_punch_rejections.sql
 ```
 
 > 套用 019 後，既有「員工」角色帳號下次登入必須先修改密碼。另外容器時區已改為 Asia/Taipei，升級時請重建容器（`docker compose up --build -d`）。

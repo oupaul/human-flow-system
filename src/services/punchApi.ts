@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/apiClient";
+import { PunchStats } from "@/types/punchStats";
 import { AttendanceSettings, PunchDevice, PunchEvent, PunchStatus, PunchType, TodayRow } from "@/types/punch";
 
 export const punchApi = {
@@ -21,6 +22,9 @@ export const punchApi = {
   },
   correction(data: { employeeId: string; date: string; time: string; type: PunchType; reason: string }): Promise<{ message: string }> {
     return apiFetch("/attendance/punch/correction", { method: "POST", body: JSON.stringify(data) });
+  },
+  getStats(from: string, to: string): Promise<PunchStats> {
+    return apiFetch(`/attendance/stats?from=${from}&to=${to}`);
   },
   getSettings(): Promise<AttendanceSettings> {
     return apiFetch("/attendance/settings");

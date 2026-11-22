@@ -9,7 +9,8 @@
     "devices": "裝置綁定",
     "settings": "打卡設定",
     "exceptions": "缺卡與警示",
-    "requests": "申請審核"
+    "requests": "申請審核",
+    "stats": "異常統計"
   },
   "types": {
     "in": "上班",
@@ -197,5 +198,83 @@
     "myRequests": "我的申請",
     "correctionLine": "補卡：{{date}} {{type}} {{time}}",
     "outingLine": "公出：{{start}} ~ {{end}}　{{destination}}"
+  },
+  "stats": {
+    "last4Weeks": "近 4 週",
+    "last3Months": "近 3 個月",
+    "thisMonth": "本月",
+    "sinceNote": "被擋下的打卡嘗試從 {{since}} 開始記錄，之前的沒有紀錄，所以較早的區間數字會偏低。",
+    "noRejectionsYet": "尚未記錄到任何被擋下的打卡嘗試。",
+    "cards": {
+      "users": "使用系統打卡",
+      "usersSub": "期間內有打卡 {{n}} 人",
+      "punches": "成功打卡次數",
+      "ipBlocked": "被 IP 擋下",
+      "deviceBlocked": "被裝置規則擋下",
+      "rateSub": "占嘗試 {{rate}}",
+      "exceptions": "缺卡異常",
+      "openSub": "待處理 {{n}}",
+      "late": "遲到比例",
+      "lateSub": "{{late}} / {{total}} 天"
+    },
+    "charts": {
+      "blockedTitle": "每週被擋下的打卡",
+      "blockedHint": "IP 不在允許清單、裝置未核准或綁定給別人",
+      "qualityTitle": "每週缺卡與補卡",
+      "qualityHint": "偵測到的缺卡、員工補卡申請、HR 補登"
+    },
+    "series": {
+      "ipBlocked": "IP 不符",
+      "deviceBlocked": "裝置擋下",
+      "exceptions": "缺卡異常",
+      "correctionRequests": "補卡申請",
+      "hrCorrections": "HR 補登"
+    },
+    "weekOf": "{{date}} 起的一週",
+    "weeklyTable": "每週明細",
+    "week": "週（週一起）",
+    "byCodeTitle": "被擋下的原因",
+    "byCodeHint": "包含操作性錯誤（重複上班、沒上班就下班）；那些不是防護問題",
+    "reason": "原因",
+    "count": "次數",
+    "people": "人數",
+    "none": "沒有資料",
+    "topIpsTitle": "被擋下最多的網路來源",
+    "topIpsHint": "住家、手機熱點、其他據點會出現在這裡；來源很分散代表有更多人在公司網路外打卡",
+    "lastSeen": "最近一次",
+    "topEmployeesTitle": "被擋下最多的人",
+    "topEmployeesHint": "是否有正當原因（外勤、忘了申請公出）要先了解，不要直接當成舞弊",
+    "othersTitle": "其他指標",
+    "others": {
+      "newDevices": "期間內新登記的裝置",
+      "multiDevice": "有 2 台以上已核准裝置的員工",
+      "outingPunches": "公出期間打的卡",
+      "hrCorrections": "HR 補登的打卡",
+      "voided": "被作廢的打卡",
+      "operational": "操作性錯誤（重複上班等）",
+      "corrections": "補卡申請",
+      "outings": "公出申請"
+    },
+    "codes": {
+      "IP_BLOCKED": "IP 不在允許清單",
+      "DEVICE_OTHER": "裝置綁定給其他員工",
+      "DEVICE_PENDING": "新裝置待核准",
+      "DEVICE_REVOKED": "裝置已停用",
+      "DEVICE_LIMIT": "超過裝置數量上限",
+      "DEVICE_MISSING": "無法識別裝置",
+      "ALREADY_IN": "重複按上班",
+      "NOT_IN": "沒上班就按下班",
+      "TOO_FAST": "連按太快",
+      "NOT_ENABLED": "尚未啟用系統打卡",
+      "NO_EMPLOYEE": "沒有對應員工"
+    },
+    "readTitle": "怎麼解讀（決定要不要加 QR 碼或定位）",
+    "readHint": "這些數字只是參考，不會自動下結論。建議累積一到兩個月再看。",
+    "read": {
+      "ip": "被 IP 擋下的比例高：先看來源。集中在少數人或少數 IP，多半是外勤沒申請公出、或允許清單漏了據點，先修規則或加上「不受 IP 限制」；來源很分散（住家、手機熱點）而公司又需要「在現場」的證明，才是考慮 QR 碼的理由。",
+      "device": "裝置被擋下多：「綁定給其他員工」代表有人用別人的裝置或共用裝置，要先了解；「新裝置待核准」很多通常是流程問題（換手機、清瀏覽器資料），不是舞弊。",
+      "quality": "缺卡與補卡很多：多半是提醒或流程問題，不是防舞弊，加 QR 碼也解決不了；先看是不是班表漏排或公出沒申請。",
+      "decision": "如果上述數字都很低，現有的 IP 限制加裝置綁定已經夠用，不需要增加維運成本；若有大量網路外打卡又有舞弊疑慮，再評估 QR 碼（網頁 GPS 可被偽造，不建議當作防線）。"
+    }
   }
 }

@@ -31,6 +31,7 @@ import {
 } from './punchRequests.js';
 import { detectPunchExceptions, listPunchExceptions } from './punchExceptions.js';
 import { getCompliance } from './compliance.js';
+import { getPunchStats } from './punchStats.js';
 import {
   PayrollError, isValidMonth, importRatesCsv, importBracketsCsv, listRates, listBracketSets, generateSnapshot,
   listSnapshots, getSnapshot, setSnapshotLock, deleteDraftSnapshot, snapshotToXlsx,
@@ -2279,6 +2280,15 @@ api.post('/attendance/exceptions/run', requireRole('admin', 'hr'), async (req, r
 });
 api.get('/attendance/compliance', requireRole(...STAFF_ROLES), async (req, res) => {
   try { res.json(await getCompliance(pool, req.query.month)); } catch (error) { res.status(400).json({ error: '取得工時警示失敗', detail: error.message }); }
+});
+
+// 打卡異常統計（含員工個人的被擋紀錄，僅 admin/hr）
+api.get('/attendance/stats', requireRole('admin', 'hr'), async (req, res) => {
+  try {
+    res.json(await getPunchStats(pool, req.query));
+  } catch (error) {
+    res.status(400).json({ error: '取得打卡異常統計失敗', detail: error.message });
+  }
 });
 
 api.get('/attendance/records', requireRole(...STAFF_ROLES), async (req, res) => {

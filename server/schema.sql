@@ -633,6 +633,19 @@ CREATE TABLE IF NOT EXISTS punch_exceptions (
   INDEX idx_exception_date (workDate)
 );
 
+-- 被擋下的打卡嘗試（IP 不符、裝置未核准等）：只記錄不影響打卡，供異常統計評估是否需要更強的防護
+CREATE TABLE IF NOT EXISTS punch_rejections (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NULL,
+  attemptedAt DATETIME NOT NULL,
+  type VARCHAR(10) NULL,                  -- 嘗試的是上班（in）還是下班（out）
+  code VARCHAR(30) NOT NULL,              -- IP_BLOCKED、DEVICE_OTHER、DEVICE_PENDING、DEVICE_REVOKED、DEVICE_LIMIT、DEVICE_MISSING、ALREADY_IN、NOT_IN、TOO_FAST…
+  ip VARCHAR(45) NULL,
+  deviceLabel VARCHAR(255) NULL,
+  INDEX idx_rej_at (attemptedAt),
+  INDEX idx_rej_employee (employeeId)
+);
+
 -- 範例假別類型（可依需求刪減）
 INSERT INTO leave_types (name, code, unit, needProof, affectAttendance, isPaid, maxDays, advanceApply, canSplit) VALUES
 ('特休', 'AL', '天', FALSE, FALSE, TRUE, '依年資', '3天', TRUE),
