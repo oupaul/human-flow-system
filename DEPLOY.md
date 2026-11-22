@@ -42,11 +42,7 @@ git clone <repo> && cd human-flow-system
 ./deploy.sh --check
 ```
 
-初始管理員帳號只會在資料庫裡完全沒有管理員時自動建立，不會覆蓋既有帳號。如果之後要重設密碼，用下面「步驟 3」的 `seed-admin.js`（跟自動建立是兩支不同的腳本，`seed-admin.js` 會覆蓋密碼，自動建立的那支不會）：
-
-```sh
-docker compose run --rm backend node seed-admin.js
-```
+初始管理員帳號只會在資料庫裡完全沒有管理員時自動建立，不會覆蓋既有帳號。如果之後要重設密碼，直接執行 `./deploy.sh --reset-admin`，會產生新的隨機密碼並顯示（帳號 `admin`）。
 
 如果需要在啟動前先自訂設定（M365 單一登入、SMTP、`CORS_ORIGIN` 等非隨機生成的值），請改用下面「步驟 1～3」的手動流程，或是先執行 `cp .env.example .env` 編輯好想要的值後再執行 `./deploy.sh`（腳本偵測到 `.env` 已存在就不會覆蓋，只會直接啟動）。
 

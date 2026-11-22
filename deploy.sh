@@ -18,12 +18,25 @@
 #
 # 只想檢查、不做任何變更：./deploy.sh --check
 # 不想動防火牆：SKIP_FIREWALL=1 ./deploy.sh
-# 不想自動安裝 Docker（只要檢查）：./deploy.sh --check
+# 忘記管理員密碼／沒看到初始密碼：./deploy.sh --reset-admin（產生新的隨機密碼並顯示）
 set -eu
 cd "$(dirname "$0")"
 
 CHECK_ONLY=0
 [ "${1:-}" = "--check" ] && CHECK_ONLY=1
+
+# ---------- 重設管理員密碼（不需要在主機安裝 Node）----------
+if [ "${1:-}" = "--reset-admin" ]; then
+  D="docker"
+  docker info >/dev/null 2>&1 || D="sudo docker"
+  NEWPW="$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 14)"
+  if $D compose run --rm -e ADMIN_USERNAME=admin -e ADMIN_PASSWORD="$NEWPW" backend node seed-admin.js >/dev/null 2>&1; then
+    printf '\n✅ 管理員密碼已重設（請登入後到「個人設定」修改）\n   帳號：admin\n   密碼：%s\n\n' "$NEWPW"
+    exit 0
+  fi
+  printf '❌ 重設失敗：請確認服務已啟動（先執行 ./deploy.sh）\n' >&2
+  exit 1
+fi
 
 # ---------- 輸出 ----------
 ok()   { printf '  [OK]    %s\n' "$*"; }
@@ -308,7 +321,7 @@ if [ -n "$CREDS" ]; then
   printf '    初始管理員帳號（只會顯示這一次，請立刻記下並登入後修改密碼）：\n'
   printf '%s\n' "$CREDS" | sed 's/^/      /'
 else
-  printf '    管理員帳號先前已建立，不會再顯示密碼（忘記密碼請執行：docker compose run --rm backend node seed-admin.js）\n'
+  printf '    管理員帳號先前已建立，不會再顯示密碼（要重設請執行：./deploy.sh --reset-admin）\n'
 fi
 printf '============================================================\n\n'
 printf '後續建議：\n'

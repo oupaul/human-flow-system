@@ -37,7 +37,7 @@ async function main() {
   console.log('✅ 已自動建立初始管理員帳號，請盡快登入後至「個人設定」修改密碼');
   console.log(`   帳號：${username}`);
   console.log(`   密碼：${password}`);
-  console.log('   （這組密碼只會在這裡顯示一次，之後只能用 seed-admin.js 重設）');
+  console.log('   （這組密碼只會在這裡顯示一次，忘記時請執行 ./deploy.sh --reset-admin 重設）');
   console.log('============================================================');
   await pool.end();
 }

@@ -1,5 +1,6 @@
 // 建立或更新一個管理員帳號，方便第一次部署後登入
-// 用法：ADMIN_PASSWORD=你的密碼 npm run seed:admin
+// Docker 部署請用：./deploy.sh --reset-admin（會產生隨機密碼）
+// 直接執行（需先在 server/ 安裝套件）：ADMIN_PASSWORD=你的密碼 npm run seed:admin
 // 可選：ADMIN_USERNAME=自訂帳號（預設 admin）
 
 import 'dotenv/config';
@@ -10,7 +11,7 @@ const username = process.env.ADMIN_USERNAME || 'admin';
 const password = process.env.ADMIN_PASSWORD;
 
 if (!password) {
-  console.error('請設定 ADMIN_PASSWORD 環境變數後再執行，例如：\n  ADMIN_PASSWORD=你的密碼 npm run seed:admin');
+  console.error('請設定 ADMIN_PASSWORD 環境變數後再執行。\nDocker 部署請改用：./deploy.sh --reset-admin');
   process.exit(1);
 }
 
