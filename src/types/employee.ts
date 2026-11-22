@@ -1,4 +1,5 @@
 export type Gender = "male" | "female";
+export type ScheduleMode = "fixed" | "rotating";
 
 export interface Employee {
   id: number;
@@ -16,6 +17,7 @@ export interface Employee {
   notes: string;
   monthlySalary?: number | null;
   gender?: Gender | null;
+  scheduleMode?: ScheduleMode | null;
   attendanceAccount?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -37,6 +39,8 @@ export interface EmployeeFormData {
   notes: string;
   monthlySalary: number | null;
   gender: Gender | "";
+  // 出勤制度：空字串＝使用公司預設；排班制的休息日、例假日、國定假日都平移，日別依個人排班判斷
+  scheduleMode: ScheduleMode | "";
   attendanceAccount: string;
   // 僅新增員工時使用：系統上線時導入既有員工，登記他們在此之前已休掉的特休天數
   initialAnnualLeaveUsed?: number | null;
@@ -66,6 +70,7 @@ export const emptyFormData: EmployeeFormData = {
   notes: "",
   monthlySalary: null,
   gender: "",
+  scheduleMode: "",
   attendanceAccount: "",
   initialAnnualLeaveUsed: null,
   initialCarriedInDays: null,
@@ -88,6 +93,7 @@ export const employeeToFormData = (employee: Employee): EmployeeFormData => {
     notes: employee.notes || "",
     monthlySalary: employee.monthlySalary ?? null,
     gender: employee.gender || "",
+    scheduleMode: employee.scheduleMode || "",
     attendanceAccount: employee.attendanceAccount || "",
   };
 };

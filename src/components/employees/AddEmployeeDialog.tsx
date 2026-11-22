@@ -187,6 +187,23 @@ const AddEmployeeDialog = ({
               />
             </div>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="scheduleMode">{t("employees:form.scheduleMode")}</Label>
+            <Select
+              value={formData.scheduleMode || "default"}
+              onValueChange={(value) => onSelectChange("scheduleMode", value === "default" ? "" : value)}
+            >
+              <SelectTrigger id="scheduleMode">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">{t("employees:form.scheduleModeDefault")}</SelectItem>
+                <SelectItem value="fixed">{t("employees:form.scheduleModeFixed")}</SelectItem>
+                <SelectItem value="rotating">{t("employees:form.scheduleModeRotating")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">{t("employees:form.scheduleModeHint")}</p>
+          </div>
           {canSeeSalary && (
             <div className="space-y-2">
               <Label htmlFor="monthlySalary">{t("employees:form.monthlySalary")}</Label>

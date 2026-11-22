@@ -78,7 +78,12 @@
     "notes": "備考",
     "notesPlaceholder": "備考を入力",
     "initialCarriedInDays": "前期からの繰越有給日数（任意、最初の勤続年を過ぎ、前期から有給を繰り越している従業員のみ）",
-    "initialCarriedInDaysHint": "繰り越した日数は今期中に取得しないと、期末の精算で換金されます。取得済み日数は先にこの繰越分に充当されます。"
+    "initialCarriedInDaysHint": "繰り越した日数は今期中に取得しないと、期末の精算で換金されます。取得済み日数は先にこの繰越分に充当されます。",
+    "scheduleMode": "勤務制度",
+    "scheduleModeDefault": "会社の既定を使う",
+    "scheduleModeFixed": "固定制",
+    "scheduleModeRotating": "シフト制",
+    "scheduleModeHint": "シフト制：休息日・法定休日・祝日はすべて別の日に振り替えられ、日の区分と休日手当は個人のシフト（勤怠取り込みの勤務表と休日の印）で判断します。"
   },
   "addDialog": {
     "title": "従業員を追加",

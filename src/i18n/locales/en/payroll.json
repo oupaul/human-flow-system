@@ -28,7 +28,8 @@
     "overtimePay": "Overtime pay",
     "leaveDeduction": "Leave deduction",
     "gross": "Gross pay",
-    "net": "Net pay (after insurance)"
+    "net": "Net pay (after insurance)",
+    "allowancePay": "Allowance"
   },
   "detail": {
     "title": "{{month}} Details",
@@ -40,7 +41,7 @@
     "health": "Health (Emp. / Co.)",
     "pension": "Pension (Voluntary / Co.)",
     "warnings": "Notes",
-    "columnsHint": "Gross pay = salary + overtime pay − leave deduction; Net pay = gross − employee insurance (incl. voluntary pension; excludes income tax and other deductions); Employer pays = labor + health + employer pension; Total employer cost = gross pay + employer pays.",
+    "columnsHint": "Gross pay = salary + overtime pay + allowance − leave deduction; Net pay = gross − employee insurance (incl. voluntary pension; excludes income tax and other deductions); Employer pays = labor + health + employer pension; Total employer cost = gross pay + employer pays.",
     "overtime": "Overtime pay (hours)",
     "leave": "Leave deduction (days)",
     "period": "Leave & overtime period: {{start}} ~ {{end}}",
@@ -51,7 +52,10 @@
     "factor": "Weighted hours",
     "amount": "Amount",
     "leaveType": "Leave type",
-    "ratio": "Deduction ratio"
+    "ratio": "Deduction ratio",
+    "allowance": "Allowance (days)",
+    "allowanceLines": "Holiday shift allowance lines",
+    "allowanceRule": "Allowance rule"
   },
   "confirm": {
     "lockTitle": "Lock {{month}}?",
@@ -127,6 +131,34 @@
     "deductRatio": "Deduction ratio",
     "unset": "Not set",
     "unsetWarning": "{{count}} leave type(s) still have no deduction ratio.",
-    "prefill": "Prefill blanks from the paid/unpaid flag"
+    "prefill": "Prefill blanks from the paid/unpaid flag",
+    "defaultScheduleMode": "Company default schedule mode",
+    "modeFixed": "Fixed (rest days fixed on Sat/Sun)",
+    "modeRotating": "Shift (rest days and national holidays are shifted; per-person schedule)",
+    "scheduleModeHint": "Individual employees can override this in their profile. For shift employees, overtime day types and holiday allowances follow the individual schedule: a scheduled work day (even Sat/Sun or a national holiday) is a normal work day; only working on a scheduled day off counts as rest-day, mandatory-day-off or national-holiday work. Generating payroll fails if a shift employee has no attendance (schedule) data in the pay period.",
+    "allowanceTitle": "Holiday Shift Allowance (shift employees only)",
+    "allowanceHint": "A fixed amount is paid when a shift employee is scheduled to work on the selected days. This is a company benefit and cannot offset statutory overtime pay; multiple matching rules on the same day are each applied, but one rule counts once per day.",
+    "addAllowance": "Add Allowance Rule",
+    "editAllowance": "Edit Allowance Rule",
+    "noAllowance": "No allowance rules yet",
+    "allowanceName": "Allowance name",
+    "allowanceNamePlaceholder": "e.g. Holiday shift allowance",
+    "allowanceDays": "Applies on",
+    "includeHolidays": "Also on days with a holiday name in the calendar",
+    "amountPerDay": "Amount per day",
+    "requireAttendance": "Require actual clock-in",
+    "requireAttendanceHint": "When on, days on leave or with a missed punch are not paid; when off, any scheduled work day (not on leave) is paid.",
+    "active": "Active",
+    "nationalHoliday": "National holidays",
+    "deleteAllowanceHint": "Allowance rule \"{{name}}\" will be deleted and no longer counted in future payroll. Locked snapshots are unaffected."
+  },
+  "weekdays": {
+    "1": "Mon",
+    "2": "Tue",
+    "3": "Wed",
+    "4": "Thu",
+    "5": "Fri",
+    "6": "Sat",
+    "7": "Sun"
   }
 }

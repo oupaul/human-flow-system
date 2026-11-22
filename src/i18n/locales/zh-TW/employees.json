@@ -78,7 +78,12 @@
     "notes": "備註",
     "notesPlaceholder": "輸入備註",
     "initialCarriedInDays": "上期遞延特休天數（選填，僅適用於已過第一個週年日、上一期有遞延特休進來的員工）",
-    "initialCarriedInDaysHint": "遞延進來的天數須在本期休完，否則週年結算時依法折現；已用特休天數會優先抵用這部分。"
+    "initialCarriedInDaysHint": "遞延進來的天數須在本期休完，否則週年結算時依法折現；已用特休天數會優先抵用這部分。",
+    "scheduleMode": "出勤制度",
+    "scheduleModeDefault": "使用公司預設",
+    "scheduleModeFixed": "固定制",
+    "scheduleModeRotating": "排班制",
+    "scheduleModeHint": "排班制：休息日、例假日、國定假日都平移到別天，日別與假日津貼依個人排班（考勤匯入的班別與休息日標記）判斷。"
   },
   "addDialog": {
     "title": "新增員工",

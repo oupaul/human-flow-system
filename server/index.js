@@ -24,6 +24,7 @@ import {
 import {
   getSettings as getPayrollSettings, saveSettings as savePayrollSettings, listOvertimeRules, importOvertimeRulesCsv, loadOvertimeTemplate,
   listLeaveDeductions, saveLeaveDeductions, prefillLeaveDeductions,
+  listAllowanceRules, createAllowanceRule, updateAllowanceRule, deleteAllowanceRule,
 } from './payrollVariable.js';
 
 const app = express();
@@ -275,10 +276,15 @@ async function getOrCreateActivePeriod(employeeId, joinDate, initialUsedDays = 0
   return newRows[0];
 }
 
+// 出勤制度只接受 fixed／rotating，其他（含空字串）視為「使用公司預設」(NULL)
+function normalizeScheduleMode(value) {
+  return value === 'fixed' || value === 'rotating' ? value : null;
+}
+
 // 新增一位員工：建立員工紀錄、第一期特休週年紀錄、假別餘額預設值、登入帳號。
 // 供單筆新增（POST /employees）與批次匯入（POST /employees/import）共用
 async function createEmployeeRecord(data, { canSetSalary = false, changedBy = null } = {}) {
-  const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, initialAnnualLeaveUsed, initialCarriedInDays } = data;
+  const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, initialAnnualLeaveUsed, initialCarriedInDays, scheduleMode } = data;
   if (!name || !employeeId || !department || !position || !email || !joinDate) {
     throw new Error('所有必填欄位皆需填寫（姓名、員工編號、部門、職位、電子郵件、到職日）');
   }
@@ -286,8 +292,8 @@ async function createEmployeeRecord(data, { canSetSalary = false, changedBy = nu
   const carriedInDays = validateInitialCarriedIn(joinDate, initialCarriedInDays);
 
   const [result] = await pool.execute(
-    'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, (canSetSalary && monthlySalary) || null, gender || null, attendanceAccount || null]
+    'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, scheduleMode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, (canSetSalary && monthlySalary) || null, gender || null, attendanceAccount || null, normalizeScheduleMode(scheduleMode)]
   );
 
   if (canSetSalary && monthlySalary) {
@@ -326,6 +332,7 @@ function parseEmployeeCsv(csvText) {
     attendanceAccount: findColumn(['考勤帳號', '打卡帳號']),
     initialAnnualLeaveUsed: findColumn(['已用特休', '特休已用']),
     initialCarriedInDays: findColumn(['上期遞延', '遞延特休', '遞延']),
+    scheduleMode: findColumn(['出勤制度', '排班制']),
   };
 
   if (columns.name === -1 || columns.employeeId === -1 || columns.department === -1 ||
@@ -359,6 +366,8 @@ function parseEmployeeCsv(csvText) {
       attendanceAccount: pick(cells, 'attendanceAccount') || null,
       initialAnnualLeaveUsed: pick(cells, 'initialAnnualLeaveUsed') || 0,
       initialCarriedInDays: pick(cells, 'initialCarriedInDays') || 0,
+      scheduleMode: ['排班制', '排班', 'rotating'].includes(pick(cells, 'scheduleMode').trim()) ? 'rotating'
+        : ['固定制', '固定', 'fixed'].includes(pick(cells, 'scheduleMode').trim()) ? 'fixed' : null,
     };
   });
 }
@@ -367,7 +376,8 @@ function parseEmployeeCsv(csvText) {
 const ATTENDANCE_GRACE_MINUTES = 10;
 
 const ATTENDANCE_LEAVE_LABELS = new Set(['特休', '事假', '病假', '生理假', '婚假', '公假', '喪假', '補休']);
-const ATTENDANCE_DAY_OFF_LABELS = new Set(['休息日', '例假日']);
+// 排班制的國定假日同樣是平移到別天排休，打卡系統若以「國定假日」標記該排休日也視為休息
+const ATTENDANCE_DAY_OFF_LABELS = new Set(['休息日', '例假日', '國定假日']);
 
 // 解析外部打卡系統匯出的考勤 .xls：每人每天佔「簽到/簽退」兩欄，橫向排一整個月。
 // 檔案裡的日期標題（如「07-01」）沒有年份，由呼叫端指定要匯入的西元年。
@@ -1083,7 +1093,7 @@ api.post('/employees/import', requireRole(...STAFF_ROLES), async (req, res) => {
 api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount } = req.body;
+    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, scheduleMode } = req.body;
 
     const [beforeRows] = await pool.execute('SELECT employeeId, monthlySalary FROM employees WHERE id = ?', [id]);
     const previousEmployeeId = beforeRows[0]?.employeeId;
@@ -1092,8 +1102,8 @@ api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     // 有薪資權限的角色改了月薪，就在今天建立一筆異動紀錄並同步快取；主管送來的表單不含月薪，一律忽略。
     // 表單把月薪清空視為「不變更」，要調整請到員工的「薪資與投保」管理歷史紀錄
     await pool.execute(
-      'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, gender = ?, attendanceAccount = ? WHERE id = ?',
-      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', gender || null, attendanceAccount || null, id]
+      'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, gender = ?, attendanceAccount = ?, scheduleMode = ? WHERE id = ?',
+      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', gender || null, attendanceAccount || null, normalizeScheduleMode(scheduleMode), id]
     );
     if (SALARY_ROLES.includes(req.user.role) && Number(monthlySalary) > 0
         && Number(monthlySalary) !== Number(beforeRows[0]?.monthlySalary || 0)) {
@@ -3090,6 +3100,7 @@ api.get('/payroll/rules', requireRole(...SALARY_ROLES), async (req, res) => {
       settings: await getPayrollSettings(pool),
       overtimeRules: await listOvertimeRules(pool),
       leaveDeductions: await listLeaveDeductions(pool),
+      allowanceRules: await listAllowanceRules(pool),
     });
   } catch (error) {
     handlePayrollError(res, error, '獲取計薪規則失敗');
@@ -3136,6 +3147,32 @@ api.post('/payroll/leave-deductions/prefill', requireRole(...SALARY_ROLES), asyn
     res.json({ message: '已依「是否有薪」預填尚未設定的假別', ...(await prefillLeaveDeductions(pool)) });
   } catch (error) {
     handlePayrollError(res, error, '預填失敗');
+  }
+});
+
+api.post('/payroll/allowance-rules', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    res.status(201).json({ id: await createAllowanceRule(pool, req.body), message: '津貼規則已建立' });
+  } catch (error) {
+    res.status(400).json({ error: '建立津貼規則失敗', detail: error.message });
+  }
+});
+
+api.put('/payroll/allowance-rules/:id', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    if ((await updateAllowanceRule(pool, req.params.id, req.body)) === 0) return res.status(404).json({ error: '找不到該規則' });
+    res.json({ message: '津貼規則已更新' });
+  } catch (error) {
+    res.status(400).json({ error: '更新津貼規則失敗', detail: error.message });
+  }
+});
+
+api.delete('/payroll/allowance-rules/:id', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    if ((await deleteAllowanceRule(pool, req.params.id)) === 0) return res.status(404).json({ error: '找不到該規則' });
+    res.json({ message: '津貼規則已刪除' });
+  } catch (error) {
+    handlePayrollError(res, error, '刪除津貼規則失敗');
   }
 });
 

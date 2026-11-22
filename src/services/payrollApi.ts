@@ -1,5 +1,5 @@
 import { apiFetch, apiFetchBlob } from "@/lib/apiClient";
-import { BracketSet, InsuranceRate, PayrollRules, PayrollSettings, PayrollSnapshotDetail, PayrollSnapshotSummary } from "@/types/payroll";
+import { AllowanceRuleFormData, BracketSet, InsuranceRate, PayrollRules, PayrollSettings, PayrollSnapshotDetail, PayrollSnapshotSummary } from "@/types/payroll";
 
 export const payrollApi = {
   getRates(): Promise<{ rates: InsuranceRate[]; brackets: BracketSet[] }> {
@@ -13,6 +13,15 @@ export const payrollApi = {
   },
   getRules(): Promise<PayrollRules> {
     return apiFetch("/payroll/rules");
+  },
+  createAllowanceRule(data: AllowanceRuleFormData): Promise<{ id: number; message: string }> {
+    return apiFetch("/payroll/allowance-rules", { method: "POST", body: JSON.stringify(data) });
+  },
+  updateAllowanceRule(id: number, data: AllowanceRuleFormData): Promise<{ message: string }> {
+    return apiFetch(`/payroll/allowance-rules/${id}`, { method: "PUT", body: JSON.stringify(data) });
+  },
+  deleteAllowanceRule(id: number): Promise<{ message: string }> {
+    return apiFetch(`/payroll/allowance-rules/${id}`, { method: "DELETE" });
   },
   saveSettings(data: PayrollSettings): Promise<{ message: string }> {
     return apiFetch("/payroll/settings", { method: "PUT", body: JSON.stringify(data) });

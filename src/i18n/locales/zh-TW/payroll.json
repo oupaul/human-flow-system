@@ -28,7 +28,8 @@
     "overtimePay": "加班費",
     "leaveDeduction": "請假扣款",
     "gross": "應發薪資",
-    "net": "實領（扣勞健退）"
+    "net": "實領（扣勞健退）",
+    "allowancePay": "津貼"
   },
   "detail": {
     "title": "{{month}} 試算明細",
@@ -40,7 +41,7 @@
     "health": "健保（員工／公司）",
     "pension": "勞退（自提／公司）",
     "warnings": "提醒",
-    "columnsHint": "應發薪資 = 月薪 + 加班費 − 請假扣款；實領 = 應發 − 員工自付勞健退（含自願提繳，不含所得稅等其他扣項）；公司負擔 = 勞保 + 健保 + 雇主提繳；公司總成本 = 應發薪資 + 公司負擔。",
+    "columnsHint": "應發薪資 = 月薪 + 加班費 + 津貼 − 請假扣款；實領 = 應發 − 員工自付勞健退（含自願提繳，不含所得稅等其他扣項）；公司負擔 = 勞保 + 健保 + 雇主提繳；公司總成本 = 應發薪資 + 公司負擔。",
     "overtime": "加班費（時數）",
     "leave": "請假扣款（天數）",
     "period": "請假、加班區間：{{start}} ~ {{end}}",
@@ -51,7 +52,10 @@
     "factor": "倍率加權時數",
     "amount": "金額",
     "leaveType": "假別",
-    "ratio": "扣薪比例"
+    "ratio": "扣薪比例",
+    "allowance": "津貼（天數）",
+    "allowanceLines": "假日排班津貼明細",
+    "allowanceRule": "津貼規則"
   },
   "confirm": {
     "lockTitle": "鎖定 {{month}}？",
@@ -127,6 +131,34 @@
     "deductRatio": "扣薪比例",
     "unset": "未設定",
     "unsetWarning": "還有 {{count}} 個假別尚未設定扣薪比例。",
-    "prefill": "依「是否有薪」預填空白項目"
+    "prefill": "依「是否有薪」預填空白項目",
+    "defaultScheduleMode": "公司預設出勤制度",
+    "modeFixed": "固定制（休息日、例假日固定在週六日）",
+    "modeRotating": "排班制（休息日、例假日、國定假日都平移，依個人排班）",
+    "scheduleModeHint": "個別員工可在員工資料中覆寫。排班制員工的加班日別與假日津貼完全依個人排班判斷：排定上班的日子（包含週六日、國定假日）是一般上班日；只有排定休息的日子上班才算休息日、例假日或國定假日出勤。計薪區間內沒有任何考勤（排班）資料的排班制員工，產生薪資時會報錯。",
+    "allowanceTitle": "假日排班津貼（僅排班制員工）",
+    "allowanceHint": "排班制員工排定在指定日別上班時，額外給固定金額。這是公司福利，不能抵扣法定加班費；同一天符合多條規則會各自計算，同一規則一天只算一次。",
+    "addAllowance": "新增津貼規則",
+    "editAllowance": "編輯津貼規則",
+    "noAllowance": "尚未設定津貼規則",
+    "allowanceName": "津貼名稱",
+    "allowanceNamePlaceholder": "例：假日排班津貼",
+    "allowanceDays": "適用日別",
+    "includeHolidays": "行事曆上有節日名稱的日子也適用",
+    "amountPerDay": "每天金額",
+    "requireAttendance": "必須實際有打卡出勤",
+    "requireAttendanceHint": "開啟時，請假與缺卡的日子不給；關閉時，只要排定上班（非請假）就給。",
+    "active": "啟用",
+    "nationalHoliday": "國定假日",
+    "deleteAllowanceHint": "將刪除津貼規則「{{name}}」，之後產生的薪資不再計入。已鎖定的快照不受影響。"
+  },
+  "weekdays": {
+    "1": "週一",
+    "2": "週二",
+    "3": "週三",
+    "4": "週四",
+    "5": "週五",
+    "6": "週六",
+    "7": "週日"
   }
 }

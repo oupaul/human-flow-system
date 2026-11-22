@@ -78,7 +78,12 @@
     "notes": "Notes",
     "notesPlaceholder": "Enter notes",
     "initialCarriedInDays": "Annual Leave Days Carried In (optional, only for employees past their first anniversary with leave carried over from the previous period)",
-    "initialCarriedInDaysHint": "Carried-in days must be used within this period, otherwise they are cashed out at the anniversary settlement; days already used are applied to them first."
+    "initialCarriedInDaysHint": "Carried-in days must be used within this period, otherwise they are cashed out at the anniversary settlement; days already used are applied to them first.",
+    "scheduleMode": "Work Schedule Mode",
+    "scheduleModeDefault": "Use company default",
+    "scheduleModeFixed": "Fixed schedule",
+    "scheduleModeRotating": "Shift (rotating) schedule",
+    "scheduleModeHint": "Shift schedule: rest days, mandatory days off and national holidays are all shifted to other days; day types and holiday allowances are determined by the individual's schedule (shifts and day-off marks from the attendance import)."
   },
   "addDialog": {
     "title": "Add Employee",

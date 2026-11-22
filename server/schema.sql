@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS employees (
   monthlySalary DECIMAL(10,0) NULL,
   gender ENUM('male', 'female') NULL,
   attendanceAccount VARCHAR(100) NULL UNIQUE,
+  -- 出勤制度：固定制／排班制（排班制的休息日、例假日、國定假日都平移，日別依個人排班判斷）；NULL＝使用公司預設
+  scheduleMode ENUM('fixed', 'rotating') NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -421,6 +423,8 @@ CREATE TABLE IF NOT EXISTS payroll_snapshot_items (
   overtimePay DECIMAL(10,0) NULL,
   leaveDays DECIMAL(5,1) NULL,
   leaveDeduction DECIMAL(10,0) NULL,
+  allowanceDays INT NULL,
+  allowancePay DECIMAL(10,0) NULL,
   variableDetail TEXT NULL,                  -- 納入的加班／請假明細（JSON）
   warnings TEXT NULL,
   INDEX idx_snapshot (snapshotId),
@@ -451,6 +455,7 @@ CREATE TABLE IF NOT EXISTS payroll_settings (
   cutoffDay INT NOT NULL DEFAULT 25,
   daysPerMonth INT NOT NULL DEFAULT 30,
   hoursPerDay INT NOT NULL DEFAULT 8,
+  defaultScheduleMode ENUM('fixed', 'rotating') NOT NULL DEFAULT 'fixed',
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 INSERT IGNORE INTO payroll_settings (id, cutoffDay, daysPerMonth, hoursPerDay) VALUES (1, 25, 30, 8);
@@ -472,6 +477,20 @@ CREATE TABLE IF NOT EXISTS leave_type_deductions (
   deductRatio DECIMAL(4,2) NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (leaveTypeId) REFERENCES leave_types(id) ON DELETE CASCADE
+);
+
+-- 排班制假日津貼：排定在指定日別上班就額外給固定金額（公司福利，不能抵扣法定加班費）
+CREATE TABLE IF NOT EXISTS shift_allowance_rules (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  weekdays VARCHAR(20) NOT NULL DEFAULT '',          -- 適用的星期（ISO：1=週一…7=週日，逗號分隔，例如 6,7）
+  includeNationalHolidays BOOLEAN NOT NULL DEFAULT FALSE,  -- 行事曆上有節日名稱的日子也適用
+  amount DECIMAL(10,0) NOT NULL,                     -- 每天金額
+  requireAttendance BOOLEAN NOT NULL DEFAULT TRUE,   -- TRUE：必須實際有打卡出勤才給（請假、缺卡不給）
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  notes TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- 範例假別類型（可依需求刪減）

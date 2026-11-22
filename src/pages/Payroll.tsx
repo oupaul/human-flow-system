@@ -18,7 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { payrollApi } from "@/services/payrollApi";
 import PayrollRulesPanel from "@/components/PayrollRulesPanel";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { BracketSet, InsuranceRate, LeaveDetailLine, OvertimeDetailLine, PayrollItem, PayrollSnapshotDetail, PayrollSnapshotSummary } from "@/types/payroll";
+import { AllowanceDetailLine, BracketSet, InsuranceRate, LeaveDetailLine, OvertimeDetailLine, PayrollItem, PayrollSnapshotDetail, PayrollSnapshotSummary } from "@/types/payroll";
 
 const RATE_KEYS = [
   "laborRate", "laborEmployeeShare", "laborEmployerShare", "laborEmployerOnlyRate",
@@ -203,6 +203,7 @@ const Payroll = () => {
                   <TableHead>{t("payroll:snapshots.period")}</TableHead>
                   <TableHead>{t("payroll:snapshots.salary")}</TableHead>
                   <TableHead>{t("payroll:snapshots.overtimePay")}</TableHead>
+                  <TableHead>{t("payroll:snapshots.allowancePay")}</TableHead>
                   <TableHead>{t("payroll:snapshots.leaveDeduction")}</TableHead>
                   <TableHead>{t("payroll:snapshots.net")}</TableHead>
                   <TableHead>{t("payroll:snapshots.totalCost")}</TableHead>
@@ -211,7 +212,7 @@ const Payroll = () => {
               </TableHeader>
               <TableBody>
                 {snapshots.length === 0 ? (
-                  <TableRow><TableCell colSpan={10} className="py-8 text-center text-muted-foreground">{t("payroll:snapshots.empty")}</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="py-8 text-center text-muted-foreground">{t("payroll:snapshots.empty")}</TableCell></TableRow>
                 ) : snapshots.map((s) => (
                   <TableRow key={s.id} className={detail?.month === s.month ? "bg-muted/40" : ""}>
                     <TableCell className="font-medium">{s.month}</TableCell>
@@ -220,6 +221,7 @@ const Payroll = () => {
                     <TableCell className="whitespace-nowrap text-xs">{s.periodStart && s.periodEnd ? `${s.periodStart.slice(5)} ~ ${s.periodEnd.slice(5)}` : "—"}</TableCell>
                     <TableCell>{money(s.salary)}</TableCell>
                     <TableCell>{money(s.overtimePay)}</TableCell>
+                    <TableCell>{money(s.allowancePay)}</TableCell>
                     <TableCell>{money(s.leaveDeduction)}</TableCell>
                     <TableCell>{money(s.netTotal)}</TableCell>
                     <TableCell className="font-medium">{money(s.totalCost)}</TableCell>
@@ -255,8 +257,8 @@ const Payroll = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  {([["salary", detail.totals.salary], ["overtimePay", detail.totals.overtimePay], ["leaveDeduction", detail.totals.leaveDeduction], ["gross", detail.totals.gross],
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+                  {([["salary", detail.totals.salary], ["overtimePay", detail.totals.overtimePay], ["allowancePay", detail.totals.allowancePay], ["leaveDeduction", detail.totals.leaveDeduction], ["gross", detail.totals.gross],
                     ["employee", detail.totals.employee], ["net", detail.totals.net], ["employer", detail.totals.employer], ["totalCost", detail.totals.totalCost]] as const).map(([k, v]) => (
                     <div key={k} className="rounded-md border p-3">
                       <p className="text-xs text-muted-foreground">{t(`payroll:snapshots.${k}`)}</p>
@@ -271,6 +273,7 @@ const Payroll = () => {
                         <TableHead>{t("common:table.name")}</TableHead>
                         <TableHead>{t("payroll:detail.salary")}</TableHead>
                         <TableHead>{t("payroll:detail.overtime")}</TableHead>
+                        <TableHead>{t("payroll:detail.allowance")}</TableHead>
                         <TableHead>{t("payroll:detail.leave")}</TableHead>
                         <TableHead>{t("payroll:snapshots.gross")}</TableHead>
                         <TableHead>{t("payroll:detail.labor")}</TableHead>
@@ -288,6 +291,9 @@ const Payroll = () => {
                           <TableCell>{money(i.monthlySalary)}</TableCell>
                           <TableCell className="whitespace-nowrap text-xs">
                             {i.overtimePay === null ? "—" : <>{money(i.overtimePay)}<span className="text-muted-foreground"> ({i.overtimeHours}h)</span></>}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {i.allowancePay === null ? "—" : <>{money(i.allowancePay)}<span className="text-muted-foreground"> ({i.allowanceDays}{t("common:table.days")})</span></>}
                           </TableCell>
                           <TableCell className="whitespace-nowrap text-xs">
                             {i.leaveDeduction === null ? "—" : <>{i.leaveDeduction > 0 ? "-" : ""}{money(i.leaveDeduction)}<span className="text-muted-foreground"> ({i.leaveDays}{t("common:table.days")})</span></>}
@@ -404,7 +410,10 @@ const Payroll = () => {
             </DialogDescription>
           </DialogHeader>
           {detailItem?.variableDetail && (() => {
-            const lines = JSON.parse(detailItem.variableDetail) as { overtime: OvertimeDetailLine[]; leave: LeaveDetailLine[] };
+            const lines = JSON.parse(detailItem.variableDetail) as { overtime?: OvertimeDetailLine[]; leave?: LeaveDetailLine[]; allowance?: AllowanceDetailLine[] };
+            const overtimeLines = lines.overtime ?? [];
+            const leaveLines = lines.leave ?? [];
+            const allowanceLines = lines.allowance ?? [];
             return (
               <div className="space-y-4">
                 <div>
@@ -421,9 +430,9 @@ const Payroll = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {lines.overtime.length === 0 ? (
+                        {overtimeLines.length === 0 ? (
                           <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">{t("common:common.none")}</TableCell></TableRow>
-                        ) : lines.overtime.map((o) => (
+                        ) : overtimeLines.map((o) => (
                           <TableRow key={o.id}>
                             <TableCell>{o.date}</TableCell>
                             <TableCell>{t(`payroll:dayTypes.${o.dayType}`)}</TableCell>
@@ -436,6 +445,31 @@ const Payroll = () => {
                     </Table>
                   </div>
                 </div>
+                {allowanceLines.length > 0 && (
+                  <div>
+                    <h4 className="mb-1 text-sm font-semibold">{t("payroll:detail.allowanceLines")}</h4>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>{t("common:table.date")}</TableHead>
+                            <TableHead>{t("payroll:detail.allowanceRule")}</TableHead>
+                            <TableHead className="text-right">{t("payroll:detail.amount")}</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {allowanceLines.map((a, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell>{a.date}</TableCell>
+                              <TableCell>{a.rule}</TableCell>
+                              <TableCell className="text-right">{money(a.amount)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
                 <div>
                   <h4 className="mb-1 text-sm font-semibold">{t("payroll:detail.leaveLines")}</h4>
                   <div className="rounded-md border">
@@ -450,9 +484,9 @@ const Payroll = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {lines.leave.length === 0 ? (
+                        {leaveLines.length === 0 ? (
                           <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">{t("common:common.none")}</TableCell></TableRow>
-                        ) : lines.leave.map((l) => (
+                        ) : leaveLines.map((l) => (
                           <TableRow key={l.id}>
                             <TableCell>{l.date}{l.endDate !== l.date ? ` ~ ${l.endDate}` : ""}</TableCell>
                             <TableCell>{l.leaveType}</TableCell>

@@ -61,7 +61,7 @@ function weightedHours(offset, hours, tiers) {
 
 // applications：已核准且選擇領加班費的加班（需含 holidayName）；tiersByDay：{dayType: [{fromHours,toHours,multiplier}]}
 // 同一天的多筆加班依開始時間合併累計時數後再套分段倍率
-export function calculateOvertimePay(applications, tiersByDay, hourlyWage) {
+export function calculateOvertimePay(applications, tiersByDay, hourlyWage, classify = classifyOvertimeDay) {
   const warnings = [];
   const lines = [];
   const byDate = new Map();
@@ -75,7 +75,11 @@ export function calculateOvertimePay(applications, tiersByDay, hourlyWage) {
     list.sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
     let offset = 0;
     for (const a of list) {
-      const dayType = classifyOvertimeDay(a);
+      const dayType = classify(a);
+      if (!dayType) {
+        warnings.push(`${date} 加班 ${a.hours} 小時：找不到該日的排班／考勤資料，無法判斷日別，未計入`);
+        continue;
+      }
       const tiers = (tiersByDay[dayType] || []).slice().sort((x, y) => x.fromHours - y.fromHours);
       const { weighted, uncovered } = weightedHours(offset, a.hours, tiers);
       if (uncovered > 0) warnings.push(`${date} 加班 ${a.hours} 小時有 ${uncovered} 小時超出「${dayType}」已設定的倍率區間，未計入`);
@@ -87,6 +91,50 @@ export function calculateOvertimePay(applications, tiersByDay, hourlyWage) {
     }
   }
   return { hours, pay: Math.round(amount), lines, warnings };
+}
+
+// ---- 排班制 ---------------------------------------------------------------------------
+
+// 排班制：休息日、例假日、國定假日都只是平移，日別完全依個人當天的排班判斷，不看行事曆。
+//   排定上班（有班別、不是休息標記）＝一般上班日（即使是週六日或國定假日）
+//   排定休息：標記「國定假日」→ holiday；「例假日」→ holiday（例假日出勤同樣加倍發給）；「休息日」或其他 → rest_day
+// attendanceRow 為 null（那天沒有考勤／排班資料）時回傳 null，呼叫端不可猜測
+export function classifyScheduledDay(attendanceRow) {
+  if (!attendanceRow) return null;
+  if (attendanceRow.status !== 'day_off') return 'weekday';
+  return ['國定假日', '例假日'].includes(attendanceRow.note) ? 'holiday' : 'rest_day';
+}
+
+export function isoWeekday(dateStr) {
+  const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
+  const day = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return day === 0 ? 7 : day;
+}
+
+// 排班制假日津貼：排定上班的日子落在規則指定的星期（或行事曆上有節日名稱的日子）就額外給固定金額。
+//   請假日、排定休息日不給；規則要求實際出勤時，缺卡也不給並提示。同一天符合多條規則則各自計算
+export function calculateAllowance(attendanceRows, rules, holidayNames) {
+  const lines = [];
+  const warnings = [];
+  const days = new Set();
+  let amount = 0;
+  for (const row of attendanceRows) {
+    if (row.status === 'day_off' || row.status === 'leave') continue;
+    const weekday = isoWeekday(row.date);
+    for (const rule of rules) {
+      const matchesWeekday = rule.weekdays.includes(weekday);
+      const matchesHoliday = rule.includeNationalHolidays && !!holidayNames[row.date];
+      if (!matchesWeekday && !matchesHoliday) continue;
+      if (rule.requireAttendance && row.status !== 'normal') {
+        if (row.status === 'missing') warnings.push(`${row.date} 排班在「${rule.name}」適用日但缺卡，津貼未計`);
+        continue;
+      }
+      lines.push({ date: row.date, rule: rule.name, amount: rule.amount });
+      days.add(row.date);
+      amount += rule.amount;
+    }
+  }
+  return { days: days.size, pay: amount, lines, warnings };
 }
 
 // ---- 請假扣薪 -------------------------------------------------------------------------
@@ -112,21 +160,23 @@ export function calculateLeaveDeduction(applications, ratioByType, dailyWage, pe
 // ---- 規則維護 -------------------------------------------------------------------------
 
 export async function getSettings(pool) {
-  const [rows] = await pool.execute('SELECT cutoffDay, daysPerMonth, hoursPerDay FROM payroll_settings WHERE id = 1');
-  return rows[0] || { cutoffDay: 25, daysPerMonth: 30, hoursPerDay: 8 };
+  const [rows] = await pool.execute('SELECT cutoffDay, daysPerMonth, hoursPerDay, defaultScheduleMode FROM payroll_settings WHERE id = 1');
+  return rows[0] || { cutoffDay: 25, daysPerMonth: 30, hoursPerDay: 8, defaultScheduleMode: 'fixed' };
 }
 
 export async function saveSettings(pool, body) {
   const cutoffDay = Number(body.cutoffDay);
   const daysPerMonth = Number(body.daysPerMonth);
   const hoursPerDay = Number(body.hoursPerDay);
+  const defaultScheduleMode = body.defaultScheduleMode === 'rotating' ? 'rotating' : 'fixed';
   if (!Number.isInteger(cutoffDay) || cutoffDay < 1 || cutoffDay > 28) throw new Error('截止日必須是 1 到 28 的整數');
   if (!Number.isInteger(daysPerMonth) || daysPerMonth < 20 || daysPerMonth > 31) throw new Error('每月天數必須是 20 到 31 的整數');
   if (!Number.isInteger(hoursPerDay) || hoursPerDay < 1 || hoursPerDay > 12) throw new Error('每日工時必須是 1 到 12 的整數');
   await pool.execute(
-    `INSERT INTO payroll_settings (id, cutoffDay, daysPerMonth, hoursPerDay) VALUES (1, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE cutoffDay = VALUES(cutoffDay), daysPerMonth = VALUES(daysPerMonth), hoursPerDay = VALUES(hoursPerDay)`,
-    [cutoffDay, daysPerMonth, hoursPerDay]
+    `INSERT INTO payroll_settings (id, cutoffDay, daysPerMonth, hoursPerDay, defaultScheduleMode) VALUES (1, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE cutoffDay = VALUES(cutoffDay), daysPerMonth = VALUES(daysPerMonth),
+       hoursPerDay = VALUES(hoursPerDay), defaultScheduleMode = VALUES(defaultScheduleMode)`,
+    [cutoffDay, daysPerMonth, hoursPerDay, defaultScheduleMode]
   );
 }
 
@@ -235,4 +285,44 @@ export async function prefillLeaveDeductions(pool) {
      SELECT id, IF(isPaid, 0, 1) FROM leave_types`
   );
   return { added: result.affectedRows };
+}
+
+// ---- 假日津貼規則 -----------------------------------------------------------------------
+
+function parseAllowanceRule(body) {
+  const name = String(body.name || '').trim();
+  const rawWeekdays = Array.isArray(body.weekdays) ? body.weekdays : String(body.weekdays || '').split(',');
+  const weekdays = [...new Set(rawWeekdays.filter((w) => w !== '' && w !== null && w !== undefined).map(Number))];
+  const amount = Number(body.amount);
+  if (!name) throw new Error('請輸入津貼名稱');
+  if (weekdays.some((w) => !Number.isInteger(w) || w < 1 || w > 7)) throw new Error('適用星期必須是 1（週一）到 7（週日）');
+  if (weekdays.length === 0 && !body.includeNationalHolidays) throw new Error('請至少選擇一個適用的星期，或勾選國定假日');
+  if (!Number.isInteger(amount) || amount <= 0) throw new Error('每天金額必須是大於 0 的整數');
+  return [name, weekdays.sort((a, b) => a - b).join(','), !!body.includeNationalHolidays, amount, body.requireAttendance !== false, body.active !== false, body.notes || null];
+}
+
+const toRule = (r) => ({ ...r, weekdays: r.weekdays ? r.weekdays.split(',').map(Number) : [], includeNationalHolidays: !!r.includeNationalHolidays, requireAttendance: !!r.requireAttendance, active: !!r.active, amount: Number(r.amount) });
+
+export async function listAllowanceRules(pool) {
+  const [rows] = await pool.execute('SELECT * FROM shift_allowance_rules ORDER BY id');
+  return rows.map(toRule);
+}
+
+export async function createAllowanceRule(pool, body) {
+  const values = parseAllowanceRule(body);
+  const [result] = await pool.execute(
+    `INSERT INTO shift_allowance_rules (name, weekdays, includeNationalHolidays, amount, requireAttendance, active, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`, values);
+  return result.insertId;
+}
+
+export async function updateAllowanceRule(pool, id, body) {
+  const values = parseAllowanceRule(body);
+  const [result] = await pool.execute(
+    `UPDATE shift_allowance_rules SET name = ?, weekdays = ?, includeNationalHolidays = ?, amount = ?, requireAttendance = ?, active = ?, notes = ? WHERE id = ?`, [...values, id]);
+  return result.affectedRows;
+}
+
+export async function deleteAllowanceRule(pool, id) {
+  const [result] = await pool.execute('DELETE FROM shift_allowance_rules WHERE id = ?', [id]);
+  return result.affectedRows;
 }
