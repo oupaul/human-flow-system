@@ -207,6 +207,23 @@ const EditEmployeeDialog = ({
             </Select>
             <p className="text-xs text-muted-foreground">{t("employees:form.scheduleModeHint")}</p>
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="editAttendanceSource">{t("employees:form.attendanceSource")}</Label>
+            <Select value={formData.attendanceSource} onValueChange={(value) => onSelectChange("attendanceSource", value)}>
+              <SelectTrigger id="editAttendanceSource"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="import">{t("employees:form.attendanceSourceImport")}</SelectItem>
+                <SelectItem value="system">{t("employees:form.attendanceSourceSystem")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">{t("employees:form.attendanceSourceHint")}</p>
+            {formData.attendanceSource === "system" && (
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <Label>{t("employees:form.punchIpExempt")}</Label>
+                <Switch checked={formData.punchIpExempt} onCheckedChange={(checked) => onSwitchChange("punchIpExempt", checked)} />
+              </div>
+            )}
+          </div>
           {canSeeSalary && (
             <div className="space-y-2">
               <Label htmlFor="editMonthlySalary">{t("employees:form.monthlySalary")}</Label>

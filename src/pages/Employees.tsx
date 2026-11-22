@@ -205,6 +205,7 @@ const Employees = () => {
         formData={formData}
         onFormChange={handleFormChange}
         onSelectChange={handleSelectChange}
+        onSwitchChange={handleSwitchChange}
         onSave={handleAddEmployee}
       />
 

@@ -83,7 +83,12 @@
     "scheduleModeDefault": "会社の既定を使う",
     "scheduleModeFixed": "固定制",
     "scheduleModeRotating": "シフト制",
-    "scheduleModeHint": "シフト制：休息日・法定休日・祝日はすべて別の日に振り替えられ、日の区分と休日手当は個人のシフト（勤怠取り込みの勤務表と休日の印）で判断します。"
+    "scheduleModeHint": "シフト制：休息日・法定休日・祝日はすべて別の日に振り替えられ、日の区分と休日手当は個人のシフト（勤怠取り込みの勤務表と休日の印）で判断します。",
+    "attendanceSource": "勤怠の取得元",
+    "attendanceSourceImport": "外部取り込み（従来の方法）",
+    "attendanceSourceSystem": "システム打刻",
+    "attendanceSourceHint": "「システム打刻」の従業員はポータルから打刻します。外部勤怠の取り込みでは対象外となり、打刻記録が上書きされません。",
+    "punchIpExempt": "打刻の IP 制限を受けない（外勤）"
   },
   "addDialog": {
     "title": "従業員を追加",

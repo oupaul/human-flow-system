@@ -1,0 +1,127 @@
+{
+  "refresh": "Refresh",
+  "page": {
+    "description": "Overview and management of the built-in punch clock. Employees set to \"System punch\" clock in from their portal; external import can coexist, distinguished by each employee's attendance source."
+  },
+  "tabs": {
+    "today": "Today",
+    "events": "Punch Records",
+    "devices": "Devices",
+    "settings": "Settings"
+  },
+  "types": {
+    "in": "Clock in",
+    "out": "Clock out"
+  },
+  "sources": {
+    "web": "Web punch",
+    "correction": "HR correction"
+  },
+  "flags": {
+    "new_device": "New device",
+    "device_other_employee": "Other employee's device",
+    "device_pending": "Device pending",
+    "device_revoked": "Device revoked",
+    "no_device_id": "No device ID"
+  },
+  "card": {
+    "title": "Clock In / Out",
+    "serverTimeHint": "Server time is authoritative",
+    "punchIn": "Clock In",
+    "punchOut": "Clock Out",
+    "stateOpen": "Currently clocked in; the next punch is \"Clock Out\"",
+    "stateIdle": "Not clocked in; the next punch is \"Clock In\"",
+    "failed": "Punch failed",
+    "ipBlocked": "Your current network ({{ip}}) is not allowed for punching. Please connect to the company network.",
+    "devicePending": "This device is awaiting HR approval before you can punch.",
+    "deviceRevoked": "This device's binding was revoked. Please contact HR.",
+    "deviceOther": "This device is bound to another employee and cannot be used to punch.",
+    "deviceNew": "This is a new device; it will be registered to your account on your first punch."
+  },
+  "today": {
+    "summary": "{{date}} · Default start {{shift}} · Punched in {{punched}} / {{total}}",
+    "empty": "No employees use system punch yet. Change their attendance source to \"System punch\" in Settings or the employee profile.",
+    "clockIn": "In",
+    "clockOut": "Out",
+    "notYet": "Not yet",
+    "working": "Working",
+    "done": "Done",
+    "late": "Late"
+  },
+  "events": {
+    "from": "From",
+    "to": "To",
+    "search": "Employee",
+    "searchPlaceholder": "Name or ID",
+    "statusAll": "All",
+    "statusValid": "Valid",
+    "statusVoided": "Voided",
+    "total": "{{count}} records",
+    "time": "Punch time",
+    "type": "Type",
+    "source": "Source",
+    "device": "Device / IP",
+    "note": "Note",
+    "empty": "No matching punch records",
+    "prev": "Previous",
+    "next": "Next",
+    "void": "Void",
+    "voidTitle": "Void punch record",
+    "voidHint": "Voiding does not delete: the original record is kept with who voided it and why, and the daily attendance is recomputed from the remaining valid records.",
+    "voidDone": "Voided (original record kept)",
+    "voidedInfo": "  Voided: {{reason}} ({{by}})",
+    "reason": "Reason",
+    "reasonPlaceholder": "Required, e.g. pressed clock-out by mistake; forgot to punch, confirmed by manager",
+    "addCorrection": "Add Correction",
+    "correctionHint": "HR can add a punch when an employee forgot to. Only for employees using system punch; a reason is required and future times are not allowed.",
+    "correctionDone": "Correction added",
+    "employeeId": "Employee ID",
+    "clockTime": "Time"
+  },
+  "devices": {
+    "hint": "Each browser has a random ID registered to one employee; a device cannot punch for two people. This is browser-level binding (web pages cannot read hardware MAC addresses). Pending devices also count toward the employee's device limit.",
+    "label": "Device",
+    "firstSeen": "First seen",
+    "lastSeen": "Last used",
+    "approvedBy": "Approved by",
+    "empty": "No registered devices yet",
+    "approve": "Approve",
+    "revoke": "Revoke",
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "revoked": "Revoked"
+    }
+  },
+  "settings": {
+    "networkTitle": "Allowed Networks",
+    "networkHint": "One IPv4 address or CIDR range per line. Leave empty for no restriction.",
+    "addMyIp": "Add my current IP",
+    "yourIp": "Your current IP: {{ip}}",
+    "networkNote": "IPv4 only. Field staff can be exempted in their employee profile. Make sure the IP the system sees is your company's outbound IP (watch out behind reverse proxies or container networks).",
+    "deviceTitle": "Device Binding",
+    "deviceHint": "Prevents punching for someone else: each employee can only use devices registered to them.",
+    "bindingMode": "Mode",
+    "modeEnforce": "Enforce: unapproved devices cannot punch",
+    "modeFlag": "Flag only: allow punching but mark anomalies",
+    "modeOff": "Off: do not check devices",
+    "maxDevices": "Max devices per employee",
+    "autoApprove": "Auto-approve first device",
+    "autoApproveHint": "The device used for an employee's first punch is bound automatically; later devices need HR approval.",
+    "macNote": "Why not bind MAC addresses? Browsers do not let web pages read them, the server only sees IPs, and phones randomize MACs, so a browser ID is used instead. It cannot stop someone remotely controlling the employee's own computer.",
+    "shiftTitle": "Default Shift",
+    "shiftHint": "System-punch employees use this shift to detect late arrival and early leave (grace minutes follow the existing setting). Per-person or per-day schedules come in a later phase.",
+    "shiftStart": "Start time",
+    "shiftEnd": "End time",
+    "sourceTitle": "Bulk Attendance Source",
+    "sourceHint": "Switch employees' attendance source by department to pilot department by department. Employees switched to \"System punch\" are skipped by external attendance imports.",
+    "selectDept": "Select a department",
+    "source": "Attendance source",
+    "apply": "Apply",
+    "sourceApplied": "{{count}} employee(s) updated"
+  },
+  "sourceMode": {
+    "import": "External import",
+    "system": "System punch"
+  }
+}

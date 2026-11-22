@@ -83,7 +83,12 @@
     "scheduleModeDefault": "Use company default",
     "scheduleModeFixed": "Fixed schedule",
     "scheduleModeRotating": "Shift (rotating) schedule",
-    "scheduleModeHint": "Shift schedule: rest days, mandatory days off and national holidays are all shifted to other days; day types and holiday allowances are determined by the individual's schedule (shifts and day-off marks from the attendance import)."
+    "scheduleModeHint": "Shift schedule: rest days, mandatory days off and national holidays are all shifted to other days; day types and holiday allowances are determined by the individual's schedule (shifts and day-off marks from the attendance import).",
+    "attendanceSource": "Attendance source",
+    "attendanceSourceImport": "External import (current way)",
+    "attendanceSourceSystem": "System punch",
+    "attendanceSourceHint": "Employees set to \"System punch\" clock in from their portal; external attendance imports skip them so punch records are never overwritten.",
+    "punchIpExempt": "Exempt from punch IP restriction (field staff)"
   },
   "addDialog": {
     "title": "Add Employee",

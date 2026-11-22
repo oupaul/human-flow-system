@@ -83,7 +83,12 @@
     "scheduleModeDefault": "使用公司預設",
     "scheduleModeFixed": "固定制",
     "scheduleModeRotating": "排班制",
-    "scheduleModeHint": "排班制：休息日、例假日、國定假日都平移到別天，日別與假日津貼依個人排班（考勤匯入的班別與休息日標記）判斷。"
+    "scheduleModeHint": "排班制：休息日、例假日、國定假日都平移到別天，日別與假日津貼依個人排班（考勤匯入的班別與休息日標記）判斷。",
+    "attendanceSource": "出勤來源",
+    "attendanceSourceImport": "外部匯入（原本的方式）",
+    "attendanceSourceSystem": "系統打卡",
+    "attendanceSourceHint": "選「系統打卡」的員工用員工自助頁打卡，匯入外部考勤時會略過他們，避免蓋掉打卡紀錄。",
+    "punchIpExempt": "不受打卡 IP 限制（外勤）"
   },
   "addDialog": {
     "title": "新增員工",

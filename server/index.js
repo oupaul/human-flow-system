@@ -18,6 +18,10 @@ import { computeSettlementSplit, checkLeaveSettlementReminders } from './leaveSe
 import { syncCurrentSalary, recordSalaryChange, parseCompensation } from './compensation.js';
 import { logLeaveAdjustment, listLeaveAdjustments } from './leaveAudit.js';
 import {
+  PunchError, taipeiNow, getPunchStatus, punch as recordPunch, getAttendanceSettings, saveAttendanceSettings, listPunchEvents,
+  voidPunchEvent, addCorrection, listDevices, setDeviceStatus, todayOverview, setAttendanceSource, normalizeIp,
+} from './punch.js';
+import {
   PayrollError, isValidMonth, importRatesCsv, importBracketsCsv, listRates, listBracketSets, generateSnapshot,
   listSnapshots, getSnapshot, setSnapshotLock, deleteDraftSnapshot, snapshotToXlsx,
 } from './payroll.js';
@@ -28,6 +32,9 @@ import {
 } from './payrollVariable.js';
 
 const app = express();
+// 後端在 nginx 反向代理後面：信任最近一層代理帶來的 X-Forwarded-For 才能取得真實用戶端 IP（打卡 IP 限制依此）。
+// 若沒有經過反向代理直接對外，請把 TRUST_PROXY_HOPS 設為 0，否則 X-Forwarded-For 可被偽造
+app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? 1));
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
@@ -128,7 +135,7 @@ async function syncEmployeeAccount(employeeId, email, { resetPassword = false } 
   if (existingRows.length === 0) {
     const passwordHash = await bcrypt.hash(employeeId, 10);
     await pool.execute(
-      `INSERT INTO users (username, password_hash, role, employee_id, active) VALUES (?, ?, 'employee', ?, TRUE)`,
+      `INSERT INTO users (username, password_hash, role, employee_id, active, mustChangePassword) VALUES (?, ?, 'employee', ?, TRUE, TRUE)`,
       [email, passwordHash, employeeId]
     );
     return;
@@ -137,7 +144,7 @@ async function syncEmployeeAccount(employeeId, email, { resetPassword = false } 
   if (resetPassword) {
     const passwordHash = await bcrypt.hash(employeeId, 10);
     await pool.execute(
-      'UPDATE users SET username = ?, password_hash = ?, active = TRUE WHERE employee_id = ?',
+      'UPDATE users SET username = ?, password_hash = ?, active = TRUE, mustChangePassword = TRUE WHERE employee_id = ?',
       [email, passwordHash, employeeId]
     );
   } else {
@@ -227,7 +234,7 @@ function computePeriodGrant(joinDate, periodEnd) {
 // 用於新增員工時：不管到職日是今天還是很多年前，都會直接對應到目前
 // 這一期，而不是每次都從到職日起算的第一年開始
 function findCurrentPeriod(joinDate) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = taipeiNow().date; // 以台北時間的「今天」判斷，不用 UTC（凌晨 0~8 點 UTC 日期還是昨天）
   let periodStart = joinDate;
   let periodEnd = addOneYear(periodStart);
   while (periodEnd <= today) {
@@ -284,7 +291,7 @@ function normalizeScheduleMode(value) {
 // 新增一位員工：建立員工紀錄、第一期特休週年紀錄、假別餘額預設值、登入帳號。
 // 供單筆新增（POST /employees）與批次匯入（POST /employees/import）共用
 async function createEmployeeRecord(data, { canSetSalary = false, changedBy = null } = {}) {
-  const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, initialAnnualLeaveUsed, initialCarriedInDays, scheduleMode } = data;
+  const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, initialAnnualLeaveUsed, initialCarriedInDays, scheduleMode, attendanceSource, punchIpExempt } = data;
   if (!name || !employeeId || !department || !position || !email || !joinDate) {
     throw new Error('所有必填欄位皆需填寫（姓名、員工編號、部門、職位、電子郵件、到職日）');
   }
@@ -292,8 +299,8 @@ async function createEmployeeRecord(data, { canSetSalary = false, changedBy = nu
   const carriedInDays = validateInitialCarriedIn(joinDate, initialCarriedInDays);
 
   const [result] = await pool.execute(
-    'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, scheduleMode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, (canSetSalary && monthlySalary) || null, gender || null, attendanceAccount || null, normalizeScheduleMode(scheduleMode)]
+    'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, scheduleMode, attendanceSource, punchIpExempt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, (canSetSalary && monthlySalary) || null, gender || null, attendanceAccount || null, normalizeScheduleMode(scheduleMode), attendanceSource === 'system' ? 'system' : 'import', !!punchIpExempt]
   );
 
   if (canSetSalary && monthlySalary) {
@@ -615,8 +622,9 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: '帳號或密碼錯誤' });
     }
 
+    // mcp＝尚須修改密碼：這種 token 只能呼叫「查自己」與「改密碼」，其他 API 一律擋下（見 api 的 gate）
     const token = jwt.sign(
-      { sub: user.id, username: user.username, role: user.role, employeeId: user.employee_id },
+      { sub: user.id, username: user.username, role: user.role, employeeId: user.employee_id, mcp: !!user.mustChangePassword },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
@@ -630,6 +638,7 @@ app.post('/api/auth/login', async (req, res) => {
         employeeId: user.employee_id,
         employeeName: user.employeeName || null,
         gender: user.gender || null,
+        mustChangePassword: !!user.mustChangePassword,
       },
     });
   } catch (error) {
@@ -805,6 +814,13 @@ function stripSalaryFields(value) {
 // 以下路由皆須登入
 const api = express.Router();
 api.use(authMiddleware);
+// 帳號被標記「必須先改密碼」時，只放行查自己與改密碼
+api.use((req, res, next) => {
+  if (req.user.mcp && !['/auth/me', '/auth/change-password'].includes(req.path)) {
+    return res.status(403).json({ error: '請先修改密碼後再使用系統', code: 'PASSWORD_CHANGE_REQUIRED' });
+  }
+  next();
+});
 api.use((req, res, next) => {
   if (!SALARY_ROLES.includes(req.user.role)) {
     const originalJson = res.json.bind(res);
@@ -816,7 +832,7 @@ api.use((req, res, next) => {
 api.get('/auth/me', async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      `SELECT u.id, u.username, u.role, u.employee_id, e.name as employeeName, e.gender
+      `SELECT u.id, u.username, u.role, u.employee_id, u.mustChangePassword, e.name as employeeName, e.gender
        FROM users u
        LEFT JOIN employees e ON u.employee_id = e.employeeId
        WHERE u.id = ?`,
@@ -834,6 +850,7 @@ api.get('/auth/me', async (req, res) => {
         employeeId: user.employee_id,
         employeeName: user.employeeName || null,
         gender: user.gender || null,
+        mustChangePassword: !!user.mustChangePassword,
       },
     });
   } catch (error) {
@@ -849,14 +866,21 @@ api.put('/auth/change-password', async (req, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ error: '請輸入目前密碼與新密碼' });
     }
-    if (newPassword.length < 4) {
-      return res.status(400).json({ error: '新密碼長度至少 4 碼' });
+    if (String(newPassword).length < 8) {
+      return res.status(400).json({ error: '新密碼長度至少 8 碼' });
+    }
+    if (newPassword === currentPassword) {
+      return res.status(400).json({ error: '新密碼不能與目前密碼相同' });
     }
 
-    const [rows] = await pool.execute('SELECT password_hash FROM users WHERE id = ?', [req.user.sub]);
+    const [rows] = await pool.execute('SELECT id, username, role, employee_id, password_hash FROM users WHERE id = ?', [req.user.sub]);
     const user = rows[0];
     if (!user) {
       return res.status(401).json({ error: '帳號不存在' });
+    }
+    // 預設密碼是員工編號，不能再用員工編號當新密碼
+    if (user.employee_id && newPassword === user.employee_id) {
+      return res.status(400).json({ error: '新密碼不能使用員工編號' });
     }
 
     const passwordMatches = await bcrypt.compare(currentPassword, user.password_hash);
@@ -865,9 +889,15 @@ api.put('/auth/change-password', async (req, res) => {
     }
 
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
-    await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [newPasswordHash, req.user.sub]);
+    await pool.execute('UPDATE users SET password_hash = ?, mustChangePassword = FALSE WHERE id = ?', [newPasswordHash, req.user.sub]);
 
-    res.json({ message: '密碼已更新' });
+    // 核發不帶「必須改密碼」標記的新 token，讓前端換掉舊的
+    const token = jwt.sign(
+      { sub: user.id, username: user.username, role: user.role, employeeId: user.employee_id, mcp: false },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
+    res.json({ message: '密碼已更新', token });
   } catch (error) {
     console.error('Error changing password:', error);
     res.status(500).json({ error: '修改密碼失敗', detail: error.message });
@@ -1093,7 +1123,7 @@ api.post('/employees/import', requireRole(...STAFF_ROLES), async (req, res) => {
 api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, scheduleMode } = req.body;
+    const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, scheduleMode, attendanceSource, punchIpExempt } = req.body;
 
     const [beforeRows] = await pool.execute('SELECT employeeId, monthlySalary FROM employees WHERE id = ?', [id]);
     const previousEmployeeId = beforeRows[0]?.employeeId;
@@ -1102,8 +1132,9 @@ api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     // 有薪資權限的角色改了月薪，就在今天建立一筆異動紀錄並同步快取；主管送來的表單不含月薪，一律忽略。
     // 表單把月薪清空視為「不變更」，要調整請到員工的「薪資與投保」管理歷史紀錄
     await pool.execute(
-      'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, gender = ?, attendanceAccount = ?, scheduleMode = ? WHERE id = ?',
-      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', gender || null, attendanceAccount || null, normalizeScheduleMode(scheduleMode), id]
+      'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, gender = ?, attendanceAccount = ?, scheduleMode = ?, attendanceSource = COALESCE(?, attendanceSource), punchIpExempt = COALESCE(?, punchIpExempt) WHERE id = ?',
+      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', gender || null, attendanceAccount || null, normalizeScheduleMode(scheduleMode),
+        attendanceSource === 'system' || attendanceSource === 'import' ? attendanceSource : null, punchIpExempt === undefined ? null : !!punchIpExempt, id]
     );
     if (SALARY_ROLES.includes(req.user.role) && Number(monthlySalary) > 0
         && Number(monthlySalary) !== Number(beforeRows[0]?.monthlySalary || 0)) {
@@ -2021,9 +2052,12 @@ api.post('/attendance/import', requireRole(...STAFF_ROLES), (req, res, next) => 
     }
 
     const [employeeRows] = await pool.execute(
-      'SELECT employeeId, attendanceAccount FROM employees WHERE attendanceAccount IS NOT NULL'
+      'SELECT employeeId, attendanceAccount, attendanceSource FROM employees WHERE attendanceAccount IS NOT NULL'
     );
     const accountMap = new Map(employeeRows.map((e) => [e.attendanceAccount, e.employeeId]));
+    // 使用系統打卡的員工，出勤以系統打卡為準：匯入檔裡他們的資料一律略過，避免蓋掉打卡紀錄
+    const systemEmployees = new Set(employeeRows.filter((e) => e.attendanceSource === 'system').map((e) => e.employeeId));
+    const skippedSystem = new Set();
 
     let imported = 0;
     const unmatchedAccounts = new Set();
@@ -2031,6 +2065,10 @@ api.post('/attendance/import', requireRole(...STAFF_ROLES), (req, res, next) => 
       const employeeId = accountMap.get(record.account);
       if (!employeeId) {
         unmatchedAccounts.add(record.account);
+        continue;
+      }
+      if (systemEmployees.has(employeeId)) {
+        skippedSystem.add(employeeId);
         continue;
       }
       await pool.execute(
@@ -2047,6 +2085,7 @@ api.post('/attendance/import', requireRole(...STAFF_ROLES), (req, res, next) => 
       message: '匯入完成',
       imported,
       unmatchedAccounts: Array.from(unmatchedAccounts),
+      skippedSystemEmployees: Array.from(skippedSystem),
     });
   } catch (error) {
     console.error('Error importing attendance:', error);
@@ -2057,6 +2096,107 @@ api.post('/attendance/import', requireRole(...STAFF_ROLES), (req, res, next) => 
 // 某年月的考勤明細（可選員工篩選），供報表明細表使用。isLate/isEarlyLeave
 // 判斷邏輯與 /attendance/summary 的遲到早退次數統計一致（同樣的容許緩衝分鐘數），
 // 讓「明細列表」跟「統計次數」永遠對得上，不會各自維護一套邏輯而算出不同結果
+// 自建打卡（階段 A）
+function handlePunchError(res, error, fallback) {
+  if (error instanceof PunchError) return res.status(error.status).json({ error: error.message, code: error.code, ...error.extra });
+  console.error(fallback, error);
+  return res.status(500).json({ error: fallback, detail: error.message });
+}
+
+const clientContext = (req) => ({ ip: normalizeIp(req.ip), userAgent: req.headers['user-agent'], deviceToken: req.headers['x-device-id'] });
+
+api.get('/attendance/punch/status', async (req, res) => {
+  try {
+    res.json(await getPunchStatus(pool, req.user, clientContext(req)));
+  } catch (error) {
+    handlePunchError(res, error, '取得打卡狀態失敗');
+  }
+});
+
+api.post('/attendance/punch', async (req, res) => {
+  try {
+    res.status(201).json({ message: req.body.type === 'in' ? '上班打卡成功' : '下班打卡成功', ...(await recordPunch(pool, req.user, { type: req.body.type, ...clientContext(req) })) });
+  } catch (error) {
+    handlePunchError(res, error, '打卡失敗');
+  }
+});
+
+api.get('/attendance/punch/today', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    res.json(await todayOverview(pool));
+  } catch (error) {
+    handlePunchError(res, error, '取得今日出勤失敗');
+  }
+});
+
+api.get('/attendance/punch/events', requireRole(...STAFF_ROLES), async (req, res) => {
+  try {
+    res.json(await listPunchEvents(pool, req.query));
+  } catch (error) {
+    handlePunchError(res, error, '取得打卡紀錄失敗');
+  }
+});
+
+// 作廢與補登會改變出勤結果，僅 admin/hr，且必須填原因（留下稽核軌跡）
+api.post('/attendance/punch/events/:id/void', requireRole('admin', 'hr'), async (req, res) => {
+  try {
+    await voidPunchEvent(pool, req.params.id, req.user.username, req.body.reason);
+    res.json({ message: '已作廢該筆打卡紀錄（原始紀錄保留）' });
+  } catch (error) {
+    handlePunchError(res, error, '作廢失敗');
+  }
+});
+
+api.post('/attendance/punch/correction', requireRole('admin', 'hr'), async (req, res) => {
+  try {
+    res.status(201).json({ message: '補登完成', ...(await addCorrection(pool, req.user.username, req.body)) });
+  } catch (error) {
+    handlePunchError(res, error, '補登失敗');
+  }
+});
+
+api.get('/attendance/settings', requireRole('admin', 'hr'), async (req, res) => {
+  try {
+    res.json({ ...(await getAttendanceSettings(pool)), yourIp: normalizeIp(req.ip) });
+  } catch (error) {
+    handlePunchError(res, error, '取得打卡設定失敗');
+  }
+});
+
+api.put('/attendance/settings', requireRole('admin', 'hr'), async (req, res) => {
+  try {
+    await saveAttendanceSettings(pool, req.body);
+    res.json({ message: '打卡設定已儲存' });
+  } catch (error) {
+    res.status(400).json({ error: '儲存打卡設定失敗', detail: error.message });
+  }
+});
+
+api.get('/attendance/devices', requireRole('admin', 'hr'), async (req, res) => {
+  try {
+    res.json(await listDevices(pool));
+  } catch (error) {
+    handlePunchError(res, error, '取得裝置清單失敗');
+  }
+});
+
+api.post('/attendance/devices/:id/:action(approve|revoke)', requireRole('admin', 'hr'), async (req, res) => {
+  try {
+    await setDeviceStatus(pool, req.params.id, req.params.action === 'approve' ? 'approved' : 'revoked', req.user.username);
+    res.json({ message: req.params.action === 'approve' ? '已核准裝置' : '已停用裝置' });
+  } catch (error) {
+    handlePunchError(res, error, '更新裝置狀態失敗');
+  }
+});
+
+api.put('/attendance/source', requireRole('admin', 'hr'), async (req, res) => {
+  try {
+    res.json({ message: '出勤來源已更新', updated: await setAttendanceSource(pool, req.body) });
+  } catch (error) {
+    res.status(400).json({ error: '更新出勤來源失敗', detail: error.message });
+  }
+});
+
 api.get('/attendance/records', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { year, month, employeeId } = req.query;

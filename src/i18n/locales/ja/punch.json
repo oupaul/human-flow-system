@@ -1,0 +1,127 @@
+{
+  "refresh": "更新",
+  "page": {
+    "description": "内蔵打刻の勤怠一覧と管理です。「システム打刻」の従業員は自分のポータルから打刻します。外部取り込みとも併用でき、従業員ごとの勤怠の取得元で区別します。"
+  },
+  "tabs": {
+    "today": "本日の勤怠",
+    "events": "打刻記録",
+    "devices": "端末の紐付け",
+    "settings": "打刻設定"
+  },
+  "types": {
+    "in": "出勤",
+    "out": "退勤"
+  },
+  "sources": {
+    "web": "Web 打刻",
+    "correction": "HR 補正"
+  },
+  "flags": {
+    "new_device": "新しい端末",
+    "device_other_employee": "他の従業員の端末",
+    "device_pending": "端末承認待ち",
+    "device_revoked": "端末無効",
+    "no_device_id": "端末ID なし"
+  },
+  "card": {
+    "title": "出勤・退勤の打刻",
+    "serverTimeHint": "時刻はサーバー基準",
+    "punchIn": "出勤打刻",
+    "punchOut": "退勤打刻",
+    "stateOpen": "現在勤務中です。次の打刻は「退勤」です",
+    "stateIdle": "未出勤です。次の打刻は「出勤」です",
+    "failed": "打刻に失敗しました",
+    "ipBlocked": "現在のネットワーク（{{ip}}）は打刻が許可されていません。会社のネットワークに接続してください。",
+    "devicePending": "この端末は HR の承認待ちです。承認後に打刻できます。",
+    "deviceRevoked": "この端末の紐付けは無効になっています。HR にご連絡ください。",
+    "deviceOther": "この端末は他の従業員に紐付けられているため打刻できません。",
+    "deviceNew": "新しい端末です。初回の打刻時にあなたのアカウントに登録されます。"
+  },
+  "today": {
+    "summary": "{{date}} · 既定の始業 {{shift}} · 打刻済み {{punched}} / {{total}} 名",
+    "empty": "システム打刻を使う従業員がまだいません。打刻設定または従業員情報で勤怠の取得元を「システム打刻」に変更してください。",
+    "clockIn": "出勤",
+    "clockOut": "退勤",
+    "notYet": "未打刻",
+    "working": "勤務中",
+    "done": "退勤済み",
+    "late": "遅刻"
+  },
+  "events": {
+    "from": "開始日",
+    "to": "終了日",
+    "search": "従業員",
+    "searchPlaceholder": "氏名または社員番号",
+    "statusAll": "すべて",
+    "statusValid": "有効",
+    "statusVoided": "取消済み",
+    "total": "{{count}} 件",
+    "time": "打刻時刻",
+    "type": "種別",
+    "source": "取得元",
+    "device": "端末／IP",
+    "note": "備考",
+    "empty": "該当する打刻記録がありません",
+    "prev": "前へ",
+    "next": "次へ",
+    "void": "取消",
+    "voidTitle": "打刻記録の取消",
+    "voidHint": "取消しても削除はされません。元の記録は取消者と理由とともに残り、日々の勤怠は残りの有効な記録から再計算されます。",
+    "voidDone": "取り消しました（元の記録は保持）",
+    "voidedInfo": "　取消：{{reason}}（{{by}}）",
+    "reason": "理由",
+    "reasonPlaceholder": "必須。例：退勤の押し間違い、打刻忘れ（上長確認済み）",
+    "addCorrection": "打刻の補正",
+    "correctionHint": "打刻忘れなどの場合に HR が補正します。システム打刻の従業員のみ対象で、理由が必須、未来の時刻は不可です。",
+    "correctionDone": "補正しました",
+    "employeeId": "社員番号",
+    "clockTime": "時刻"
+  },
+  "devices": {
+    "hint": "ブラウザごとにランダムな ID を従業員に登録し、1 台の端末で 2 人分の打刻はできません。ブラウザ単位の紐付けです（Web ページはハードウェアの MAC アドレスを取得できません）。承認待ちの端末も従業員の端末数に含まれます。",
+    "label": "端末",
+    "firstSeen": "初回",
+    "lastSeen": "最終使用",
+    "approvedBy": "承認者",
+    "empty": "登録された端末はありません",
+    "approve": "承認",
+    "revoke": "無効化",
+    "status": {
+      "pending": "承認待ち",
+      "approved": "承認済み",
+      "revoked": "無効"
+    }
+  },
+  "settings": {
+    "networkTitle": "打刻を許可するネットワーク",
+    "networkHint": "1 行に 1 つの IPv4 アドレスまたはネットワーク（CIDR）。空欄は制限なし。",
+    "addMyIp": "現在の IP を追加",
+    "yourIp": "現在の IP：{{ip}}",
+    "networkNote": "IPv4 のみ対応。外勤の従業員は従業員情報で除外できます。システムが見ている IP が会社の外向き IP であることを確認してください（リバースプロキシやコンテナのネットワーク経由では特に注意）。",
+    "deviceTitle": "端末の紐付け",
+    "deviceHint": "他人の代わりの打刻を防ぎます。各従業員は登録済みの端末のみ使えます。",
+    "bindingMode": "モード",
+    "modeEnforce": "強制：未承認の端末では打刻不可",
+    "modeFlag": "印のみ：打刻は可能で異常を記録に表示",
+    "modeOff": "無効：端末を確認しない",
+    "maxDevices": "従業員あたりの端末上限",
+    "autoApprove": "最初の端末を自動承認",
+    "autoApproveHint": "初回の打刻に使った端末は自動で紐付けられ、以降の端末は HR の承認が必要です。",
+    "macNote": "MAC アドレスで紐付けない理由：ブラウザは Web ページに MAC の取得を許可せず、サーバーに見えるのは IP のみで、スマートフォンは MAC をランダム化します。そのためブラウザの識別子で紐付けます。本人の PC を遠隔操作されると防げません。",
+    "shiftTitle": "既定の勤務時間",
+    "shiftHint": "システム打刻の従業員は、この勤務時間で遅刻・早退を判定します（猶予は既存の設定）。個人別・日別のシフトは後続のフェーズで提供します。",
+    "shiftStart": "始業時刻",
+    "shiftEnd": "終業時刻",
+    "sourceTitle": "勤怠の取得元の一括設定",
+    "sourceHint": "部門ごとに従業員の勤怠の取得元を切り替え、部門単位で試行できます。「システム打刻」にした従業員は外部勤怠の取り込みで除外されます。",
+    "selectDept": "部門を選択",
+    "source": "勤怠の取得元",
+    "apply": "適用",
+    "sourceApplied": "{{count}} 名を更新しました"
+  },
+  "sourceMode": {
+    "import": "外部取り込み",
+    "system": "システム打刻"
+  }
+}

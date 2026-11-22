@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { payrollApi } from "@/services/payrollApi";
+import { currentMonthStr } from "@/lib/taipeiDate";
 import PayrollRulesPanel from "@/components/PayrollRulesPanel";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AllowanceDetailLine, BracketSet, InsuranceRate, LeaveDetailLine, OvertimeDetailLine, PayrollItem, PayrollSnapshotDetail, PayrollSnapshotSummary } from "@/types/payroll";
@@ -28,7 +29,7 @@ const RATE_KEYS = [
 
 const errorDescription = (error: unknown) => (error instanceof Error ? error.message : undefined);
 const money = (v: number | null | undefined) => (v === null || v === undefined ? "—" : Number(v).toLocaleString());
-const currentMonth = () => new Date().toISOString().slice(0, 7);
+const currentMonth = () => currentMonthStr();
 
 const downloadText = (filename: string, text: string) => {
   const url = URL.createObjectURL(new Blob(["﻿" + text], { type: "text/csv;charset=utf-8" }));

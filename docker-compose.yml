@@ -3,6 +3,7 @@ services:
     image: mariadb:11
     restart: unless-stopped
     environment:
+      TZ: Asia/Taipei
       MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MARIADB_DATABASE: ${DB_NAME}
       MARIADB_USER: ${DB_USER}
@@ -23,6 +24,7 @@ services:
     build: ./server
     restart: unless-stopped
     environment:
+      TZ: Asia/Taipei
       PORT: 3001
       CORS_ORIGIN: ${CORS_ORIGIN}
       DB_HOST: db

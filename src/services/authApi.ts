@@ -9,6 +9,7 @@ export interface AuthUser {
   employeeId: string | null;
   employeeName: string | null;
   gender: "male" | "female" | null;
+  mustChangePassword?: boolean;
 }
 
 // 只有 admin/hr 能看到與修改薪資、折現金額（後端同樣限制，這裡只是避免畫面出現空欄位或誤導文字）
@@ -70,10 +71,12 @@ export const authApi = {
     clearToken();
   },
 
+  // 改密碼成功後後端會核發新的 token（不再帶「必須改密碼」標記），要換掉舊的
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    await apiFetch<{ message: string }>("/auth/change-password", {
+    const result = await apiFetch<{ message: string; token?: string }>("/auth/change-password", {
       method: "PUT",
       body: JSON.stringify({ currentPassword, newPassword }),
     });
+    if (result.token) setToken(result.token);
   },
 };

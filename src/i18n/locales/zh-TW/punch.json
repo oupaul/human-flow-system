@@ -1,0 +1,127 @@
+{
+  "refresh": "重新整理",
+  "page": {
+    "description": "自建打卡的出勤總覽與管理。使用「系統打卡」的員工在自己的入口頁打卡；外部匯入仍可並存，兩者以員工的「出勤來源」區分。"
+  },
+  "tabs": {
+    "today": "今日出勤",
+    "events": "打卡紀錄",
+    "devices": "裝置綁定",
+    "settings": "打卡設定"
+  },
+  "types": {
+    "in": "上班",
+    "out": "下班"
+  },
+  "sources": {
+    "web": "網頁打卡",
+    "correction": "HR 補登"
+  },
+  "flags": {
+    "new_device": "新裝置",
+    "device_other_employee": "他人裝置",
+    "device_pending": "裝置待核准",
+    "device_revoked": "裝置已停用",
+    "no_device_id": "無裝置識別碼"
+  },
+  "card": {
+    "title": "上下班打卡",
+    "serverTimeHint": "時間以伺服器為準",
+    "punchIn": "上班打卡",
+    "punchOut": "下班打卡",
+    "stateOpen": "目前上班中，下一次打卡是「下班」",
+    "stateIdle": "尚未上班，下一次打卡是「上班」",
+    "failed": "打卡失敗",
+    "ipBlocked": "目前的網路（{{ip}}）不在允許打卡的範圍內，請連到公司網路後再打卡。",
+    "devicePending": "此裝置的綁定申請待 HR 核准，核准後才能打卡。",
+    "deviceRevoked": "此裝置的綁定已被停用，請洽 HR。",
+    "deviceOther": "此裝置已綁定給其他員工，不能用來打卡。",
+    "deviceNew": "這是新裝置，第一次打卡時會登記綁定到您的帳號。"
+  },
+  "today": {
+    "summary": "{{date}} · 預設上班時間 {{shift}} · 已打卡 {{punched}} / {{total}} 人",
+    "empty": "目前沒有使用系統打卡的員工。請到「打卡設定」或員工資料把出勤來源改為「系統打卡」。",
+    "clockIn": "上班",
+    "clockOut": "下班",
+    "notYet": "尚未打卡",
+    "working": "上班中",
+    "done": "已下班",
+    "late": "遲到"
+  },
+  "events": {
+    "from": "起始日",
+    "to": "結束日",
+    "search": "員工",
+    "searchPlaceholder": "姓名或編號",
+    "statusAll": "全部",
+    "statusValid": "有效",
+    "statusVoided": "已作廢",
+    "total": "共 {{count}} 筆",
+    "time": "打卡時間",
+    "type": "類別",
+    "source": "來源",
+    "device": "裝置／IP",
+    "note": "備註",
+    "empty": "沒有符合的打卡紀錄",
+    "prev": "上一頁",
+    "next": "下一頁",
+    "void": "作廢",
+    "voidTitle": "作廢打卡紀錄",
+    "voidHint": "作廢不會刪除：原始紀錄會保留並標示作廢者與原因，每日出勤會依剩下的有效紀錄重新計算。",
+    "voidDone": "已作廢（原始紀錄保留）",
+    "voidedInfo": "　作廢：{{reason}}（{{by}}）",
+    "reason": "原因",
+    "reasonPlaceholder": "必填，例如：誤按下班、忘記打卡經主管確認",
+    "addCorrection": "補登打卡",
+    "correctionHint": "員工忘記打卡等情況，由 HR 補登。僅限使用系統打卡的員工，必須填原因，且不能補登未來的時間。",
+    "correctionDone": "補登完成",
+    "employeeId": "員工編號",
+    "clockTime": "時間"
+  },
+  "devices": {
+    "hint": "每個瀏覽器有一組隨機識別碼，登記在某位員工名下；一個裝置不能替兩個人打卡。這是瀏覽器層級的綁定（網頁拿不到硬體 MAC 位址）。待核准的裝置也會佔用該員工的裝置名額。",
+    "label": "裝置",
+    "firstSeen": "首次出現",
+    "lastSeen": "最近使用",
+    "approvedBy": "核准者",
+    "empty": "目前沒有登記的裝置",
+    "approve": "核准",
+    "revoke": "停用",
+    "status": {
+      "pending": "待核准",
+      "approved": "已核准",
+      "revoked": "已停用"
+    }
+  },
+  "settings": {
+    "networkTitle": "允許打卡的網路",
+    "networkHint": "一行一個 IPv4 位址或網段（CIDR）。留空代表不限制。",
+    "addMyIp": "加入我目前的 IP",
+    "yourIp": "您目前的 IP：{{ip}}",
+    "networkNote": "只支援 IPv4。外勤員工可在員工資料勾選「不受打卡 IP 限制」。請先確認系統看到的 IP 是公司對外出口 IP（經過反向代理或容器網路時要特別留意）。",
+    "deviceTitle": "裝置綁定",
+    "deviceHint": "防止替別人打卡：每位員工只能用自己登記過的裝置。",
+    "bindingMode": "模式",
+    "modeEnforce": "強制：未核准的裝置不能打卡",
+    "modeFlag": "只標記：允許打卡但在紀錄標示異常",
+    "modeOff": "關閉：不檢查裝置",
+    "maxDevices": "每位員工裝置上限",
+    "autoApprove": "第一台裝置自動核准",
+    "autoApproveHint": "員工第一次打卡的裝置自動綁定；之後新增的裝置需 HR 核准。",
+    "macNote": "為什麼不是綁定 MAC 位址？瀏覽器不開放網頁讀取 MAC，伺服器也只看得到 IP，手機還會隨機化 MAC，所以改用瀏覽器識別碼綁定。無法防止有人遠端操控本人的電腦。",
+    "shiftTitle": "預設班別",
+    "shiftHint": "系統打卡的員工用這個班別判斷遲到、早退（寬限分鐘沿用現有設定）。每人或每天不同的班表將於後續階段提供。",
+    "shiftStart": "上班時間",
+    "shiftEnd": "下班時間",
+    "sourceTitle": "出勤來源批次設定",
+    "sourceHint": "依部門批次切換員工的出勤來源，可用來逐部門試行。切換為「系統打卡」的員工，匯入外部考勤時會被略過。",
+    "selectDept": "選擇部門",
+    "source": "出勤來源",
+    "apply": "套用",
+    "sourceApplied": "已更新 {{count}} 位員工"
+  },
+  "sourceMode": {
+    "import": "外部匯入",
+    "system": "系統打卡"
+  }
+}

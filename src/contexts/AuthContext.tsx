@@ -8,6 +8,7 @@ interface AuthContextValue {
   login: (username: string, password: string) => Promise<AuthUser>;
   completeSsoLogin: (token: string) => Promise<AuthUser | null>;
   logout: () => void;
+  markPasswordChanged: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -53,8 +54,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  // 改密碼成功後解除「必須改密碼」狀態（token 已由 authApi.changePassword 換新）
+  const markPasswordChanged = () => setUser((prev) => (prev ? { ...prev, mustChangePassword: false } : prev));
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, completeSsoLogin, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, completeSsoLogin, logout, markPasswordChanged }}>
       {children}
     </AuthContext.Provider>
   );

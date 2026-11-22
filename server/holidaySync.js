@@ -6,6 +6,7 @@
 
 import { sendNotification } from './notifications.js';
 import { parseCsv } from './csv.js';
+import { taipeiNow } from './punch.js';
 
 const TAIPEI_DATASET_ID = 'c30ca421-d935-4faa-b523-9c175c8de738';
 const TAIPEI_BASE = 'https://data.taipei';
@@ -116,7 +117,7 @@ export async function checkHolidayCalendar(pool) {
     missing = stillMissing;
     if (missing.length === 0) return { missing: [] };
 
-    const today = now.toISOString().slice(0, 10);
+    const today = taipeiNow().date;
     if (now.getDay() === 1 && lastReminderDate !== today) {
       lastReminderDate = today;
       const [rules] = await pool.execute(

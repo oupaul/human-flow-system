@@ -36,6 +36,9 @@ CREATE TABLE IF NOT EXISTS employees (
   attendanceAccount VARCHAR(100) NULL UNIQUE,
   -- 出勤制度：固定制／排班制（排班制的休息日、例假日、國定假日都平移，日別依個人排班判斷）；NULL＝使用公司預設
   scheduleMode ENUM('fixed', 'rotating') NULL,
+  -- 出勤來源：import＝考勤由外部系統匯入；system＝使用系統打卡（匯入時略過）；punchIpExempt＝不受打卡 IP 限制（外勤）
+  attendanceSource ENUM('import', 'system') NOT NULL DEFAULT 'import',
+  punchIpExempt BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -158,6 +161,7 @@ CREATE TABLE IF NOT EXISTS attendance_records (
   clockOut TIME NULL,
   status ENUM('normal', 'missing', 'day_off', 'leave') NOT NULL,
   note VARCHAR(50) NULL,
+  source ENUM('import', 'system') NOT NULL DEFAULT 'import',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY employee_date (employeeId, date),
@@ -247,6 +251,8 @@ CREATE TABLE IF NOT EXISTS users (
   role ENUM('admin', 'hr', 'manager', 'employee') DEFAULT 'employee',
   employee_id VARCHAR(50) NULL,
   active BOOLEAN DEFAULT TRUE,
+  -- 首次登入（或密碼被重設為預設值）後必須先改密碼；員工預設密碼是員工編號，打卡要避免被冒用
+  mustChangePassword BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (employee_id) REFERENCES employees(employeeId)
@@ -491,6 +497,61 @@ CREATE TABLE IF NOT EXISTS shift_allowance_rules (
   notes TEXT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 打卡設定（單一列 id=1）
+--   ipAllowlist：允許打卡的 IPv4 位址或網段（CIDR），一行一個；空白表示不限制
+--   deviceBinding：off 不檢查；flag 只標記異常；enforce 未核准的裝置不能打卡
+CREATE TABLE IF NOT EXISTS attendance_settings (
+  id INT PRIMARY KEY DEFAULT 1,
+  defaultShiftStart TIME NOT NULL DEFAULT '09:00:00',
+  defaultShiftEnd TIME NOT NULL DEFAULT '18:00:00',
+  ipAllowlist TEXT NULL,
+  deviceBinding ENUM('off', 'flag', 'enforce') NOT NULL DEFAULT 'enforce',
+  maxDevicesPerEmployee INT NOT NULL DEFAULT 2,
+  autoApproveFirstDevice BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+INSERT IGNORE INTO attendance_settings (id) VALUES (1);
+
+-- 打卡裝置：每個瀏覽器產生一組隨機識別碼（只存雜湊），登記在某位員工名下；一個識別碼只能屬於一位員工。
+-- 這是瀏覽器層級的綁定（網頁拿不到硬體 MAC 位址），用來防止替別人打卡
+CREATE TABLE IF NOT EXISTS punch_devices (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL,
+  tokenHash CHAR(64) NOT NULL UNIQUE,
+  label VARCHAR(255) NULL,
+  status ENUM('pending', 'approved', 'revoked') NOT NULL DEFAULT 'pending',
+  firstSeenAt DATETIME NOT NULL,
+  lastSeenAt DATETIME NOT NULL,
+  lastIp VARCHAR(45) NULL,
+  approvedBy VARCHAR(100) NULL,
+  approvedAt DATETIME NULL,
+  INDEX idx_device_employee (employeeId)
+);
+
+-- 打卡事件：時間一律取伺服器時間（台北時間），不信任用戶端。只新增不修改內容；
+-- 更正時把原事件標記為作廢（保留原始紀錄與作廢原因），再視需要補登一筆 source='correction' 的事件。
+-- 不設外鍵：員工日後離職或刪除，出勤紀錄依法仍須保存
+CREATE TABLE IF NOT EXISTS punch_events (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL,
+  punchAt DATETIME NOT NULL,
+  workDate DATE NOT NULL,
+  type ENUM('in', 'out') NOT NULL,
+  source ENUM('web', 'correction') NOT NULL DEFAULT 'web',
+  ip VARCHAR(45) NULL,
+  userAgent VARCHAR(255) NULL,
+  deviceId INT NULL,
+  flags VARCHAR(255) NULL,
+  note VARCHAR(255) NULL,
+  createdBy VARCHAR(100) NULL,
+  status ENUM('valid', 'voided') NOT NULL DEFAULT 'valid',
+  voidedBy VARCHAR(100) NULL,
+  voidedAt DATETIME NULL,
+  voidReason VARCHAR(255) NULL,
+  INDEX idx_punch_employee_date (employeeId, workDate),
+  INDEX idx_punch_at (punchAt)
 );
 
 -- 範例假別類型（可依需求刪減）

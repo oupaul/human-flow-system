@@ -51,7 +51,7 @@ const ChangePasswordDialog = ({ open, onOpenChange }: ChangePasswordDialogProps)
       setError(t("auth:changePassword.errors.mismatch"));
       return;
     }
-    if (newPassword.length < 4) {
+    if (newPassword.length < 8) {
       setError(t("auth:changePassword.errors.tooShort"));
       return;
     }

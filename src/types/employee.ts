@@ -18,6 +18,8 @@ export interface Employee {
   monthlySalary?: number | null;
   gender?: Gender | null;
   scheduleMode?: ScheduleMode | null;
+  attendanceSource?: "import" | "system";
+  punchIpExempt?: boolean;
   attendanceAccount?: string | null;
   created_at?: string;
   updated_at?: string;
@@ -41,6 +43,9 @@ export interface EmployeeFormData {
   gender: Gender | "";
   // 出勤制度：空字串＝使用公司預設；排班制的休息日、例假日、國定假日都平移，日別依個人排班判斷
   scheduleMode: ScheduleMode | "";
+  // 出勤來源：import＝考勤由外部系統匯入；system＝使用系統打卡（匯入時略過）；punchIpExempt＝不受打卡 IP 限制（外勤）
+  attendanceSource: "import" | "system";
+  punchIpExempt: boolean;
   attendanceAccount: string;
   // 僅新增員工時使用：系統上線時導入既有員工，登記他們在此之前已休掉的特休天數
   initialAnnualLeaveUsed?: number | null;
@@ -71,6 +76,8 @@ export const emptyFormData: EmployeeFormData = {
   monthlySalary: null,
   gender: "",
   scheduleMode: "",
+  attendanceSource: "import",
+  punchIpExempt: false,
   attendanceAccount: "",
   initialAnnualLeaveUsed: null,
   initialCarriedInDays: null,
@@ -94,6 +101,8 @@ export const employeeToFormData = (employee: Employee): EmployeeFormData => {
     monthlySalary: employee.monthlySalary ?? null,
     gender: employee.gender || "",
     scheduleMode: employee.scheduleMode || "",
+    attendanceSource: employee.attendanceSource || "import",
+    punchIpExempt: !!employee.punchIpExempt,
     attendanceAccount: employee.attendanceAccount || "",
   };
 };

@@ -13,6 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { todayStr } from "@/lib/taipeiDate";
 import { compensationApi } from "@/services/compensationApi";
 import { Compensation } from "@/types/compensation";
 
@@ -59,7 +60,7 @@ const CompensationDialog = ({ employeeId, employeeName, onClose, onChanged }: Pr
     load();
   }, [load]);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayStr();
   // 目前生效的是「生效日 <= 今天」中最新的一筆（列表已依生效日由新到舊排序）
   const currentId = records.find((r) => r.effectiveDate <= today)?.id;
 

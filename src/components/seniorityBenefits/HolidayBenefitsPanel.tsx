@@ -15,6 +15,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { todayStr } from "@/lib/taipeiDate";
 import { holidayBenefitApi } from "@/services/holidayBenefitApi";
 import {
   HolidayBenefitRecord, HolidayBenefitRecordUpdate, HolidayBenefitRule,
@@ -120,7 +121,7 @@ const HolidayBenefitsPanel = () => {
 
   const openPay = (record: HolidayBenefitRecord) => {
     setPayingRecord(record);
-    setPaidAt(new Date().toISOString().slice(0, 10));
+    setPaidAt(todayStr());
     setPaidAmount(String(record.estimatedTotal ?? ""));
   };
 

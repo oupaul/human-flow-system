@@ -22,6 +22,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { canViewSalary } from "@/services/authApi";
+import { Switch } from "@/components/ui/switch";
 import { departmentApi } from "@/services/departmentApi";
 
 interface AddEmployeeDialogProps {
@@ -30,6 +31,7 @@ interface AddEmployeeDialogProps {
   formData: EmployeeFormData;
   onFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onSelectChange: (name: string, value: string) => void;
+  onSwitchChange: (name: string, checked: boolean) => void;
   onSave: () => void;
 }
 
@@ -39,6 +41,7 @@ const AddEmployeeDialog = ({
   formData,
   onFormChange,
   onSelectChange,
+  onSwitchChange,
   onSave
 }: AddEmployeeDialogProps) => {
   const { t } = useTranslation(["employees", "common"]);
@@ -203,6 +206,23 @@ const AddEmployeeDialog = ({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">{t("employees:form.scheduleModeHint")}</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="attendanceSource">{t("employees:form.attendanceSource")}</Label>
+            <Select value={formData.attendanceSource} onValueChange={(value) => onSelectChange("attendanceSource", value)}>
+              <SelectTrigger id="attendanceSource"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="import">{t("employees:form.attendanceSourceImport")}</SelectItem>
+                <SelectItem value="system">{t("employees:form.attendanceSourceSystem")}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">{t("employees:form.attendanceSourceHint")}</p>
+            {formData.attendanceSource === "system" && (
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <Label>{t("employees:form.punchIpExempt")}</Label>
+                <Switch checked={formData.punchIpExempt} onCheckedChange={(checked) => onSwitchChange("punchIpExempt", checked)} />
+              </div>
+            )}
           </div>
           {canSeeSalary && (
             <div className="space-y-2">

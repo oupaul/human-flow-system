@@ -37,6 +37,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, Clock, Loader2, Paperclip, Plus, XCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import PunchCard from "@/components/PunchCard";
 import { useLeaveManagement } from "@/hooks/useLeaveManagement";
 import { useOvertimeApplications } from "@/hooks/useOvertimeApplications";
 import { useLeaveGrants } from "@/hooks/useLeaveGrants";
@@ -361,6 +362,8 @@ const MyPortal = () => {
           </Dialog>
         </div>
       </div>
+
+      <PunchCard />
 
       {balance && (
         <Card>

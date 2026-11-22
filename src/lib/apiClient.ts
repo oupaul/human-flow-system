@@ -22,6 +22,25 @@ export class ApiError extends Error {
   }
 }
 
+// 打卡用的「裝置識別碼」：每個瀏覽器產生一組隨機碼存在 localStorage，伺服器只存雜湊，
+// 用來把打卡綁定在登記過的瀏覽器上（網頁拿不到硬體 MAC 位址，這是瀏覽器層級的綁定）
+const DEVICE_KEY = "hrms_device_id";
+
+export function getDeviceId(): string {
+  try {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
+  } catch {
+    return "";
+  }
+}
+
+const needsDeviceId = (path: string) => path === "/attendance/punch" || path.startsWith("/attendance/punch/status");
+
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   // FormData（檔案上傳）不能手動設定 Content-Type，瀏覽器要自己帶正確的
@@ -33,6 +52,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     headers: {
       ...(isFormData ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(needsDeviceId(path) ? { "X-Device-Id": getDeviceId() } : {}),
       ...options.headers,
     },
   });

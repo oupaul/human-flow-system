@@ -59,10 +59,11 @@ import { attendanceApi } from "@/services/attendanceApi";
 import { AttendanceRecord } from "@/types/attendance";
 import { leaveImportApi } from "@/services/leaveImportApi";
 import { FileDown } from "lucide-react";
+import { toLocalDateStr } from "@/lib/taipeiDate";
 
 type DepartmentRange = "currentMonth" | "lastMonth" | "currentQuarter" | "lastQuarter" | "currentYear" | "lastYear";
 
-const toDateStr = (d: Date) => d.toISOString().slice(0, 10);
+const toDateStr = (d: Date) => toLocalDateStr(d);
 
 const getRangeDates = (range: DepartmentRange, now: Date): { startDate: string; endDate: string } => {
   const year = now.getFullYear();

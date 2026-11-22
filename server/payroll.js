@@ -4,6 +4,7 @@
 
 import * as XLSX from 'xlsx';
 import { parseCsv } from './csv.js';
+import { taipeiNow } from './punch.js';
 import { RATE_KEYS, BRACKET_TYPES, calculateItem } from './insuranceCalc.js';
 import {
   getSettings, payPeriodFor, classifyOvertimeDay, classifyScheduledDay, calculateOvertimePay, calculateLeaveDeduction,
@@ -239,7 +240,7 @@ async function loadVariableInputs(pool, period, employeeList, settings) {
 // 產生（或重新產生草稿）某月的試算快照。已鎖定的月份不能重新產生
 export async function generateSnapshot(pool, month, username) {
   if (!isValidMonth(month)) throw new PayrollError(400, '月份格式不正確（需 YYYY-MM）');
-  const currentMonth = new Date().toISOString().slice(0, 7);
+  const currentMonth = taipeiNow().date.slice(0, 7);
   if (month > currentMonth) throw new PayrollError(400, '不能產生未來月份的試算');
 
   const [existing] = await pool.execute('SELECT id, status FROM payroll_snapshots WHERE month = ?', [month]);

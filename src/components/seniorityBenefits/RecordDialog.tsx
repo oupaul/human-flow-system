@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { todayStr } from "@/lib/taipeiDate";
 import { SeniorityBenefitRecord, SeniorityBenefitRecordUpdate } from "@/types/seniorityBenefit";
 
 interface Props {
@@ -23,7 +24,7 @@ const RecordDialog = ({ record, onClose, onSubmit }: Props) => {
 
   useEffect(() => {
     if (!record) return;
-    setPaidAt(record.paidAt ?? new Date().toISOString().slice(0, 10));
+    setPaidAt(record.paidAt ?? todayStr());
     setPaidAmount(String(record.paidAmount ?? record.ruleAmount ?? ""));
     setNotes(record.notes ?? "");
   }, [record]);

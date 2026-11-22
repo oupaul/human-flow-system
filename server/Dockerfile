@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# 時區資料：容器以台北時間運作（打卡與出勤日期判斷依此）
+RUN apk add --no-cache tzdata
+
 WORKDIR /app
 
 COPY package.json ./

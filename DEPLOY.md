@@ -135,7 +135,12 @@ docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_datab
 
 # 排班制：員工出勤制度、假日津貼規則
 docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/018_schedule_mode_allowance.sql
+
+# 自建打卡（階段 A）：打卡事件、裝置綁定、IP 限制、員工出勤來源、首次登入強制改密碼
+docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/019_punch.sql
 ```
+
+> 套用 019 後，既有「員工」角色帳號下次登入必須先修改密碼。另外容器時區已改為 Asia/Taipei，升級時請重建容器（`docker compose up --build -d`）。
 
 全新安裝（第一次啟動 `db` 容器）不需要這步，`schema.sql` 已經包含最新結構。
 
