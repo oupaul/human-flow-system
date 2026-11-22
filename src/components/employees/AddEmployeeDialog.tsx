@@ -215,6 +215,21 @@ const AddEmployeeDialog = ({
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="initialCarriedInDays">{t("employees:form.initialCarriedInDays")}</Label>
+            <Input
+              id="initialCarriedInDays"
+              name="initialCarriedInDays"
+              type="number"
+              min="0"
+              max="30"
+              step="0.5"
+              placeholder="0"
+              value={formData.initialCarriedInDays ?? ""}
+              onChange={onFormChange}
+            />
+            <p className="text-xs text-muted-foreground">{t("employees:form.initialCarriedInDaysHint")}</p>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="notes">{t("employees:form.notes")}</Label>
             <Textarea
               id="notes"

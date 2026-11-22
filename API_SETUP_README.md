@@ -213,8 +213,8 @@ npm run dev
 
 ### 員工管理（僅 HR/主管）
 - `GET /api/employees`
-- `POST /api/employees` — 新增員工時會自動建立對應的員工登入帳號與第一期特休週年紀錄；可選帶 `initialAnnualLeaveUsed`，登記系統上線前該員工已休掉的特休天數（預設 0）
-- `POST /api/employees/import` — `{ csv }` 批次匯入，標題列需含姓名/員工編號/部門/職位/電子郵件/到職日（電話/地址/備註/月薪/性別/考勤帳號/已用特休天數選填，欄位可任意排序；性別填「男」或「女」，用於限制生理假等性別限定的假別；考勤帳號用於比對外部打卡系統匯入的考勤資料），逐列處理、單列失敗不影響其他列，回傳 `{ created, failed: [{ row, employeeId, error }] }`
+- `POST /api/employees` — 新增員工時會自動建立對應的員工登入帳號與第一期特休週年紀錄；可選帶 `initialAnnualLeaveUsed`（登記系統上線前該員工在目前這一期已休掉的特休天數，預設 0）與 `initialCarriedInDays`（上一期遞延進來、須在本期休完的天數，0～30，預設 0；到職未滿一年的員工沒有上一期，填大於 0 會回 400）
+- `POST /api/employees/import` — `{ csv }` 批次匯入，標題列需含姓名/員工編號/部門/職位/電子郵件/到職日（電話/地址/備註/月薪/性別/考勤帳號/已用特休天數/上期遞延天數選填，欄位可任意排序；性別填「男」或「女」，用於限制生理假等性別限定的假別；考勤帳號用於比對外部打卡系統匯入的考勤資料），逐列處理、單列失敗不影響其他列，回傳 `{ created, failed: [{ row, employeeId, error }] }`
 - `PUT /api/employees/:id`
 - `DELETE /api/employees/:id`
 - `PUT /api/employees/:id/terminate` — 員工離職時會一併停用其登入帳號

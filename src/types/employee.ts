@@ -40,6 +40,8 @@ export interface EmployeeFormData {
   attendanceAccount: string;
   // 僅新增員工時使用：系統上線時導入既有員工，登記他們在此之前已休掉的特休天數
   initialAnnualLeaveUsed?: number | null;
+  // 僅新增員工時使用：上一期遞延進來的特休天數（需在本期休完，否則週年結算時折現）
+  initialCarriedInDays?: number | null;
 }
 
 export const statusOptions = [
@@ -66,6 +68,7 @@ export const emptyFormData: EmployeeFormData = {
   gender: "",
   attendanceAccount: "",
   initialAnnualLeaveUsed: null,
+  initialCarriedInDays: null,
 };
 
 export const employeeToFormData = (employee: Employee): EmployeeFormData => {

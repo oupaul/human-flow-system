@@ -76,7 +76,9 @@
     "monthlySalaryPlaceholder": "Enter monthly salary",
     "initialAnnualLeaveUsed": "Annual Leave Days Used (optional, only for employees who joined before this system and already used annual leave)",
     "notes": "Notes",
-    "notesPlaceholder": "Enter notes"
+    "notesPlaceholder": "Enter notes",
+    "initialCarriedInDays": "Annual Leave Days Carried In (optional, only for employees past their first anniversary with leave carried over from the previous period)",
+    "initialCarriedInDaysHint": "Carried-in days must be used within this period, otherwise they are cashed out at the anniversary settlement; days already used are applied to them first."
   },
   "addDialog": {
     "title": "Add Employee",
@@ -102,7 +104,7 @@
   },
   "import": {
     "title": "Bulk Import Employees",
-    "description": "Upload a CSV file, or paste the content directly. The header row must include \"姓名、員工編號、部門、職位、電子郵件、到職日\" (name, employee ID, department, position, email, join date); phone, address, notes, monthly salary, gender, attendance account, and annual leave days used are optional (gender should be \"男\" or \"女\", used to restrict gender-specific leave types such as menstrual leave; attendance account is used to match records imported from the external time-clock system). A login account is created automatically for each employee (username = email, default password = employee ID).",
+    "description": "Upload a CSV file, or paste the content directly. The header row must include \"姓名、員工編號、部門、職位、電子郵件、到職日\" (name, employee ID, department, position, email, join date); phone, address, notes, monthly salary, gender, attendance account, annual leave days used, and annual leave days carried over from the previous period (header \"上期遞延天數\") are optional (gender should be \"男\" or \"女\", used to restrict gender-specific leave types such as menstrual leave; attendance account is used to match records imported from the external time-clock system). A login account is created automatically for each employee (username = email, default password = employee ID).",
     "uploadLabel": "Upload CSV File",
     "pasteLabel": "Or paste CSV content",
     "result": {

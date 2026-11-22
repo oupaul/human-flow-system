@@ -231,10 +231,26 @@ function findCurrentPeriod(joinDate) {
   return { periodStart, periodEnd };
 }
 
+// 檢查「上期遞延天數」：必須是 0～30 的數字（遞延最多就是上一期發放的天數，法定最多 30 天），
+// 而且員工必須已經過了第一個週年日——還在到職第一期的人沒有「上一期」可以遞延
+function validateInitialCarriedIn(joinDate, rawValue) {
+  const days = Number(rawValue) || 0;
+  if (days === 0) return 0;
+  if (days < 0 || days > 30) {
+    throw new Error('上期遞延天數必須介於 0 到 30 之間');
+  }
+  const { periodStart } = findCurrentPeriod(joinDate);
+  if (periodStart === joinDate) {
+    throw new Error('到職尚未滿一年，沒有上一期特休可以遞延，上期遞延天數請填 0 或留空');
+  }
+  return days;
+}
+
 // 取得員工目前尚未結算的特休週年期間；若不存在（新員工）則建立第一期
-// initialUsedDays 僅在建立第一期時使用，讓系統上線時導入既有員工可登記
-// 該員工在此之前已經休掉的天數，避免顯示成完全沒用過
-async function getOrCreateActivePeriod(employeeId, joinDate, initialUsedDays = 0) {
+// initialUsedDays、initialCarriedInDays 僅在建立第一期時使用，讓系統上線時導入既有員工可登記
+// 該員工在此之前已經休掉的天數、以及上一期遞延進來的天數（遞延天數須在本期休完，否則結算時折現），
+// 避免顯示成完全沒用過、或漏掉遞延額度
+async function getOrCreateActivePeriod(employeeId, joinDate, initialUsedDays = 0, initialCarriedInDays = 0) {
   const [rows] = await pool.execute(
     'SELECT * FROM leave_periods WHERE employeeId = ? AND settledAt IS NULL ORDER BY periodStart DESC LIMIT 1',
     [employeeId]
@@ -247,8 +263,8 @@ async function getOrCreateActivePeriod(employeeId, joinDate, initialUsedDays = 0
   const grantedDays = computePeriodGrant(joinDate, periodEnd);
 
   const [result] = await pool.execute(
-    'INSERT INTO leave_periods (employeeId, periodStart, periodEnd, grantedDays, carriedInDays, usedDays) VALUES (?, ?, ?, ?, 0, ?)',
-    [employeeId, periodStart, periodEnd, grantedDays, initialUsedDays || 0]
+    'INSERT INTO leave_periods (employeeId, periodStart, periodEnd, grantedDays, carriedInDays, usedDays) VALUES (?, ?, ?, ?, ?, ?)',
+    [employeeId, periodStart, periodEnd, grantedDays, initialCarriedInDays || 0, initialUsedDays || 0]
   );
   const [newRows] = await pool.execute('SELECT * FROM leave_periods WHERE id = ?', [result.insertId]);
   return newRows[0];
@@ -257,10 +273,12 @@ async function getOrCreateActivePeriod(employeeId, joinDate, initialUsedDays = 0
 // 新增一位員工：建立員工紀錄、第一期特休週年紀錄、假別餘額預設值、登入帳號。
 // 供單筆新增（POST /employees）與批次匯入（POST /employees/import）共用
 async function createEmployeeRecord(data, { canSetSalary = false, changedBy = null } = {}) {
-  const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, initialAnnualLeaveUsed } = data;
+  const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, initialAnnualLeaveUsed, initialCarriedInDays } = data;
   if (!name || !employeeId || !department || !position || !email || !joinDate) {
     throw new Error('所有必填欄位皆需填寫（姓名、員工編號、部門、職位、電子郵件、到職日）');
   }
+  // 先驗證，避免員工已寫入、特休期建立卻失敗而留下不完整的資料
+  const carriedInDays = validateInitialCarriedIn(joinDate, initialCarriedInDays);
 
   const [result] = await pool.execute(
     'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -271,7 +289,7 @@ async function createEmployeeRecord(data, { canSetSalary = false, changedBy = nu
     // 新進員工的第一筆薪資紀錄，生效日取到職日
     await recordSalaryChange(pool, employeeId, Number(monthlySalary), joinDate, changedBy, '新增員工時登錄');
   }
-  await getOrCreateActivePeriod(employeeId, joinDate, Number(initialAnnualLeaveUsed) || 0);
+  await getOrCreateActivePeriod(employeeId, joinDate, Number(initialAnnualLeaveUsed) || 0, carriedInDays);
   await pool.execute('INSERT INTO leave_balances (employeeId) VALUES (?)', [employeeId]);
   await syncEmployeeAccount(employeeId, email);
 
@@ -302,6 +320,7 @@ function parseEmployeeCsv(csvText) {
     gender: findColumn(['性別']),
     attendanceAccount: findColumn(['考勤帳號', '打卡帳號']),
     initialAnnualLeaveUsed: findColumn(['已用特休', '特休已用']),
+    initialCarriedInDays: findColumn(['上期遞延', '遞延特休', '遞延']),
   };
 
   if (columns.name === -1 || columns.employeeId === -1 || columns.department === -1 ||
@@ -334,6 +353,7 @@ function parseEmployeeCsv(csvText) {
       gender: normalizeGender(pick(cells, 'gender')),
       attendanceAccount: pick(cells, 'attendanceAccount') || null,
       initialAnnualLeaveUsed: pick(cells, 'initialAnnualLeaveUsed') || 0,
+      initialCarriedInDays: pick(cells, 'initialCarriedInDays') || 0,
     };
   });
 }
@@ -1016,7 +1036,9 @@ api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
     res.json(newEmployee);
   } catch (error) {
     console.error('Error creating employee:', error);
-    res.status(error.message?.includes('必填') ? 400 : 500).json({ error: error.message || '新增員工失敗' });
+    // 欄位驗證類的錯誤（必填欄位缺漏、上期遞延天數不合理）是使用者輸入問題，回 400
+    const isInputError = error.message?.includes('必填') || error.message?.includes('遞延');
+    res.status(isInputError ? 400 : 500).json({ error: error.message || '新增員工失敗' });
   }
 });
 
