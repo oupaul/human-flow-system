@@ -23,8 +23,9 @@ import {
 } from './punch.js';
 import {
   ScheduleError, listShiftTypes, createShiftType, updateShiftType, deleteShiftType, getMonthSchedule, getMyPublishedSchedule,
-  setCells, fillSchedule, publishSchedule,
+  setCells, fillSchedule, publishSchedule, ensureScheduleSchema,
 } from './schedule.js';
+import { checkMonth, previewScenarios } from './scheduleCheck.js';
 import {
   createCorrectionRequest, listCorrectionRequests, reviewCorrectionRequest,
   createOutingRequest, listOutingRequests, reviewOutingRequest,
@@ -2171,7 +2172,14 @@ api.delete('/schedule/shift-types/:id', requireRole('admin', 'hr'), async (req, 
 });
 
 api.get('/schedule', requireRole(...STAFF_ROLES), async (req, res) => {
-  try { res.json(await getMonthSchedule(pool, req.query.month, req.query.department)); } catch (error) { handleScheduleError(res, error, '取得班表失敗'); }
+  try {
+    const data = await getMonthSchedule(pool, req.query.month, req.query.department);
+    data.warnings = await checkMonth(pool, req.query.month, data.employees.map((e) => e.employeeId));
+    res.json(data);
+  } catch (error) { handleScheduleError(res, error, '取得班表失敗'); }
+});
+api.post('/schedule/preview', requireRole('admin', 'hr'), async (req, res) => {
+  try { res.json({ results: await previewScenarios(pool, req.body.scenarios) }); } catch (error) { handleScheduleError(res, error, '預覽班表警示失敗'); }
 });
 api.get('/schedule/mine', async (req, res) => {
   try {
@@ -3492,6 +3500,8 @@ async function checkCompTimeExpiryReminders() {
     console.error('補休到期提醒檢查失敗（可能尚未套用 migration 005）：', error.message);
   }
 }
+
+await ensureScheduleSchema(pool).catch((error) => console.error('補上班別簡稱欄位失敗：', error.message));
 
 app.listen(PORT, () => {
   console.log(`🚀 HRMS API Server running on http://localhost:${PORT}`);

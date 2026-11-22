@@ -154,15 +154,16 @@
     }
   },
   "compliance": {
-    "title": "Working Hours & Scheduling Alerts",
-    "description": "A helper check, not a legal judgement: daily hours, consecutive work days, no mandatory day off within 7 days, and monthly overtime. Have HR or a labor consultant confirm legality.",
+    "title": "Actual punch compliance",
+    "description": "After-the-fact checks on actual punches: daily hours, consecutive days, monthly overtime. Scheduling rules (rest between shifts, days off) are now checked live on the Schedule page. An aid, not a legal ruling.",
     "empty": "No alerts this month",
     "types": {
       "daily_hours": "Daily hours",
       "consecutive_days": "Consecutive days",
       "no_regular_off": "No day off in 7 days",
       "monthly_overtime": "Monthly overtime"
-    }
+    },
+    "scheduleLink": "Go to Schedule"
   },
   "requests": {
     "correctionTitle": "Punch Correction Requests",

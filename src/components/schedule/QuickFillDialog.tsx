@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { scheduleApi } from "@/services/scheduleApi";
-import { OffType, ScheduleEmployee, ShiftType } from "@/types/schedule";
+import IssueLine from "@/components/schedule/IssueLine";
+import { OffType, PreviewResult, ScheduleEmployee, ShiftType } from "@/types/schedule";
 
 interface Props {
   open: boolean;
@@ -33,11 +34,33 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
   const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [choice, setChoice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState<PreviewResult | null>(null);
+  const [previewing, setPreviewing] = useState(false);
 
   useEffect(() => {
     if (open) { setFrom(`${month}-01`); setTo(lastDay(month)); setSelected(new Set()); setChoice(""); }
   }, [open, month]);
 
+  // 選好員工、日期、星期與填入內容後，先預覽套用會新增或解除哪些排班警示（不會寫入）
+  useEffect(() => {
+    setPreview(null);
+    if (!open || selected.size === 0 || !choice || weekdays.length === 0 || !from || !to || from > to) { setPreviewing(false); return; }
+    let cancelled = false;
+    setPreviewing(true);
+    const base = { employeeIds: [...selected], from, to, weekdays };
+    const fill = choice === "clear" ? { ...base, clear: true }
+      : choice.startsWith("shift:") ? { ...base, kind: "shift" as const, shiftTypeId: Number(choice.slice(6)) }
+      : { ...base, kind: "off" as const, offType: choice.slice(4) as OffType };
+    const timer = window.setTimeout(() => {
+      scheduleApi.preview([{ key: "fill", fill }])
+        .then((r) => { if (!cancelled) setPreview(r.results.fill ?? null); })
+        .catch(() => { if (!cancelled) setPreview(null); })
+        .finally(() => { if (!cancelled) setPreviewing(false); });
+    }, 400);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [open, selected, choice, weekdays, from, to]);
+
+  const names = new Map(employees.map((e) => [e.employeeId, e.name]));
   const toggleDay = (d: number) => setWeekdays((w) => (w.includes(d) ? w.filter((x) => x !== d) : [...w, d].sort()));
   const toggleEmp = (id: string) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
@@ -109,6 +132,30 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
             </Select>
           </div>
         </div>
+        {(previewing || preview) && (
+          <div className="rounded-md border p-3 text-sm">
+            {previewing || !preview ? (
+              <span className="text-muted-foreground">{t("schedule:check.preview.loading")}</span>
+            ) : (
+              <div className="space-y-1">
+                {preview.newIssues.length === 0 ? (
+                  <div className="text-emerald-700">{t("schedule:check.quickFill.clean")}</div>
+                ) : (
+                  <>
+                    <div className="font-medium text-red-700">{t("schedule:check.quickFill.adds", { count: preview.newIssues.length })}</div>
+                    <ul className="max-h-40 space-y-1 overflow-y-auto">
+                      {preview.newIssues.slice(0, 8).map((i, idx) => (
+                        <li key={idx}><span className="mr-2 font-medium">{names.get(i.employeeId) ?? i.employeeId}</span><IssueLine issue={i} /></li>
+                      ))}
+                    </ul>
+                    {preview.newIssues.length > 8 && <div className="text-xs text-muted-foreground">{t("schedule:check.quickFill.more", { count: preview.newIssues.length - 8 })}</div>}
+                  </>
+                )}
+                {preview.resolvedIssues.length > 0 && <div className="text-emerald-700">✓ {t("schedule:check.quickFill.resolves", { count: preview.resolvedIssues.length })}</div>}
+              </div>
+            )}
+          </div>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common:actions.cancel")}</Button>
           <Button disabled={busy || selected.size === 0 || !choice || weekdays.length === 0} onClick={submit}>{t("common:actions.confirm")}</Button>

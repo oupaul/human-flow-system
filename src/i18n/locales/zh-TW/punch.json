@@ -154,15 +154,16 @@
     }
   },
   "compliance": {
-    "title": "工時與排班警示",
-    "description": "輔助檢查，不是法律判定：單日工時、連續上班、七日內沒有例假、當月加班時數。是否合法請由公司人資或勞動顧問確認。",
+    "title": "實際打卡合規",
+    "description": "事後檢查實際打卡：單日工時、連續上班、當月加班時數。班表上的排班規則（班間隔、例假日等）已移到「班表管理」排班時即時檢查。輔助檢查，不是法律判定。",
     "empty": "這個月沒有警示",
     "types": {
       "daily_hours": "單日工時",
       "consecutive_days": "連續上班",
       "no_regular_off": "七日無例假",
       "monthly_overtime": "月加班時數"
-    }
+    },
+    "scheduleLink": "前往班表管理"
   },
   "requests": {
     "correctionTitle": "補卡申請",

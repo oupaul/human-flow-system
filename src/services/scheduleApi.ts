@@ -1,5 +1,7 @@
 import { apiFetch } from "@/lib/apiClient";
-import { CellInput, MonthSchedule, OffType, ScheduleCell, ShiftType } from "@/types/schedule";
+import { CellInput, MonthSchedule, OffType, PreviewResult, PreviewScenario, ScheduleCell, ShiftType } from "@/types/schedule";
+
+type ShiftTypeBody = Pick<ShiftType, "name" | "shortName" | "startTime" | "endTime" | "breakMinutes" | "active">;
 
 export const scheduleApi = {
   getMonth(month: string, department?: string): Promise<MonthSchedule> {
@@ -19,13 +21,16 @@ export const scheduleApi = {
   publish(month: string, department?: string): Promise<{ message: string; published: number }> {
     return apiFetch("/schedule/publish", { method: "POST", body: JSON.stringify({ month, department }) });
   },
+  preview(scenarios: PreviewScenario[]): Promise<{ results: Record<string, PreviewResult> }> {
+    return apiFetch("/schedule/preview", { method: "POST", body: JSON.stringify({ scenarios }) });
+  },
   getShiftTypes(): Promise<ShiftType[]> {
     return apiFetch("/schedule/shift-types");
   },
-  createShiftType(data: Omit<ShiftType, "id" | "crossesMidnight">): Promise<{ id: number }> {
+  createShiftType(data: ShiftTypeBody): Promise<{ id: number }> {
     return apiFetch("/schedule/shift-types", { method: "POST", body: JSON.stringify(data) });
   },
-  updateShiftType(id: number, data: Omit<ShiftType, "id" | "crossesMidnight">): Promise<{ message: string }> {
+  updateShiftType(id: number, data: ShiftTypeBody): Promise<{ message: string }> {
     return apiFetch(`/schedule/shift-types/${id}`, { method: "PUT", body: JSON.stringify(data) });
   },
   deleteShiftType(id: number): Promise<{ message: string }> {

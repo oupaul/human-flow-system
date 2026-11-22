@@ -47,7 +47,10 @@
     "start": "Start",
     "end": "End",
     "activeLabel": "Active",
-    "crossHint": "Break time is not counted as working time, which is used by the working-hours alerts. A shift used by a schedule cannot be deleted; deactivate it instead."
+    "crossHint": "Break time is not counted as working time, which is used by the working-hours alerts. A shift used by a schedule cannot be deleted; deactivate it instead.",
+    "shortName": "Short name",
+    "shortNamePlaceholder": "e.g. M",
+    "shortNameHint": "Shown in schedule cells, up to 4 characters. If blank, the first character of the name is used."
   },
   "quickFill": {
     "title": "Quick Fill Schedule",
@@ -67,5 +70,49 @@
     "title": "Publish the {{month}} schedule?",
     "body": "{{count}} draft cell(s) are not yet published. Once published, employees can see them in their portal. Later edits to published cells are reflected for employees too.",
     "done": "{{count}} cell(s) published"
+  },
+  "check": {
+    "title": "Schedule check",
+    "none": "No schedule warnings",
+    "summary": "{{employees}} employees, {{warnings}} warnings, {{infos}} notices",
+    "hint": "Only fully scheduled spans are checked. This is an aid, not a legal ruling; ask HR or a labor consultant about exceptions such as flexible working hours.",
+    "expand": "Show details",
+    "collapse": "Hide details",
+    "actualLink": "View actual punch compliance",
+    "info": "Notice",
+    "rowBadge": "{{count}} warnings",
+    "types": {
+      "daily_hours": "Long shift",
+      "rest_interval": "Short rest between shifts",
+      "consecutive_days": "Consecutive work days",
+      "no_regular_off": "No regular day off",
+      "no_rest_day": "No rest day",
+      "weekly_hours": "High weekly hours"
+    },
+    "detail": {
+      "daily_hours": "Scheduled {{hours}} hours, over 12 hours",
+      "rest_interval": "Only {{gapHours}} hours since the previous shift, under 11 hours",
+      "consecutive_days": "{{days}} consecutive work days with no day off",
+      "no_regular_off": "{{days}} consecutive days without a regular day off",
+      "no_rest_day": "{{days}} consecutive days without a rest day",
+      "weekly_hours": "{{hours}} scheduled hours that week, over 40 (will generate overtime)"
+    },
+    "preview": {
+      "loading": "Checking…",
+      "adds": "Would cause: ",
+      "resolves": "Resolves {{count}} warnings",
+      "clean": "No new warnings"
+    },
+    "quickFill": {
+      "adds": "Applying will add {{count}} warnings",
+      "resolves": "It would also resolve {{count}} existing warnings",
+      "clean": "Applying adds no schedule warnings",
+      "more": "…and {{count}} more"
+    },
+    "publish": {
+      "title": "{{count}} schedule warnings remain",
+      "body": "Please review or adjust the schedule before publishing.",
+      "confirm": "I have reviewed these warnings (e.g. flexible hours approved or consent obtained) and still want to publish"
+    }
   }
 }

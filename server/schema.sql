@@ -573,6 +573,7 @@ CREATE TABLE IF NOT EXISTS punch_events (
 CREATE TABLE IF NOT EXISTS shift_types (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(50) NOT NULL,
+  shortName VARCHAR(4) NULL,                  -- 簡稱：顯示在班表格子裡，沒填就用名稱第一個字
   startTime TIME NOT NULL,
   endTime TIME NOT NULL,
   breakMinutes INT NOT NULL DEFAULT 60,       -- 休息時間（分鐘），不計入工時

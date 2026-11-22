@@ -1,7 +1,7 @@
 // 工時與排班合規「警示」（輔助檢查，不是法律判定；是否合法最終由公司人資或勞動顧問確認）：
 //   daily_hours        單日工時（扣除休息時間）超過 12 小時（勞基法第 32 條：延長後每日不得超過 12 小時）
 //   consecutive_days   連續上班 7 天以上（勞基法第 36 條：每七日應有一日例假）
-//   no_regular_off     班表中任何連續 7 天都沒有「例假日」（只檢查整段七天都已排班的區間，避免漏排造成誤報）
+// （班表上「七天內沒排例假日」等排班規則，已移到「班表管理」頁面即時檢查，見 scheduleCheck.js）
 //   monthly_overtime   當月已核准的加班時數超過 46 小時（勞基法第 32 條：每月延長工時不得超過 46 小時）
 // 工時是用打卡的上下班時間算：下班時間比上班時間早表示跨夜班，自動加 24 小時。
 
@@ -27,9 +27,6 @@ export async function getCompliance(pool, month) {
      LEFT JOIN work_schedules s ON s.employeeId = a.employeeId AND s.date = a.date AND s.kind = 'shift'
      LEFT JOIN shift_types t ON t.id = s.shiftTypeId
      WHERE a.date BETWEEN ? AND ? ORDER BY a.employeeId, a.date`, [from, to]
-  );
-  const [schedules] = await pool.execute(
-    `SELECT employeeId, date, kind, offType FROM work_schedules WHERE date BETWEEN ? AND ? ORDER BY employeeId, date`, [addDays(from, -6), to]
   );
   const [overtime] = await pool.execute(
     `SELECT employeeId, SUM(hours) AS hours FROM overtime_applications WHERE status = 'approved' AND date BETWEEN ? AND ? GROUP BY employeeId`, [from, to]
@@ -67,23 +64,6 @@ export async function getCompliance(pool, month) {
       previous = r.date;
     }
     flush();
-  }
-
-  // 班表：七日內沒有例假（只看整段七天都有排班的區間）
-  const schedByEmployee = new Map();
-  for (const s of schedules) {
-    if (!schedByEmployee.has(s.employeeId)) schedByEmployee.set(s.employeeId, new Map());
-    schedByEmployee.get(s.employeeId).set(s.date, s);
-  }
-  for (const [employeeId, days] of schedByEmployee) {
-    for (let start = addDays(from, -6); start <= addDays(to, -6); start = addDays(start, 1)) {
-      const window = Array.from({ length: 7 }, (_, i) => days.get(addDays(start, i)));
-      if (window.some((d) => !d)) continue;
-      if (!window.some((d) => d.kind === 'off' && d.offType === 'regular_off')) {
-        add(employeeId, 'no_regular_off', `${start} ~ ${addDays(start, 6)} 七天內沒有排例假日`);
-        break; // 同一位員工一個月只列第一個區間，避免整月重複
-      }
-    }
   }
 
   for (const o of overtime) {

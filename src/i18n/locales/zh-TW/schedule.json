@@ -47,7 +47,10 @@
     "start": "上班",
     "end": "下班",
     "activeLabel": "啟用",
-    "crossHint": "休息時間不計入工時，用於工時警示。已被班表使用的班別不能刪除，請改為停用。"
+    "crossHint": "休息時間不計入工時，用於工時警示。已被班表使用的班別不能刪除，請改為停用。",
+    "shortName": "簡稱",
+    "shortNamePlaceholder": "例：早",
+    "shortNameHint": "顯示在班表格子裡，最多 4 個字；沒填就用班別名稱的第一個字。"
   },
   "quickFill": {
     "title": "快速填入班表",
@@ -67,5 +70,49 @@
     "title": "發布 {{month}} 的班表？",
     "body": "目前有 {{count}} 格草稿尚未發布，發布後員工就能在自己的入口頁看到。已發布的格子之後再修改，員工看到的也會跟著更新。",
     "done": "已發布 {{count}} 格"
+  },
+  "check": {
+    "title": "排班檢查",
+    "none": "目前沒有排班警示",
+    "summary": "{{employees}} 位員工、{{warnings}} 項警示、{{infos}} 項提示",
+    "hint": "只檢查「整段已排滿」的區間，是輔助提醒、不是法律判定；變形工時、勞資會議同意等例外請由人資或勞動顧問確認。",
+    "expand": "展開明細",
+    "collapse": "收合明細",
+    "actualLink": "查看實際打卡合規",
+    "info": "提示",
+    "rowBadge": "{{count}} 項警示",
+    "types": {
+      "daily_hours": "單日工時過長",
+      "rest_interval": "班間隔不足",
+      "consecutive_days": "連續上班",
+      "no_regular_off": "無例假日",
+      "no_rest_day": "無休息日",
+      "weekly_hours": "週工時偏高"
+    },
+    "detail": {
+      "daily_hours": "排班工時 {{hours}} 小時，超過 12 小時",
+      "rest_interval": "與前一班的間隔只有 {{gapHours}} 小時，不足 11 小時",
+      "consecutive_days": "連續上班 {{days}} 天，中間沒有排休",
+      "no_regular_off": "連續 {{days}} 天沒有排例假日",
+      "no_rest_day": "連續 {{days}} 天沒有排休息日",
+      "weekly_hours": "該週排班 {{hours}} 小時，超過 40 小時（會產生加班）"
+    },
+    "preview": {
+      "loading": "檢查中…",
+      "adds": "會造成：",
+      "resolves": "可解除 {{count}} 項警示",
+      "clean": "不會新增警示"
+    },
+    "quickFill": {
+      "adds": "套用後會新增 {{count}} 項警示",
+      "resolves": "另外可解除 {{count}} 項既有警示",
+      "clean": "套用後不會新增排班警示",
+      "more": "…還有 {{count}} 項"
+    },
+    "publish": {
+      "title": "尚有 {{count}} 項排班警示",
+      "body": "建議先確認或調整這些班表再發布。",
+      "confirm": "我已確認這些警示（例如已核備變形工時或取得同意），仍要發布"
+    }
   }
 }

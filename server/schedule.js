@@ -26,21 +26,32 @@ function parseShiftType(body) {
   if (body.startTime === body.endTime) throw new ScheduleError(400, '上班與下班時間不能相同');
   const breakMinutes = Number(body.breakMinutes ?? 60);
   if (!Number.isInteger(breakMinutes) || breakMinutes < 0 || breakMinutes > 240) throw new ScheduleError(400, '休息時間必須是 0 到 240 分鐘的整數');
-  return [name, `${body.startTime}:00`, `${body.endTime}:00`, breakMinutes, body.active !== false];
+  // 簡稱：顯示在班表格子裡；沒填就用班別名稱的第一個字
+  const shortName = String(body.shortName ?? '').trim();
+  if ([...shortName].length > 4) throw new ScheduleError(400, '簡稱最多 4 個字');
+  return [name, `${body.startTime}:00`, `${body.endTime}:00`, breakMinutes, body.active !== false, shortName || null];
+}
+
+// 班表格子上顯示的字
+export const shiftLabel = (name, shortName) => (shortName || [...String(name || '')][0] || '');
+
+// 既有部署不必手動套用 migration：啟動時補上新欄位（可重複執行）
+export async function ensureScheduleSchema(pool) {
+  await pool.execute('ALTER TABLE shift_types ADD COLUMN IF NOT EXISTS shortName VARCHAR(4) NULL AFTER name');
 }
 
 export async function listShiftTypes(pool) {
   const [rows] = await pool.execute('SELECT * FROM shift_types ORDER BY active DESC, startTime, id');
-  return rows.map((r) => ({ ...r, startTime: hhmm(r.startTime), endTime: hhmm(r.endTime), active: !!r.active, crossesMidnight: hhmm(r.endTime) < hhmm(r.startTime) }));
+  return rows.map((r) => ({ ...r, shortName: r.shortName ?? '', label: shiftLabel(r.name, r.shortName), startTime: hhmm(r.startTime), endTime: hhmm(r.endTime), active: !!r.active, crossesMidnight: hhmm(r.endTime) < hhmm(r.startTime) }));
 }
 
 export async function createShiftType(pool, body) {
-  const [result] = await pool.execute('INSERT INTO shift_types (name, startTime, endTime, breakMinutes, active) VALUES (?, ?, ?, ?, ?)', parseShiftType(body));
+  const [result] = await pool.execute('INSERT INTO shift_types (name, startTime, endTime, breakMinutes, active, shortName) VALUES (?, ?, ?, ?, ?, ?)', parseShiftType(body));
   return result.insertId;
 }
 
 export async function updateShiftType(pool, id, body) {
-  const [result] = await pool.execute('UPDATE shift_types SET name = ?, startTime = ?, endTime = ?, breakMinutes = ?, active = ? WHERE id = ?', [...parseShiftType(body), id]);
+  const [result] = await pool.execute('UPDATE shift_types SET name = ?, startTime = ?, endTime = ?, breakMinutes = ?, active = ?, shortName = ? WHERE id = ?', [...parseShiftType(body), id]);
   if (result.affectedRows === 0) throw new ScheduleError(404, '找不到該班別');
 }
 
@@ -61,10 +72,10 @@ function monthRange(month) {
 
 const scheduleSelect = `
   SELECT s.id, s.employeeId, s.date, s.kind, s.shiftTypeId, s.offType, s.published,
-         t.name AS shiftName, t.startTime, t.endTime, t.breakMinutes
+         t.name AS shiftName, t.shortName, t.startTime, t.endTime, t.breakMinutes
   FROM work_schedules s LEFT JOIN shift_types t ON t.id = s.shiftTypeId`;
 
-const toRow = (r) => ({ ...r, published: !!r.published, startTime: r.startTime ? hhmm(r.startTime) : null, endTime: r.endTime ? hhmm(r.endTime) : null });
+const toRow = ({ shortName, ...r }) => ({ ...r, shiftLabel: r.shiftName ? shiftLabel(r.shiftName, shortName) : null, published: !!r.published, startTime: r.startTime ? hhmm(r.startTime) : null, endTime: r.endTime ? hhmm(r.endTime) : null });
 
 export async function getMonthSchedule(pool, month, department) {
   const { from, to } = monthRange(month);
@@ -109,7 +120,7 @@ export async function getScheduleForDay(pool, employeeId, date) {
   return rows[0] ? toRow(rows[0]) : null;
 }
 
-function normalizeCell(cell) {
+export function normalizeCell(cell) {
   if (!DATE_RE.test(String(cell.date || ''))) throw new ScheduleError(400, '日期格式不正確');
   if (cell.clear) return { employeeId: cell.employeeId, date: cell.date, clear: true };
   if (cell.kind === 'shift') {
@@ -150,8 +161,8 @@ export async function setCells(pool, actor, cells) {
   return changed;
 }
 
-// 快速填入：指定員工、日期區間與星期，一次填同一個班別或排休類別
-export async function fillSchedule(pool, actor, { employeeIds, from, to, weekdays, kind, shiftTypeId, offType, clear }) {
+// 快速填入：把「員工 × 日期區間 × 星期」展開成儲存格清單（預覽與實際填入共用）
+export function expandFillCells({ employeeIds, from, to, weekdays, kind, shiftTypeId, offType, clear }) {
   if (!Array.isArray(employeeIds) || employeeIds.length === 0) throw new ScheduleError(400, '請選擇員工');
   if (!DATE_RE.test(String(from)) || !DATE_RE.test(String(to)) || from > to) throw new ScheduleError(400, '日期區間不正確');
   const days = (Array.isArray(weekdays) && weekdays.length > 0 ? weekdays : [1, 2, 3, 4, 5, 6, 7]).map(Number);
@@ -163,7 +174,12 @@ export async function fillSchedule(pool, actor, { employeeIds, from, to, weekday
     for (const employeeId of employeeIds) cells.push({ employeeId, date: iso, kind, shiftTypeId, offType, clear });
   }
   if (cells.length === 0) throw new ScheduleError(400, '選擇的日期區間與星期內沒有任何日期');
-  return setCells(pool, actor, cells);
+  return cells;
+}
+
+// 快速填入：指定員工、日期區間與星期，一次填同一個班別或排休類別
+export async function fillSchedule(pool, actor, params) {
+  return setCells(pool, actor, expandFillCells(params));
 }
 
 // 發布：把整個月（可限定部門）的草稿班表變成員工看得到的

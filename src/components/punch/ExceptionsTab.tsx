@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { RefreshCw, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -108,7 +109,10 @@ const ExceptionsTab = ({ canRun }: { canRun: boolean }) => {
         <CardHeader className="flex flex-row items-start justify-between space-y-0">
           <div>
             <CardTitle className="flex items-center gap-2"><ShieldAlert className="h-5 w-5" />{t("punch:compliance.title")}</CardTitle>
-            <CardDescription>{t("punch:compliance.description")}</CardDescription>
+            <CardDescription>
+              {t("punch:compliance.description")}{" "}
+              <Link to="/schedule" className="text-primary underline">{t("punch:compliance.scheduleLink")}</Link>
+            </CardDescription>
           </div>
           <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} className="h-10 rounded-md border bg-white px-3 text-sm" />
         </CardHeader>
