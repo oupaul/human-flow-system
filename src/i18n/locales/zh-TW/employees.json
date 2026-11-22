@@ -116,5 +116,26 @@
     },
     "importing": "匯入中...",
     "startImport": "開始匯入"
+  },
+  "compensation": {
+    "title": "薪資與投保",
+    "description": "薪資異動歷史與勞保、健保、勞退投保資料（僅人資與管理者可見）。目前生效的月薪會同步供特休、補休折現使用。",
+    "manageButton": "薪資與投保",
+    "add": "新增異動",
+    "addTitle": "新增薪資異動",
+    "editTitle": "編輯薪資異動",
+    "effectiveDate": "生效日",
+    "monthlySalary": "月薪",
+    "laborInsuredSalary": "勞保投保薪資",
+    "healthInsuredSalary": "健保投保薪資",
+    "pensionWage": "勞退提繳工資",
+    "voluntaryPensionRate": "自願提繳率（%）",
+    "healthDependents": "健保眷屬人數",
+    "changedBy": "異動者",
+    "current": "目前生效",
+    "scheduled": "未來生效",
+    "empty": "尚無薪資紀錄",
+    "formHint": "投保薪資與提繳工資請依勞保局、健保署公告的級距填寫，目前僅記錄、尚未自動試算保費。新增時預設帶入最新一筆，只需修改有變動的欄位。",
+    "deleteHint": "將刪除生效日 {{date}} 的薪資紀錄。至少需保留一筆。"
   }
 }

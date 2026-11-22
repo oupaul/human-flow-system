@@ -116,5 +116,26 @@
     },
     "importing": "インポート中...",
     "startImport": "インポート開始"
+  },
+  "compensation": {
+    "title": "給与と保険",
+    "description": "給与改定履歴と労災・健康保険・年金の加入情報（人事と管理者のみ閲覧可）。現在有効な月給は休暇・代休の換金計算にも使われます。",
+    "manageButton": "給与と保険",
+    "add": "改定を追加",
+    "addTitle": "給与改定の追加",
+    "editTitle": "給与改定の編集",
+    "effectiveDate": "適用開始日",
+    "monthlySalary": "月給",
+    "laborInsuredSalary": "労働保険の標準報酬",
+    "healthInsuredSalary": "健康保険の標準報酬",
+    "pensionWage": "年金の拠出賃金",
+    "voluntaryPensionRate": "任意拠出率（%）",
+    "healthDependents": "健康保険の被扶養者数",
+    "changedBy": "変更者",
+    "current": "現在有効",
+    "scheduled": "適用予定",
+    "empty": "給与記録がありません",
+    "formHint": "標準報酬や拠出賃金は公的な等級表に従って入力してください。現時点では記録のみで、保険料の自動計算は行いません。追加時は最新の内容が初期値になるので、変更点だけ修正してください。",
+    "deleteHint": "適用開始日 {{date}} の記録を削除します。最低1件は残す必要があります。"
   }
 }

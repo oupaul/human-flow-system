@@ -116,5 +116,26 @@
     },
     "importing": "Importing...",
     "startImport": "Start Import"
+  },
+  "compensation": {
+    "title": "Compensation & Insurance",
+    "description": "Salary change history and labor insurance, health insurance and pension data (HR and admin only). The currently effective salary is also used for leave and comp-time cash-out.",
+    "manageButton": "Compensation & Insurance",
+    "add": "Add Change",
+    "addTitle": "Add Salary Change",
+    "editTitle": "Edit Salary Change",
+    "effectiveDate": "Effective date",
+    "monthlySalary": "Monthly salary",
+    "laborInsuredSalary": "Labor insurance salary",
+    "healthInsuredSalary": "Health insurance salary",
+    "pensionWage": "Pension contribution wage",
+    "voluntaryPensionRate": "Voluntary contribution (%)",
+    "healthDependents": "Health insurance dependents",
+    "changedBy": "Changed by",
+    "current": "Current",
+    "scheduled": "Scheduled",
+    "empty": "No compensation records yet",
+    "formHint": "Enter insured salaries and pension wage according to the official brackets. They are recorded only; premiums are not calculated automatically yet. A new entry is pre-filled from the latest one, so only change what differs.",
+    "deleteHint": "The record effective {{date}} will be deleted. At least one record must remain."
   }
 }

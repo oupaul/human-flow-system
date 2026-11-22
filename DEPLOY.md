@@ -120,6 +120,9 @@ docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_datab
 
 # 特休週年結算提醒（週年日前通知 HR，記錄是否已通知避免重複）
 docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/013_leave_settlement_reminder.sql
+
+# 薪資異動歷史與勞保／健保／勞退投保薪資（既有月薪會自動轉成第一筆紀錄）
+docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/014_employee_compensation.sql
 ```
 
 全新安裝（第一次啟動 `db` 容器）不需要這步，`schema.sql` 已經包含最新結構。

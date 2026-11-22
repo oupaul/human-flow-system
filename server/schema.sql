@@ -345,6 +345,25 @@ CREATE TABLE IF NOT EXISTS holiday_benefit_records (
   FOREIGN KEY (ruleId) REFERENCES holiday_benefit_rules(id)
 );
 
+-- 薪資異動歷史（僅 admin/hr 可見）：每次調薪或調整投保薪資一筆，employees.monthlySalary 為目前生效月薪的快取
+CREATE TABLE IF NOT EXISTS employee_compensation (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  employeeId VARCHAR(50) NOT NULL,
+  effectiveDate DATE NOT NULL,                  -- 生效日；同一員工同一天只能有一筆
+  monthlySalary DECIMAL(10,0) NOT NULL,         -- 月薪
+  laborInsuredSalary DECIMAL(10,0) NULL,        -- 勞保投保薪資
+  healthInsuredSalary DECIMAL(10,0) NULL,       -- 健保投保薪資
+  pensionWage DECIMAL(10,0) NULL,               -- 勞退月提繳工資
+  voluntaryPensionRate DECIMAL(3,1) NULL,       -- 員工自願提繳率（%，0～6）
+  healthDependents INT NULL,                    -- 健保眷屬人數
+  notes TEXT NULL,
+  changedBy VARCHAR(100) NULL,                  -- 最後異動者（登入帳號）
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_employee_effective (employeeId, effectiveDate),
+  FOREIGN KEY (employeeId) REFERENCES employees(employeeId) ON DELETE CASCADE
+);
+
 -- 範例假別類型（可依需求刪減）
 INSERT INTO leave_types (name, code, unit, needProof, affectAttendance, isPaid, maxDays, advanceApply, canSplit) VALUES
 ('特休', 'AL', '天', FALSE, FALSE, TRUE, '依年資', '3天', TRUE),

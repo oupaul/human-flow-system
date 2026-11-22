@@ -15,6 +15,7 @@ import { checkSeniorityBenefitReminders } from './seniorityBenefits.js';
 import { checkHolidayBenefitReminders } from './holidayBenefits.js';
 import { syncHolidaysFromTaipei, checkHolidayCalendar } from './holidaySync.js';
 import { computeSettlementSplit, checkLeaveSettlementReminders } from './leaveSettlement.js';
+import { syncCurrentSalary, recordSalaryChange, parseCompensation } from './compensation.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -251,7 +252,7 @@ async function getOrCreateActivePeriod(employeeId, joinDate, initialUsedDays = 0
 
 // 新增一位員工：建立員工紀錄、第一期特休週年紀錄、假別餘額預設值、登入帳號。
 // 供單筆新增（POST /employees）與批次匯入（POST /employees/import）共用
-async function createEmployeeRecord(data, { canSetSalary = false } = {}) {
+async function createEmployeeRecord(data, { canSetSalary = false, changedBy = null } = {}) {
   const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, initialAnnualLeaveUsed } = data;
   if (!name || !employeeId || !department || !position || !email || !joinDate) {
     throw new Error('所有必填欄位皆需填寫（姓名、員工編號、部門、職位、電子郵件、到職日）');
@@ -262,6 +263,10 @@ async function createEmployeeRecord(data, { canSetSalary = false } = {}) {
     [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, (canSetSalary && monthlySalary) || null, gender || null, attendanceAccount || null]
   );
 
+  if (canSetSalary && monthlySalary) {
+    // 新進員工的第一筆薪資紀錄，生效日取到職日
+    await recordSalaryChange(pool, employeeId, Number(monthlySalary), joinDate, changedBy, '新增員工時登錄');
+  }
   await getOrCreateActivePeriod(employeeId, joinDate, Number(initialAnnualLeaveUsed) || 0);
   await pool.execute('INSERT INTO leave_balances (employeeId) VALUES (?)', [employeeId]);
   await syncEmployeeAccount(employeeId, email);
@@ -1003,7 +1008,7 @@ api.get('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
 
 api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
-    const newEmployee = await createEmployeeRecord(req.body, { canSetSalary: SALARY_ROLES.includes(req.user.role) });
+    const newEmployee = await createEmployeeRecord(req.body, { canSetSalary: SALARY_ROLES.includes(req.user.role), changedBy: req.user.username });
     res.json(newEmployee);
   } catch (error) {
     console.error('Error creating employee:', error);
@@ -1030,7 +1035,7 @@ api.post('/employees/import', requireRole(...STAFF_ROLES), async (req, res) => {
     const failed = [];
     for (const [index, row] of rows.entries()) {
       try {
-        await createEmployeeRecord(row, { canSetSalary });
+        await createEmployeeRecord(row, { canSetSalary, changedBy: req.user.username });
         created += 1;
       } catch (rowError) {
         failed.push({ row: index + 2, employeeId: row.employeeId || '(空白)', error: rowError.message });
@@ -1049,16 +1054,21 @@ api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     const { id } = req.params;
     const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount } = req.body;
 
-    const [beforeRows] = await pool.execute('SELECT employeeId FROM employees WHERE id = ?', [id]);
+    const [beforeRows] = await pool.execute('SELECT employeeId, monthlySalary FROM employees WHERE id = ?', [id]);
     const previousEmployeeId = beforeRows[0]?.employeeId;
 
-    // 沒有薪資權限的角色（主管）送來的表單不含月薪，不能因此把既有月薪清成空值，所以不動這個欄位
-    const salaryClause = SALARY_ROLES.includes(req.user.role) ? ', monthlySalary = ?' : '';
-    const salaryParams = SALARY_ROLES.includes(req.user.role) ? [monthlySalary || null] : [];
+    // 月薪不在這裡直接寫入：薪資以「薪資異動歷史」為準（employees.monthlySalary 只是快取）。
+    // 有薪資權限的角色改了月薪，就在今天建立一筆異動紀錄並同步快取；主管送來的表單不含月薪，一律忽略。
+    // 表單把月薪清空視為「不變更」，要調整請到員工的「薪資與投保」管理歷史紀錄
     await pool.execute(
-      `UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, gender = ?, attendanceAccount = ?${salaryClause} WHERE id = ?`,
-      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', gender || null, attendanceAccount || null, ...salaryParams, id]
+      'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, gender = ?, attendanceAccount = ? WHERE id = ?',
+      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', gender || null, attendanceAccount || null, id]
     );
+    if (SALARY_ROLES.includes(req.user.role) && Number(monthlySalary) > 0
+        && Number(monthlySalary) !== Number(beforeRows[0]?.monthlySalary || 0)) {
+      const [[{ today }]] = await pool.execute('SELECT CURDATE() AS today');
+      await recordSalaryChange(pool, employeeId, Number(monthlySalary), today, req.user.username, '由員工編輯表單調整');
+    }
 
     // 同步登入帳號：email 異動時登入帳號一併更新
     if (previousEmployeeId) {
@@ -2848,6 +2858,99 @@ api.post('/holiday-benefits/check', requireRole(...BENEFIT_ROLES), async (req, r
   res.json(await checkHolidayBenefitReminders(pool));
 });
 
+// 薪資異動歷史與投保薪資：僅 admin/hr（employees.monthlySalary 是目前生效月薪的快取，由這裡同步）
+async function findEmployeeByEmployeeId(employeeId) {
+  const [rows] = await pool.execute('SELECT employeeId FROM employees WHERE employeeId = ?', [employeeId]);
+  return rows[0] || null;
+}
+
+api.get('/employees/:employeeId/compensation', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT * FROM employee_compensation WHERE employeeId = ? ORDER BY effectiveDate DESC',
+      [req.params.employeeId]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching compensation:', error);
+    res.status(500).json({ error: '獲取薪資異動紀錄失敗', detail: error.message });
+  }
+});
+
+api.post('/employees/:employeeId/compensation', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    if (!(await findEmployeeByEmployeeId(req.params.employeeId))) return res.status(404).json({ error: '找不到該員工' });
+    const parsed = parseCompensation(req.body);
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+    const v = parsed.values;
+    try {
+      const [result] = await pool.execute(
+        `INSERT INTO employee_compensation
+          (employeeId, effectiveDate, monthlySalary, laborInsuredSalary, healthInsuredSalary, pensionWage,
+           voluntaryPensionRate, healthDependents, notes, changedBy)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [req.params.employeeId, v.effectiveDate, v.monthlySalary, v.laborInsuredSalary, v.healthInsuredSalary,
+          v.pensionWage, v.voluntaryPensionRate, v.healthDependents, v.notes, req.user.username]
+      );
+      await syncCurrentSalary(pool, req.params.employeeId);
+      res.status(201).json({ id: result.insertId, message: '薪資異動紀錄已新增' });
+    } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: `${v.effectiveDate} 已有一筆紀錄，請直接修改該筆` });
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error creating compensation:', error);
+    res.status(500).json({ error: '新增薪資異動紀錄失敗', detail: error.message });
+  }
+});
+
+api.put('/compensation/:id', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT employeeId FROM employee_compensation WHERE id = ?', [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: '找不到該筆紀錄' });
+    const parsed = parseCompensation(req.body);
+    if (parsed.error) return res.status(400).json({ error: parsed.error });
+    const v = parsed.values;
+    try {
+      await pool.execute(
+        `UPDATE employee_compensation SET effectiveDate = ?, monthlySalary = ?, laborInsuredSalary = ?, healthInsuredSalary = ?,
+          pensionWage = ?, voluntaryPensionRate = ?, healthDependents = ?, notes = ?, changedBy = ? WHERE id = ?`,
+        [v.effectiveDate, v.monthlySalary, v.laborInsuredSalary, v.healthInsuredSalary, v.pensionWage,
+          v.voluntaryPensionRate, v.healthDependents, v.notes, req.user.username, req.params.id]
+      );
+    } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: `${v.effectiveDate} 已有另一筆紀錄` });
+      }
+      throw error;
+    }
+    await syncCurrentSalary(pool, rows[0].employeeId);
+    res.json({ message: '薪資異動紀錄已更新' });
+  } catch (error) {
+    console.error('Error updating compensation:', error);
+    res.status(500).json({ error: '更新薪資異動紀錄失敗', detail: error.message });
+  }
+});
+
+api.delete('/compensation/:id', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    const [rows] = await pool.execute('SELECT employeeId FROM employee_compensation WHERE id = ?', [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ error: '找不到該筆紀錄' });
+    const [[{ count }]] = await pool.execute('SELECT COUNT(*) AS count FROM employee_compensation WHERE employeeId = ?', [rows[0].employeeId]);
+    if (count <= 1) {
+      return res.status(409).json({ error: '至少需保留一筆薪資紀錄；要更正內容請直接修改該筆' });
+    }
+    await pool.execute('DELETE FROM employee_compensation WHERE id = ?', [req.params.id]);
+    await syncCurrentSalary(pool, rows[0].employeeId);
+    res.json({ message: '薪資異動紀錄已刪除' });
+  } catch (error) {
+    console.error('Error deleting compensation:', error);
+    res.status(500).json({ error: '刪除薪資異動紀錄失敗', detail: error.message });
+  }
+});
+
 app.use('/api', api);
 
 // 錯誤處理中間件
@@ -2908,6 +3011,12 @@ app.listen(PORT, () => {
 
   checkLeaveSettlementReminders(pool);
   setInterval(() => checkLeaveSettlementReminders(pool), 24 * 60 * 60 * 1000);
+
+  // 處理「未來生效」的調薪：每天把到期的薪資異動同步回 employees.monthlySalary
+  const syncSalaries = () => syncCurrentSalary(pool).catch((error) =>
+    console.error('薪資快取同步失敗（可能尚未套用 migration 014）：', error.message));
+  syncSalaries();
+  setInterval(syncSalaries, 24 * 60 * 60 * 1000);
 
   // 先確認行事曆（缺就自動同步），再用行事曆日期檢查節日福利，順序不能反
   const runHolidayChecks = async () => {

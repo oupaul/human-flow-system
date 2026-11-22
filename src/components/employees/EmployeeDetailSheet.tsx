@@ -10,6 +10,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { User } from "lucide-react";
 import { EmployeeFormData } from "@/types/employee";
+import { useState } from "react";
+import { Wallet } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { canViewSalary } from "@/services/authApi";
+import CompensationDialog from "@/components/employees/CompensationDialog";
 
 interface EmployeeDetailSheetProps {
   open: boolean;
@@ -25,6 +30,8 @@ const EmployeeDetailSheet = ({
   onEdit
 }: EmployeeDetailSheetProps) => {
   const { t } = useTranslation(["employees", "common"]);
+  const { user } = useAuth();
+  const [compensationFor, setCompensationFor] = useState<string | null>(null);
   if (!employee) return null;
 
   return (
@@ -131,6 +138,14 @@ const EmployeeDetailSheet = ({
               </div>
             )}
 
+            {canViewSalary(user?.role) && (
+              <div>
+                <Button variant="outline" onClick={() => setCompensationFor(employee.employeeId)}>
+                  <Wallet className="mr-2 h-4 w-4" /> {t("employees:compensation.manageButton")}
+                </Button>
+              </div>
+            )}
+
             {employee.notes && (
               <div>
                 <h4 className="text-sm font-semibold text-muted-foreground mb-1">{t("employees:detail.fields.notes")}</h4>
@@ -152,6 +167,11 @@ const EmployeeDetailSheet = ({
           </div>
         </div>
       </SheetContent>
+      <CompensationDialog
+        employeeId={compensationFor}
+        employeeName={employee.name}
+        onClose={() => setCompensationFor(null)}
+      />
     </Sheet>
   );
 };
