@@ -14,6 +14,7 @@ import Payroll from "./pages/Payroll";
 import Punch from "./pages/Punch";
 import Schedule from "./pages/Schedule";
 import Settings from "./pages/Settings";
+import Accounts from "./pages/Accounts";
 import Login from "./pages/Login";
 import SsoCallback from "./pages/SsoCallback";
 import MyPortal from "./pages/MyPortal";
@@ -58,6 +59,7 @@ const App = () => (
                   </Route>
                   <Route element={<RoleRoute allow={["admin"]} fallback="/" />}>
                     <Route path="settings" element={<Settings />} />
+                    <Route path="accounts" element={<Accounts />} />
                   </Route>
                   <Route path="*" element={<NotFound />} />
                 </Route>

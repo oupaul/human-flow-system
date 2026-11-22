@@ -1,0 +1,83 @@
+{
+  "title": "帳號與權限",
+  "subtitle": "管理誰能登入系統、擁有什麼角色。員工建立時會自動產生登入帳號（預設為「員工」角色），要讓某人成為人資或主管，請在這裡調整角色。",
+  "saveFailed": "操作失敗",
+  "roleUpdated": "角色已更新，立即生效",
+  "statusUpdated": "帳號狀態已更新，立即生效",
+  "you": "你",
+  "mustChange": "待改密碼",
+  "noEmployee": "（無對應員工）",
+  "active": "啟用中",
+  "inactive": "已停用",
+  "resetPassword": "重設密碼",
+  "selfHint": "為避免把自己鎖在系統外，不能修改自己的角色、停用自己或重設自己的密碼（要改密碼請到「個人設定」）；系統也會保留至少一個啟用中的管理者。",
+  "roles": {
+    "title": "角色與權限說明",
+    "description": "角色變更後立即生效，對方不必重新登入。",
+    "admin": "全部功能：含系統設定、帳號與權限、薪資與人事成本、福利提醒。",
+    "hr": "管理全公司員工、假勤、出勤打卡、班表、報表，並可處理薪資、人事成本與福利提醒；不能進入系統設定與帳號與權限。",
+    "manager": "管理員工、請假、出勤打卡、班表與報表；看不到也不能修改任何薪資、人事成本。",
+    "employee": "只能使用「我的入口」：自己的出勤打卡、請假與加班申請。"
+  },
+  "list": {
+    "title": "登入帳號",
+    "hint": "登入帳號通常是員工的 email。調整角色後，請通知對方該角色可使用的功能。",
+    "searchPlaceholder": "搜尋帳號、姓名或員工編號",
+    "allRoles": "全部角色",
+    "count": "共 {{count}} 個帳號",
+    "empty": "沒有符合的帳號"
+  },
+  "columns": {
+    "username": "登入帳號",
+    "employee": "對應員工",
+    "role": "角色",
+    "status": "狀態",
+    "actions": "操作"
+  },
+  "confirmRole": {
+    "title": "確認變更角色",
+    "body": "確定要把「{{username}}」的角色從「{{from}}」改為「{{to}}」嗎？新角色可使用的功能如下，變更立即生效。"
+  },
+  "confirmActive": {
+    "disableTitle": "確認停用帳號",
+    "disableBody": "停用後「{{username}}」將立即無法登入，已登入的人也會被登出。資料不會刪除，之後可重新啟用。",
+    "enableTitle": "確認啟用帳號",
+    "enableBody": "啟用後「{{username}}」可以再次登入。"
+  },
+  "confirmReset": {
+    "title": "確認重設密碼",
+    "bodyEmployee": "將「{{username}}」的密碼重設為該員工的員工編號，下次登入時必須先修改密碼。",
+    "bodyRandom": "將為「{{username}}」產生一組隨機臨時密碼，只會顯示這一次，下次登入時必須先修改密碼。"
+  },
+  "resetResult": {
+    "title": "密碼已重設",
+    "description": "請把這組臨時密碼交給本人。",
+    "username": "登入帳號",
+    "password": "臨時密碼",
+    "employeeNote": "臨時密碼為員工編號，對方登入後會被要求先修改密碼。",
+    "randomNote": "這組密碼只會顯示這一次，關閉後無法再查看；對方登入後會被要求先修改密碼。"
+  },
+  "audit": {
+    "button": "異動記錄",
+    "title": "帳號與權限異動記錄",
+    "description": "記錄誰在什麼時候調整了哪個帳號的角色、啟用狀態或密碼。記錄只新增、不可修改，且不含任何密碼內容。",
+    "searchPlaceholder": "搜尋帳號或操作者",
+    "total": "共 {{count}} 筆",
+    "empty": "尚無異動記錄",
+    "prev": "上一頁",
+    "next": "下一頁",
+    "columns": {
+      "time": "時間",
+      "account": "帳號",
+      "action": "類別",
+      "change": "變更",
+      "actor": "操作者"
+    },
+    "actions": {
+      "role_change": "變更角色",
+      "activate": "啟用帳號",
+      "deactivate": "停用帳號",
+      "reset_password": "重設密碼"
+    }
+  }
+}

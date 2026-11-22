@@ -1,0 +1,83 @@
+{
+  "title": "Accounts & Permissions",
+  "subtitle": "Manage who can sign in and which role they have. A login account is created automatically with each employee (default role: Employee). To make someone HR or a manager, change their role here.",
+  "saveFailed": "Operation failed",
+  "roleUpdated": "Role updated and in effect immediately",
+  "statusUpdated": "Account status updated and in effect immediately",
+  "you": "You",
+  "mustChange": "Must change password",
+  "noEmployee": "(no linked employee)",
+  "active": "Active",
+  "inactive": "Disabled",
+  "resetPassword": "Reset password",
+  "selfHint": "To avoid locking yourself out, you cannot change your own role, disable yourself or reset your own password (change your password in Personal Settings). At least one active admin is always kept.",
+  "roles": {
+    "title": "Roles and permissions",
+    "description": "Role changes take effect immediately; the person does not need to sign in again.",
+    "admin": "Everything: system settings, accounts & permissions, payroll and personnel cost, benefit reminders.",
+    "hr": "Manage all employees, leave and attendance, punch, schedules and reports, plus payroll, personnel cost and benefit reminders. No access to system settings or accounts & permissions.",
+    "manager": "Manage employees, leave, punch, schedules and reports. Cannot see or change any salary or personnel cost.",
+    "employee": "My Portal only: own punch, leave and overtime requests."
+  },
+  "list": {
+    "title": "Login accounts",
+    "hint": "The login account is usually the employee's email. After changing a role, let the person know what they can now use.",
+    "searchPlaceholder": "Search account, name or employee ID",
+    "allRoles": "All roles",
+    "count": "{{count}} accounts",
+    "empty": "No matching accounts"
+  },
+  "columns": {
+    "username": "Account",
+    "employee": "Linked employee",
+    "role": "Role",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "confirmRole": {
+    "title": "Confirm role change",
+    "body": "Change the role of \"{{username}}\" from \"{{from}}\" to \"{{to}}\"? The new role can use the following, effective immediately."
+  },
+  "confirmActive": {
+    "disableTitle": "Confirm disabling account",
+    "disableBody": "\"{{username}}\" will be unable to sign in immediately, and anyone already signed in will be signed out. No data is deleted; you can re-enable the account later.",
+    "enableTitle": "Confirm enabling account",
+    "enableBody": "\"{{username}}\" will be able to sign in again."
+  },
+  "confirmReset": {
+    "title": "Confirm password reset",
+    "bodyEmployee": "The password of \"{{username}}\" will be reset to the employee ID, and must be changed at next sign-in.",
+    "bodyRandom": "A random temporary password will be generated for \"{{username}}\". It is shown only once and must be changed at next sign-in."
+  },
+  "resetResult": {
+    "title": "Password reset",
+    "description": "Give this temporary password to the person.",
+    "username": "Account",
+    "password": "Temporary password",
+    "employeeNote": "The temporary password is the employee ID; the person must change it after signing in.",
+    "randomNote": "This password is shown only once and cannot be viewed again after closing; the person must change it after signing in."
+  },
+  "audit": {
+    "button": "Change log",
+    "title": "Account & permission change log",
+    "description": "Records who changed which account's role, status or password, and when. Append-only; never contains any password.",
+    "searchPlaceholder": "Search account or actor",
+    "total": "{{count}} entries",
+    "empty": "No changes recorded yet",
+    "prev": "Previous",
+    "next": "Next",
+    "columns": {
+      "time": "Time",
+      "account": "Account",
+      "action": "Type",
+      "change": "Change",
+      "actor": "Actor"
+    },
+    "actions": {
+      "role_change": "Role changed",
+      "activate": "Account enabled",
+      "deactivate": "Account disabled",
+      "reset_password": "Password reset"
+    }
+  }
+}

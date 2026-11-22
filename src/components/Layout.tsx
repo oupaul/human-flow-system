@@ -16,7 +16,8 @@ import {
   Calculator,
   Fingerprint,
   CalendarRange,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  UserCog
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,8 @@ const Layout = () => {
          { to: "/payroll", icon: <Calculator className="h-5 w-5" />, label: t("nav.payroll") }]
       : []),
     ...(user?.role === "admin"
-      ? [{ to: "/settings", icon: <SettingsIcon className="h-5 w-5" />, label: t("nav.settings") }]
+      ? [{ to: "/accounts", icon: <UserCog className="h-5 w-5" />, label: t("nav.accounts") },
+         { to: "/settings", icon: <SettingsIcon className="h-5 w-5" />, label: t("nav.settings") }]
       : []),
   ];
 

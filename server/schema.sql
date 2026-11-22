@@ -454,6 +454,20 @@ CREATE TABLE IF NOT EXISTS leave_adjustment_logs (
   INDEX idx_created (created_at)
 );
 
+-- 帳號與權限異動記錄：誰在什麼時候調整了哪個帳號的角色、啟用狀態或密碼，只新增、不修改
+CREATE TABLE IF NOT EXISTS account_audit_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  targetUserId INT NULL,                     -- 不設外鍵：帳號日後被刪除，異動記錄仍要保留
+  targetUsername VARCHAR(100) NULL,
+  action VARCHAR(30) NOT NULL,               -- role_change、activate、deactivate、reset_password
+  beforeValue VARCHAR(100) NULL,
+  afterValue VARCHAR(100) NULL,
+  actorUsername VARCHAR(100) NULL,
+  INDEX idx_audit_created (created_at),
+  INDEX idx_audit_target (targetUserId)
+);
+
 -- 計薪設定（單一列 id=1）：底薪與勞健退按完整日曆月；只有請假、加班取「上月 (cutoffDay+1) 日 ~ 本月 cutoffDay 日」
 -- 例如 cutoffDay=25，計算 10 月薪資時，請假、加班取 9/26 ~ 10/25。日薪＝月薪÷daysPerMonth，時薪＝日薪÷hoursPerDay
 CREATE TABLE IF NOT EXISTS payroll_settings (

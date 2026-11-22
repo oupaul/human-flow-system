@@ -32,6 +32,7 @@ import {
 import { detectPunchExceptions, listPunchExceptions } from './punchExceptions.js';
 import { getCompliance } from './compliance.js';
 import { getPunchStats } from './punchStats.js';
+import { getAccountState, registerAccountRoutes } from './accounts.js';
 import { microsoftConfig, verifyIdToken, emailFromClaims, SsoError } from './microsoftSso.js';
 import {
   PayrollError, isValidMonth, importRatesCsv, importBracketsCsv, listRates, listBracketSets, generateSnapshot,
@@ -701,7 +702,8 @@ app.post('/api/auth/microsoft/token', async (req, res) => {
 });
 
 // 驗證 JWT 的中介軟體
-function authMiddleware(req, res, next) {
+// 角色與啟用狀態以資料庫目前的值為準（見 accounts.js），被降權或停用的人立即生效，不必等 token 過期
+async function authMiddleware(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const [scheme, token] = authHeader.split(' ');
 
@@ -709,11 +711,23 @@ function authMiddleware(req, res, next) {
     return res.status(401).json({ error: '未登入或憑證無效' });
   }
 
+  let payload;
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
-    next();
+    payload = jwt.verify(token, JWT_SECRET);
   } catch (error) {
     return res.status(401).json({ error: '登入已過期，請重新登入' });
+  }
+
+  try {
+    const state = await getAccountState(pool, payload.sub);
+    if (!state || !state.active) {
+      return res.status(401).json({ error: '帳號已停用或不存在，請洽管理員', code: 'ACCOUNT_DISABLED' });
+    }
+    req.user = { ...payload, role: state.role };
+    next();
+  } catch (error) {
+    console.error('Error checking account state:', error);
+    res.status(500).json({ error: '系統發生錯誤', detail: error.message });
   }
 }
 
@@ -766,6 +780,8 @@ api.use((req, res, next) => {
   }
   next();
 });
+
+registerAccountRoutes(api, { pool, requireRole });
 
 api.get('/auth/me', async (req, res) => {
   try {
