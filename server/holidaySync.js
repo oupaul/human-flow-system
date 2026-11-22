@@ -5,6 +5,7 @@
 // 還是沒有才通知 HR 手動處理，避免依行事曆日期運作的福利提醒（端午、中秋等）靜默失效。
 
 import { sendNotification } from './notifications.js';
+import { parseCsv } from './csv.js';
 
 const TAIPEI_DATASET_ID = 'c30ca421-d935-4faa-b523-9c175c8de738';
 const TAIPEI_BASE = 'https://data.taipei';
@@ -19,32 +20,6 @@ async function fetchWithTimeout(url) {
   const response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!response.ok) throw new Error(`${url} 回應 ${response.status}`);
   return response;
-}
-
-// 逐字元解析 CSV（處理引號與引號內的逗號、換行）
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let cell = '';
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (inQuotes) {
-      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i += 1; }
-      else if (ch === '"') inQuotes = false;
-      else cell += ch;
-    } else if (ch === '"') inQuotes = true;
-    else if (ch === ',') { row.push(cell); cell = ''; }
-    else if (ch === '\n' || ch === '\r') {
-      if (ch === '\r' && text[i + 1] === '\n') i += 1;
-      row.push(cell); cell = '';
-      if (row.some((c) => c !== '')) rows.push(row);
-      row = [];
-    } else cell += ch;
-  }
-  row.push(cell);
-  if (row.some((c) => c !== '')) rows.push(row);
-  return rows;
 }
 
 // 把辦公日曆表 CSV 轉成 holidays 表的列。

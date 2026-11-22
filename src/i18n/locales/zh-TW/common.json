@@ -8,7 +8,8 @@
     "reports": "報表分析",
     "settings": "系統設定",
     "myPortal": "我的入口",
-    "seniorityBenefits": "福利提醒"
+    "seniorityBenefits": "福利提醒",
+    "payroll": "人事成本"
   },
   "actions": {
     "save": "儲存",

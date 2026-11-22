@@ -1,0 +1,81 @@
+{
+  "disclaimer": "労働保険・健康保険・年金の試算値は参考値です。実際の金額は保険局の納付書に従います。月の途中の入社・退社は日割り計算していません。人事と管理者のみ閲覧できます。",
+  "tabs": {
+    "snapshots": "月次試算",
+    "rates": "料率と等級"
+  },
+  "status": {
+    "draft": "下書き",
+    "locked": "ロック済み"
+  },
+  "snapshots": {
+    "generateTitle": "月次試算の作成",
+    "generateHint": "その月の末日時点で有効な給与・保険情報で計算します。下書きは再作成できます。ロックすると数値が固定され、以後の料率や給与の変更に影響されません。",
+    "generate": "試算を作成",
+    "generateFailed": "試算の作成に失敗しました",
+    "lockedCannotRegenerate": "この月はロックされています。管理者がロック解除すると再作成できます",
+    "month": "月",
+    "headcount": "人数",
+    "salary": "月給合計",
+    "employee": "従業員負担",
+    "employer": "会社負担",
+    "totalCost": "会社の総コスト",
+    "empty": "試算がまだありません",
+    "lock": "ロック",
+    "unlock": "ロック解除"
+  },
+  "detail": {
+    "title": "{{month}} 明細",
+    "meta": "作成者：{{by}}、作成日時：{{at}}",
+    "lockedMeta": "ロック者：{{by}}、ロック日時：{{at}}",
+    "salary": "月給",
+    "insured": "加入額（労働／健康／年金）",
+    "labor": "労働（従業員／会社）",
+    "health": "健康（従業員／会社）",
+    "pension": "年金（任意／会社）",
+    "warnings": "注意",
+    "columnsHint": "従業員負担＝労働＋健康＋任意拠出、会社負担＝労働＋健康＋事業主拠出、会社の総コスト＝月給＋会社負担。"
+  },
+  "confirm": {
+    "lockTitle": "{{month}} をロックしますか？",
+    "lockBody": "数値が固定され、以後の料率や給与の変更に影響されません。解除できるのは管理者のみです。",
+    "unlockTitle": "{{month}} のロックを解除しますか？",
+    "unlockBody": "下書きに戻り再作成できます。固定されていた数値は新しい試算で置き換わります。",
+    "deleteTitle": "{{month}} の下書きを削除しますか？",
+    "deleteBody": "下書きを削除します。あとで再作成できます。",
+    "regenerateTitle": "{{month}} を再作成しますか？",
+    "regenerateBody": "現在の下書きは、最新の給与と料率で再計算した結果に置き換わります。"
+  },
+  "rates": {
+    "ratesTitle": "保険料率と負担割合",
+    "ratesHint": "CSV を貼り付けてください（列：effectiveDate, key, value, note）。料率は内蔵していないため、公式発表の値を入力してください。1行でも誤りがあると全体が取り込まれません。",
+    "bracketsTitle": "標準報酬の等級表",
+    "bracketsHint": "CSV を貼り付けてください（列：effectiveDate, type, amount。type は labor／health／pension）。同じ適用日・種類は丸ごと置き換えます。加入額が等級に合っているかの確認に使います。",
+    "import": "取り込み",
+    "template": "テンプレートをダウンロード",
+    "importFailed": "取り込みに失敗しました",
+    "currentTitle": "現在の設定",
+    "currentHint": "各月は、その月の1日以前に適用開始された最新の設定を使います。",
+    "noRates": "料率が未登録です。試算の作成前に取り込んでください",
+    "effectiveFrom": "{{date}} から適用",
+    "bracketSets": "等級表",
+    "bracketSummary": "{{count}} 等級（{{min}}～{{max}}）"
+  },
+  "rateKeys": {
+    "laborRate": "労働保険料率（普通事故＋雇用保険の合計、%）",
+    "laborEmployeeShare": "労働保険：従業員負担割合（%）",
+    "laborEmployerShare": "労働保険：事業主負担割合（%）",
+    "laborEmployerOnlyRate": "労働保険：事業主全額負担の料率（労災・賃金立替基金等の合計、%。なければ 0）",
+    "healthRate": "健康保険料率（%）",
+    "healthEmployeeShare": "健康保険：被保険者負担割合（%）",
+    "healthEmployerShare": "健康保険：事業主負担割合（%）",
+    "healthAvgDependents": "健康保険：平均被扶養者数（事業主負担用、政府発表）",
+    "healthDependentCap": "健康保険：被扶養者の計算上限人数",
+    "pensionEmployerRate": "年金：事業主拠出率（%）"
+  },
+  "bracketTypes": {
+    "labor": "労働",
+    "health": "健康",
+    "pension": "年金"
+  }
+}

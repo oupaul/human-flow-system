@@ -13,6 +13,7 @@ import {
   LogOut,
   KeyRound,
   Gift,
+  Calculator,
   Settings as SettingsIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -52,7 +53,8 @@ const Layout = () => {
     { to: "/leave-management", icon: <Calendar className="h-5 w-5" />, label: t("nav.leaveManagement") },
     { to: "/reports", icon: <BarChart3 className="h-5 w-5" />, label: t("nav.reports") },
     ...(user?.role === "admin" || user?.role === "hr"
-      ? [{ to: "/seniority-benefits", icon: <Gift className="h-5 w-5" />, label: t("nav.seniorityBenefits") }]
+      ? [{ to: "/seniority-benefits", icon: <Gift className="h-5 w-5" />, label: t("nav.seniorityBenefits") },
+         { to: "/payroll", icon: <Calculator className="h-5 w-5" />, label: t("nav.payroll") }]
       : []),
     ...(user?.role === "admin"
       ? [{ to: "/settings", icon: <SettingsIcon className="h-5 w-5" />, label: t("nav.settings") }]

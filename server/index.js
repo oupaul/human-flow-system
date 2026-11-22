@@ -16,6 +16,10 @@ import { checkHolidayBenefitReminders } from './holidayBenefits.js';
 import { syncHolidaysFromTaipei, checkHolidayCalendar } from './holidaySync.js';
 import { computeSettlementSplit, checkLeaveSettlementReminders } from './leaveSettlement.js';
 import { syncCurrentSalary, recordSalaryChange, parseCompensation } from './compensation.js';
+import {
+  PayrollError, isValidMonth, importRatesCsv, importBracketsCsv, listRates, listBracketSets, generateSnapshot,
+  listSnapshots, getSnapshot, setSnapshotLock, deleteDraftSnapshot, snapshotToXlsx,
+} from './payroll.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -2948,6 +2952,106 @@ api.delete('/compensation/:id', requireRole(...SALARY_ROLES), async (req, res) =
   } catch (error) {
     console.error('Error deleting compensation:', error);
     res.status(500).json({ error: '刪除薪資異動紀錄失敗', detail: error.message });
+  }
+});
+
+// 人事成本（保險費率／級距、每月勞健退試算快照）：僅 admin/hr；解除鎖定限 admin
+function handlePayrollError(res, error, fallback) {
+  if (error instanceof PayrollError) return res.status(error.status).json({ error: error.message });
+  console.error(fallback, error);
+  return res.status(500).json({ error: fallback, detail: error.message });
+}
+
+api.get('/payroll/rates', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    res.json({ rates: await listRates(pool), brackets: await listBracketSets(pool) });
+  } catch (error) {
+    handlePayrollError(res, error, '獲取費率設定失敗');
+  }
+});
+
+api.post('/payroll/rates/import', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    if (!req.body.csv) return res.status(400).json({ error: '請提供 CSV 內容' });
+    res.json({ message: '費率匯入成功', ...(await importRatesCsv(pool, req.body.csv)) });
+  } catch (error) {
+    res.status(400).json({ error: '匯入費率失敗', detail: error.message });
+  }
+});
+
+api.post('/payroll/brackets/import', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    if (!req.body.csv) return res.status(400).json({ error: '請提供 CSV 內容' });
+    res.json({ message: '級距表匯入成功', ...(await importBracketsCsv(pool, req.body.csv)) });
+  } catch (error) {
+    res.status(400).json({ error: '匯入級距表失敗', detail: error.message });
+  }
+});
+
+api.get('/payroll/snapshots', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    res.json(await listSnapshots(pool));
+  } catch (error) {
+    handlePayrollError(res, error, '獲取試算快照清單失敗');
+  }
+});
+
+api.post('/payroll/snapshots', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    res.status(201).json({ message: '試算已產生', ...(await generateSnapshot(pool, req.body.month, req.user.username)) });
+  } catch (error) {
+    handlePayrollError(res, error, '產生試算失敗');
+  }
+});
+
+api.get('/payroll/snapshots/:month', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    if (!isValidMonth(req.params.month)) return res.status(400).json({ error: '月份格式不正確' });
+    const snapshot = await getSnapshot(pool, req.params.month);
+    if (!snapshot) return res.status(404).json({ error: '找不到該月份的快照' });
+    res.json(snapshot);
+  } catch (error) {
+    handlePayrollError(res, error, '獲取試算快照失敗');
+  }
+});
+
+api.get('/payroll/snapshots/:month/export', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    if (!isValidMonth(req.params.month)) return res.status(400).json({ error: '月份格式不正確' });
+    const snapshot = await getSnapshot(pool, req.params.month);
+    if (!snapshot) return res.status(404).json({ error: '找不到該月份的快照' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="payroll-${req.params.month}.xlsx"`);
+    res.send(snapshotToXlsx(snapshot));
+  } catch (error) {
+    handlePayrollError(res, error, '匯出試算失敗');
+  }
+});
+
+api.post('/payroll/snapshots/:month/lock', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    await setSnapshotLock(pool, req.params.month, true, req.user.username);
+    res.json({ message: '已鎖定，之後調整費率或薪資都不會改動這個月份的數字' });
+  } catch (error) {
+    handlePayrollError(res, error, '鎖定失敗');
+  }
+});
+
+api.post('/payroll/snapshots/:month/unlock', requireRole('admin'), async (req, res) => {
+  try {
+    await setSnapshotLock(pool, req.params.month, false, req.user.username);
+    res.json({ message: '已解除鎖定，目前為草稿，可重新產生' });
+  } catch (error) {
+    handlePayrollError(res, error, '解除鎖定失敗');
+  }
+});
+
+api.delete('/payroll/snapshots/:month', requireRole(...SALARY_ROLES), async (req, res) => {
+  try {
+    await deleteDraftSnapshot(pool, req.params.month);
+    res.json({ message: '草稿已刪除' });
+  } catch (error) {
+    handlePayrollError(res, error, '刪除失敗');
   }
 });
 

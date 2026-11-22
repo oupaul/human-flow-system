@@ -8,7 +8,8 @@
     "reports": "Reports",
     "settings": "Settings",
     "myPortal": "My Portal",
-    "seniorityBenefits": "Benefit Reminders"
+    "seniorityBenefits": "Benefit Reminders",
+    "payroll": "Payroll Cost"
   },
   "actions": {
     "save": "Save",

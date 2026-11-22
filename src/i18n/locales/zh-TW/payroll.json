@@ -1,0 +1,81 @@
+{
+  "disclaimer": "勞保、健保、勞退試算值僅供參考，實際金額以勞保局、健保署繳款單為準；當月到職或離職未依天數折算。僅人資與管理者可見。",
+  "tabs": {
+    "snapshots": "每月試算",
+    "rates": "費率與級距"
+  },
+  "status": {
+    "draft": "草稿",
+    "locked": "已鎖定"
+  },
+  "snapshots": {
+    "generateTitle": "產生每月試算",
+    "generateHint": "依該月最後一天仍有效的薪資與投保資料計算。草稿可重新產生；鎖定後凍結，之後調整費率或薪資都不會改動。",
+    "generate": "產生試算",
+    "generateFailed": "產生試算失敗",
+    "lockedCannotRegenerate": "該月份已鎖定，需由管理者解除鎖定後才能重新產生",
+    "month": "月份",
+    "headcount": "人數",
+    "salary": "月薪合計",
+    "employee": "員工自付",
+    "employer": "公司負擔",
+    "totalCost": "公司總成本",
+    "empty": "尚未產生任何試算",
+    "lock": "鎖定",
+    "unlock": "解除鎖定"
+  },
+  "detail": {
+    "title": "{{month}} 試算明細",
+    "meta": "產生者：{{by}}，產生時間：{{at}}",
+    "lockedMeta": "鎖定者：{{by}}，鎖定時間：{{at}}",
+    "salary": "月薪",
+    "insured": "投保（勞保／健保／勞退）",
+    "labor": "勞保（員工／公司）",
+    "health": "健保（員工／公司）",
+    "pension": "勞退（自提／公司）",
+    "warnings": "提醒",
+    "columnsHint": "員工自付 = 勞保 + 健保 + 自願提繳；公司負擔 = 勞保 + 健保 + 雇主提繳；公司總成本 = 月薪 + 公司負擔。"
+  },
+  "confirm": {
+    "lockTitle": "鎖定 {{month}}？",
+    "lockBody": "鎖定後數字會凍結，之後調整費率或薪資都不會改動；需由管理者才能解除。",
+    "unlockTitle": "解除鎖定 {{month}}？",
+    "unlockBody": "解除後回到草稿，可重新產生，目前凍結的數字會被新的試算取代。",
+    "deleteTitle": "刪除 {{month}} 草稿？",
+    "deleteBody": "草稿將被刪除，之後可重新產生。",
+    "regenerateTitle": "重新產生 {{month}}？",
+    "regenerateBody": "目前的草稿會被依最新薪資與費率重新計算的結果取代。"
+  },
+  "rates": {
+    "ratesTitle": "保險費率與負擔比例",
+    "ratesHint": "貼上 CSV（欄位：effectiveDate, key, value, note）。系統不內建任何費率，請依勞保局、健保署公告填寫；任何一列有誤整份都不會匯入。",
+    "bracketsTitle": "投保薪資級距表",
+    "bracketsHint": "貼上 CSV（欄位：effectiveDate, type, amount；type 為 labor、health 或 pension）。同一生效日與類型會整份取代，用來核對員工的投保薪資是否落在級距。",
+    "import": "匯入",
+    "template": "下載範本",
+    "importFailed": "匯入失敗",
+    "currentTitle": "目前設定",
+    "currentHint": "各月份會使用「生效日不晚於該月 1 日」的最新設定。",
+    "noRates": "尚未匯入任何費率，產生試算前請先匯入",
+    "effectiveFrom": "自 {{date}} 起生效",
+    "bracketSets": "級距表",
+    "bracketSummary": "{{count}} 個級距（{{min}} ～ {{max}}）"
+  },
+  "rateKeys": {
+    "laborRate": "勞保費率（普通事故＋就業保險合計，%）",
+    "laborEmployeeShare": "勞保 勞工負擔比例（%）",
+    "laborEmployerShare": "勞保 雇主負擔比例（%）",
+    "laborEmployerOnlyRate": "勞保 雇主全額負擔費率（職災保險、工資墊償基金等合計，%；沒有請填 0）",
+    "healthRate": "健保費率（%）",
+    "healthEmployeeShare": "健保 被保險人負擔比例（%）",
+    "healthEmployerShare": "健保 雇主負擔比例（%）",
+    "healthAvgDependents": "健保 平均眷屬人數（雇主負擔用，政府公告）",
+    "healthDependentCap": "健保 眷屬計費人數上限",
+    "pensionEmployerRate": "勞退 雇主提繳率（%）"
+  },
+  "bracketTypes": {
+    "labor": "勞保",
+    "health": "健保",
+    "pension": "勞退"
+  }
+}
