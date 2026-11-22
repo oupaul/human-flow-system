@@ -32,6 +32,7 @@ import {
 import { detectPunchExceptions, listPunchExceptions } from './punchExceptions.js';
 import { getCompliance } from './compliance.js';
 import { getPunchStats } from './punchStats.js';
+import { microsoftConfig, verifyIdToken, emailFromClaims, SsoError } from './microsoftSso.js';
 import {
   PayrollError, isValidMonth, importRatesCsv, importBracketsCsv, listRates, listBracketSets, generateSnapshot,
   listSnapshots, getSnapshot, setSnapshotLock, deleteDraftSnapshot, snapshotToXlsx,
@@ -658,118 +659,44 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Microsoft 365（Entra ID）單一登入設定；四個環境變數都設定齊全才會啟用，
-// 未設定時登入頁不會顯示「使用 Microsoft 帳號登入」按鈕（見 /auth/microsoft/status）
-const MS_TENANT_ID = process.env.MS_TENANT_ID;
-const MS_CLIENT_ID = process.env.MS_CLIENT_ID;
-const MS_CLIENT_SECRET = process.env.MS_CLIENT_SECRET;
-const MS_REDIRECT_URI = process.env.MS_REDIRECT_URI;
-const MS_SSO_ENABLED = Boolean(MS_TENANT_ID && MS_CLIENT_ID && MS_CLIENT_SECRET && MS_REDIRECT_URI);
-const FRONTEND_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:8080';
+// Microsoft 365（Entra ID）單一登入：不使用 client secret（細節與安全性說明見 microsoftSso.js）。
+// 只需要 MS_TENANT_ID 與 MS_CLIENT_ID 兩個公開識別碼；未設定時登入頁不會顯示「使用 Microsoft 帳號登入」按鈕
+const msConfig = microsoftConfig();
 
+// 回傳前端發起登入所需的公開資訊（租戶 ID、應用程式 ID 都不是祕密）
 app.get('/api/auth/microsoft/status', (req, res) => {
-  res.json({ enabled: MS_SSO_ENABLED });
+  res.json({ enabled: msConfig.enabled, tenantId: msConfig.enabled ? msConfig.tenantId : null, clientId: msConfig.enabled ? msConfig.clientId : null });
 });
 
-// 導向 Microsoft 登入頁；用短效簽章 JWT 當 state 防 CSRF，不需要伺服器端 session 儲存。
-// authorize URL 是租戶專屬（/{tenantId}/...），只有貴公司 M365 租戶內的帳號能登入，
-// 其他租戶或個人 Microsoft 帳號在 Microsoft 自家登入頁就會被擋下
-app.get('/api/auth/microsoft/login', (req, res) => {
-  if (!MS_SSO_ENABLED) {
-    return res.status(503).json({ error: '尚未設定 Microsoft 365 單一登入，請聯繫系統管理員' });
-  }
-  const state = jwt.sign({ purpose: 'ms-sso-state' }, JWT_SECRET, { expiresIn: '10m' });
-  const authorizeUrl = new URL(`https://login.microsoftonline.com/${MS_TENANT_ID}/oauth2/v2.0/authorize`);
-  authorizeUrl.searchParams.set('client_id', MS_CLIENT_ID);
-  authorizeUrl.searchParams.set('response_type', 'code');
-  authorizeUrl.searchParams.set('redirect_uri', MS_REDIRECT_URI);
-  authorizeUrl.searchParams.set('response_mode', 'query');
-  authorizeUrl.searchParams.set('scope', 'openid profile email User.Read');
-  authorizeUrl.searchParams.set('state', state);
-  res.redirect(authorizeUrl.toString());
-});
-
-// Microsoft 登入完成後導回這裡。用 access token 呼叫 Microsoft Graph /me 取得信箱，
-// 不自行解析/驗證 id_token 簽章——換 token 與查 /me 都是伺服器對伺服器直接跟
-// Microsoft 走 TLS，通道本身可信，沒有必要另外實作 JWKS 驗簽
-app.get('/api/auth/microsoft/callback', async (req, res) => {
-  const redirectWithError = (code) => res.redirect(`${FRONTEND_ORIGIN}/login?ssoError=${code}`);
-
-  if (!MS_SSO_ENABLED) {
-    return redirectWithError('not_configured');
-  }
-
-  const { code, state, error: msError } = req.query;
-  if (msError) {
-    console.error('Microsoft SSO error:', msError, req.query.error_description);
-    return redirectWithError('microsoft_error');
-  }
-  if (!code || !state) {
-    return redirectWithError('invalid_request');
-  }
-
+// 前端用 PKCE 向 Microsoft 換到 id_token 後送來這裡。後端不相信前端的任何說法，
+// 只信任 Microsoft 簽發、並通過簽章／issuer／audience／有效期限／nonce 驗證的 id_token，
+// 再用其中的信箱比對系統帳號（與一般登入相同：username 就是員工的電子郵件，找不到就拒絕，不自動建立帳號）
+app.post('/api/auth/microsoft/token', async (req, res) => {
   try {
-    jwt.verify(state, JWT_SECRET);
-  } catch (error) {
-    console.error('Invalid Microsoft SSO state:', error);
-    return redirectWithError('invalid_state');
-  }
+    const claims = await verifyIdToken(req.body.idToken, req.body.nonce, msConfig);
+    const email = emailFromClaims(claims);
+    if (!email) throw new SsoError('no_email', '此 Microsoft 帳號沒有可用的電子郵件');
 
-  try {
-    const tokenResponse = await fetch(`https://login.microsoftonline.com/${MS_TENANT_ID}/oauth2/v2.0/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: MS_CLIENT_ID,
-        client_secret: MS_CLIENT_SECRET,
-        code,
-        redirect_uri: MS_REDIRECT_URI,
-        grant_type: 'authorization_code',
-      }),
-    });
-    const tokenData = await tokenResponse.json();
-    if (!tokenResponse.ok || !tokenData.access_token) {
-      console.error('Microsoft token exchange failed:', tokenData);
-      return redirectWithError('token_exchange_failed');
-    }
-
-    const profileResponse = await fetch('https://graph.microsoft.com/v1.0/me', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
-    });
-    const profile = await profileResponse.json();
-    if (!profileResponse.ok) {
-      console.error('Microsoft Graph /me failed:', profile);
-      return redirectWithError('profile_fetch_failed');
-    }
-
-    const email = (profile.mail || profile.userPrincipalName || '').toLowerCase();
-    if (!email) {
-      return redirectWithError('no_email');
-    }
-
-    // 帳號比對邏輯與一般登入完全相同：username 就是員工的電子郵件
     const [rows] = await pool.execute(
       'SELECT id, username, role, employee_id FROM users WHERE LOWER(username) = ? AND active = TRUE',
       [email]
     );
     const user = rows[0];
-    if (!user) {
-      return redirectWithError('no_account');
-    }
+    if (!user) throw new SsoError('no_account', '找不到對應的系統帳號');
 
     const token = jwt.sign(
       { sub: user.id, username: user.username, role: user.role, employeeId: user.employee_id },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
-
-    // token 放在網址 fragment（#）不是 query string，瀏覽器不會把 fragment 送給伺服器，
-    // 也不會出現在 Referer header 或伺服器存取紀錄裡；前端 /sso-callback 頁面讀出來後
-    // 呼叫既有的 GET /auth/me 補齊完整使用者資料，不在這裡重複組裝
-    res.redirect(`${FRONTEND_ORIGIN}/sso-callback#token=${encodeURIComponent(token)}`);
+    res.json({ token });
   } catch (error) {
-    console.error('Error during Microsoft SSO callback:', error);
-    return redirectWithError('server_error');
+    if (error instanceof SsoError) {
+      console.error('Microsoft SSO 失敗：', error.code, error.message);
+      return res.status(error.code === 'not_configured' ? 503 : error.code === 'no_account' || error.code === 'no_email' ? 403 : 401).json({ error: error.message, code: error.code });
+    }
+    console.error('Error during Microsoft SSO:', error);
+    res.status(500).json({ error: '系統發生錯誤', code: 'server_error', detail: error.message });
   }
 });
 

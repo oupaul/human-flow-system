@@ -3,7 +3,8 @@ import { Navigate, useLocation, useNavigate, useSearchParams } from "react-route
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/apiClient";
-import { authApi, MICROSOFT_LOGIN_URL } from "@/services/authApi";
+import { authApi, MicrosoftSsoStatus } from "@/services/authApi";
+import { MicrosoftSsoError, startMicrosoftLogin } from "@/lib/microsoftSso";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ const SSO_ERROR_KEYS = new Set([
   "server_error",
   "microsoft_error",
   "not_configured",
+  "needs_https",
 ]);
 
 const Login = () => {
@@ -34,10 +36,11 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [ssoEnabled, setSsoEnabled] = useState(false);
+  const [sso, setSso] = useState<MicrosoftSsoStatus>({ enabled: false, tenantId: null, clientId: null });
+  const ssoEnabled = sso.enabled;
 
   useEffect(() => {
-    authApi.getMicrosoftSsoStatus().then((status) => setSsoEnabled(status.enabled));
+    authApi.getMicrosoftSsoStatus().then(setSso);
   }, []);
 
   useEffect(() => {
@@ -54,8 +57,15 @@ const Login = () => {
     return <Navigate to={redirectTo} replace />;
   }
 
-  const handleMicrosoftLogin = () => {
-    window.location.href = MICROSOFT_LOGIN_URL;
+  const handleMicrosoftLogin = async () => {
+    if (!sso.tenantId || !sso.clientId) return;
+    setError(null);
+    try {
+      await startMicrosoftLogin(sso.tenantId, sso.clientId);
+    } catch (err) {
+      const code = err instanceof MicrosoftSsoError ? err.code : "invalid_request";
+      setError(t(`auth:login.sso.errors.${SSO_ERROR_KEYS.has(code) ? code : "invalid_request"}`));
+    }
   };
 
   const handleSubmit = async (event: FormEvent) => {

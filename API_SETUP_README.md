@@ -141,21 +141,23 @@ npm run dev
 
 登入頁可以加一個「使用 Microsoft 帳號登入」按鈕，讓員工直接用公司的 M365 帳號登入，不用另外記系統密碼。這是**跟現有帳號密碼登入並存**的選項，不會取代原本的登入方式；`.env` 沒設定時登入頁根本不會出現這個按鈕。
 
-**運作方式**：只限貴公司自己的 M365 租戶（tenant）內的帳號能登入，其他租戶或個人 Microsoft 帳號在 Microsoft 自家登入頁就會被擋下。登入成功後，系統會用 Microsoft 回傳的電子郵件去比對 `users` 表的帳號（跟一般登入邏輯完全相同——員工帳號的 username 本來就是電子郵件），**找不到對應帳號會直接被拒絕**、導回登入頁並提示「請聯絡管理員」，不會自動建立新帳號。也就是說，要能用 M365 SSO 登入，員工必須已經被 HR 在「員工管理」新增過（會自動建立登入帳號）或透過批次匯入建立。
+**不需要 client secret。** 採用「授權碼 + PKCE」：Entra ID 把應用程式註冊成**單頁應用程式（SPA）**，瀏覽器自己用 `code_verifier` 向 Microsoft 換 `id_token`（公開用戶端本來就沒有祕密），再交給後端驗證。後端只信任 Microsoft 簽發的 `id_token`：用 Microsoft 公開的金鑰（JWKS）驗證簽章，並檢查 issuer（綁定貴公司租戶）、audience（本應用程式）、有效期限與 nonce。整個流程**沒有任何祕密需要放在 `.env`**，只有兩個公開識別碼（租戶 ID、應用程式 ID）。
+
+**運作方式**：只限貴公司自己的 M365 租戶（tenant）內的帳號能登入，其他租戶或個人 Microsoft 帳號在 Microsoft 自家登入頁就會被擋下。登入成功後，系統用 `id_token` 裡的電子郵件（優先 `email`，沒有就用 `preferred_username`）去比對 `users` 表的帳號（跟一般登入邏輯完全相同——員工帳號的 username 本來就是電子郵件），**找不到對應帳號會直接被拒絕**、導回登入頁並提示「請聯絡管理員」，不會自動建立新帳號。也就是說，要能用 M365 SSO 登入，員工必須已經被 HR 在「員工管理」新增過（會自動建立登入帳號）或透過批次匯入建立。
 
 **設定步驟（需要 Azure/Microsoft 365 系統管理員權限）**：
 
 1. 到 [Microsoft Entra 系統管理中心](https://entra.microsoft.com)（或 Azure Portal）→ 「應用程式註冊」→「新增註冊」
-2. 名稱自訂（例如「HR管理系統」），支援的帳戶類型選**「僅此組織目錄中的帳戶（單一租戶）」**，重新導向 URI 類型選 **Web**，網址填 `.env` 裡 `MS_REDIRECT_URI` 的值（例如 `https://你的網域/api/auth/microsoft/callback`，正式環境請用 HTTPS）
+2. 名稱自訂（例如「HR管理系統」），支援的帳戶類型選**「僅此組織目錄中的帳戶（單一租戶）」**，重新導向 URI 的平台類型選 **「單頁應用程式 (SPA)」**，網址填 `https://你的網域/sso-callback`（本機測試可填 `http://localhost:8080/sso-callback`）
 3. 註冊完成後，在應用程式「總覽」頁記下 **應用程式 (用戶端) 識別碼**（→ `MS_CLIENT_ID`）與 **目錄 (租用戶) 識別碼**（→ `MS_TENANT_ID`）
-4. 左側選單「憑證及密碼」→「用戶端密碼」→「新增用戶端密碼」，建立後**立刻複製「值」**（離開頁面後就看不到了）→ `MS_CLIENT_SECRET`
-5. 左側選單「API 權限」確認已有 `Microsoft Graph` 的 `User.Read`（委派）權限，這是新註冊應用程式的預設權限，通常不用額外設定
-6. 把上面四個值填進 `.env`：`MS_TENANT_ID`、`MS_CLIENT_ID`、`MS_CLIENT_SECRET`、`MS_REDIRECT_URI`，重新啟動服務即可
-7. 到登入頁確認出現「使用 Microsoft 帳號登入」按鈕，用一個已存在系統帳號的 M365 信箱測試登入
+4. **不要建立用戶端密碼**，也不需要憑證。左側選單「API 權限」確認已有 `Microsoft Graph` 的 `User.Read`（委派）權限（新註冊應用程式的預設權限），不需要額外授權
+5. 把兩個值填進 `.env`：`MS_TENANT_ID`、`MS_CLIENT_ID`，重新啟動服務（`docker compose up -d`）
+6. 到登入頁確認出現「使用 Microsoft 帳號登入」按鈕，用一個已存在系統帳號的 M365 信箱測試登入
 
-`MS_REDIRECT_URI` 要注意：不管是本機開發還是 Docker 部署，`/api` 都是透過對外網址（`CORS_ORIGIN` 那個網址，Vite/nginx 會轉發到後端）存取，後端的 3001 埠本身沒有對外開放，所以這裡務必填對外網址，不是 `http://localhost:3001/...`（詳見 `.env.example` 裡的說明）。
-
-`MS_CLIENT_SECRET` 目前**以明文存在環境變數**（跟 Email 通知的 SMTP 密碼/OAuth 設定同樣的限制），請確保 `.env` 檔案本身的存取權限受控制，不要提交到版本控制（已列在 `.gitignore`）。
+**注意事項**
+- **需要 HTTPS**：瀏覽器的 PKCE 需要安全環境（HTTPS 或 localhost），Entra ID 的 SPA 重新導向 URI 也只接受這兩種。純 HTTP 的內網網址（例如 `http://主機名稱:8080`）無法使用 M365 登入，登入頁點按鈕時會提示需要 HTTPS，帳號密碼登入不受影響。
+- 重新導向 URI 必須和使用者實際開啟系統的網址**完全一致**（含 `https`、網域、有無連接埠）；用多個網址存取就要在 Entra ID 各註冊一筆。
+- 從舊版（使用 `MS_CLIENT_SECRET`、`MS_REDIRECT_URI`、平台類型 Web）升級：在 Entra ID 新增一筆 SPA 平台的重新導向 URI，把 `.env` 裡這兩個變數刪掉即可，舊的 Web 平台設定與用戶端密碼可以一併移除。
 
 ## 考勤匯入與分析
 
@@ -191,9 +193,8 @@ npm run dev
 ### 登入（公開，不需 token）
 - `POST /api/auth/login` — `{ username, password }`，成功回傳 `{ token, user }`
 - `GET /api/health` — 健康檢查
-- `GET /api/auth/microsoft/status` — 回傳 `{ enabled }`，供登入頁判斷要不要顯示「使用 Microsoft 帳號登入」按鈕
-- `GET /api/auth/microsoft/login` — 導向 Microsoft 登入頁，瀏覽器整頁導航使用，不是給前端 fetch 呼叫的
-- `GET /api/auth/microsoft/callback` — Microsoft 登入完成後的回呼網址（要跟 `MS_REDIRECT_URI` 完全一致），驗證成功會導回前端 `/sso-callback#token=...`，失敗則導回 `/login?ssoError=<代碼>`
+- `GET /api/auth/microsoft/status` — 回傳 `{ enabled, tenantId, clientId }`（兩個都是公開識別碼），供登入頁判斷要不要顯示按鈕並發起 PKCE 登入
+- `POST /api/auth/microsoft/token` — `{ idToken, nonce }`：瀏覽器用 PKCE 向 Microsoft 換到 `id_token` 後送來，後端驗證簽章、issuer、audience、有效期限、nonce 後，用信箱比對系統帳號並核發系統登入 token；失敗回傳 `{ error, code }`（`no_account`、`token_exchange_failed`、`invalid_state`…）
 
 以下端點皆需在 Header 帶上 `Authorization: Bearer <token>`：
 

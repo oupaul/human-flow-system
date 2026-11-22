@@ -26,9 +26,11 @@ interface LoginResponse {
   user: AuthUser;
 }
 
-// 後端會重導到這個路徑開始 Microsoft 登入流程，未跨路由所以用相對路徑，
-// 瀏覽器整頁導航即可（不透過 apiFetch，因為要讓瀏覽器實際跳轉到 Microsoft 登入頁）
-export const MICROSOFT_LOGIN_URL = "/api/auth/microsoft/login";
+export interface MicrosoftSsoStatus {
+  enabled: boolean;
+  tenantId: string | null;
+  clientId: string | null;
+}
 
 export const authApi = {
   async login(username: string, password: string): Promise<AuthUser> {
@@ -40,12 +42,21 @@ export const authApi = {
     return result.user;
   },
 
-  async getMicrosoftSsoStatus(): Promise<{ enabled: boolean }> {
+  async getMicrosoftSsoStatus(): Promise<MicrosoftSsoStatus> {
     try {
-      return await apiFetch<{ enabled: boolean }>("/auth/microsoft/status");
+      return await apiFetch<MicrosoftSsoStatus>("/auth/microsoft/status");
     } catch {
-      return { enabled: false };
+      return { enabled: false, tenantId: null, clientId: null };
     }
+  },
+
+  // 把 Microsoft 簽發的 id_token 交給後端驗證，換成系統登入 token（後端錯誤時 ApiError 帶有 code 欄位）
+  async exchangeMicrosoftIdToken(idToken: string, nonce: string): Promise<string> {
+    const result = await apiFetch<{ token: string }>("/auth/microsoft/token", {
+      method: "POST",
+      body: JSON.stringify({ idToken, nonce }),
+    });
+    return result.token;
   },
 
   // 供 Microsoft SSO 登入完成後的 /sso-callback 頁面使用：後端已核發 token，

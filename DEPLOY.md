@@ -4,28 +4,49 @@
 
 | 服務 | 說明 | 對外連接埠 |
 |---|---|---|
-| `frontend` | Nginx 提供前端靜態檔案，並將 `/api` 反向代理到 `backend` | `8080` |
+| `frontend` | Nginx 提供前端靜態檔案，並將 `/api` 反向代理到 `backend` | `8080`（可用 `.env` 的 `FRONTEND_PORT` 修改） |
 | `backend` | Express API 伺服器（含請假證明文件，存在 `uploads_data` volume） | 僅容器內網路可存取（不直接對外開放） |
-| `db` | MariaDB，首次啟動會自動執行 `server/schema.sql` 建表 | `3306`（方便本機用 DB 工具連線除錯） |
+| `db` | MariaDB，首次啟動會自動執行 `server/schema.sql` 建表 | 只綁定在主機的 `127.0.0.1:3306`（**不對外**；可用 `.env` 的 `DB_HOST_PORT` 修改）。要用 DB 工具連線請在主機上操作，或用 SSH 通道 |
 
 ## 前置需求
 
-- Docker Desktop（或 Docker Engine + Docker Compose v2，`docker compose version` 需能執行）
+**不需要事先安裝任何東西。** `deploy.sh` 會自動檢查，缺 Docker 就幫你裝（見下一節）。唯一的要求是：
+- Linux（Ubuntu／Debian／CentOS／RHEL／Fedora 等）需要 root 或 sudo，才能安裝套件與設定防火牆
+- macOS／Windows 無法自動安裝：請先裝 Docker Desktop 或 OrbStack 並啟動
 
-## 快速部署（新環境，兩個指令）
+## 一鍵部署（新環境，兩個指令）
 
 ```sh
 git clone <repo> && cd human-flow-system
 ./deploy.sh
 ```
 
-`deploy.sh` 會在 `.env` 不存在時自動複製 `.env.example` 並產生隨機的 `DB_PASSWORD`/`DB_ROOT_PASSWORD`/`JWT_SECRET`，接著跑 `docker compose up --build -d`。初始管理員帳號會在 `backend` 容器就緒後自動建立（僅限資料庫裡完全沒有任何管理員帳號時才會建立，不會覆蓋既有帳號），帳號密碼只會印在第一次啟動的 log 裡一次：
+`deploy.sh` 會依序檢查，**缺什麼就自動補上**，最後等服務真的可以使用才結束：
+
+| 步驟 | 檢查內容 | 缺少時 |
+|---|---|---|
+| 1 | 作業系統與權限（root／sudo） | 提示 |
+| 2 | Docker、Docker 服務、目前帳號的權限、Docker Compose v2 | 沒裝就用 Docker 官方腳本自動安裝；服務沒啟動就啟動；沒權限就改用 sudo 並把帳號加入 `docker` 群組 |
+| 3 | 磁碟空間（至少 2 GB，建議 5 GB）、記憶體（建議 2 GB） | 空間不足會停止；記憶體偏低只警告 |
+| 4 | 網頁埠（預設 8080）與資料庫埠（預設 3306）有沒有被佔用 | 自動換成下一個可用的埠，並寫進 `.env` |
+| 5 | `.env` | 不存在就複製 `.env.example` 並產生隨機的 `DB_PASSWORD`／`DB_ROOT_PASSWORD`／`JWT_SECRET`（已存在的絕不覆蓋） |
+| 6 | 防火牆（只處理啟用中的 ufw／firewalld） | 自動放行網頁埠；不想讓它動防火牆：`SKIP_FIREWALL=1 ./deploy.sh` |
+| 7 | 建置並啟動 | `docker compose up --build -d` |
+| 8 | 等待服務就緒（health check） | 3 分鐘內沒回應就印出紀錄並停止 |
+
+完成後會印出網址，以及**初始管理員帳號與密碼**（只有第一次啟動會顯示一次，請立刻記下並登入後修改）。重複執行 `./deploy.sh` 是安全的：不會覆蓋 `.env`、沿用同一個埠、不會再顯示密碼。
+
+只想檢查環境、不做任何變更：
 
 ```sh
-docker compose logs backend | grep -B1 -A4 已自動建立初始管理員帳號
+./deploy.sh --check
 ```
 
-登入後請盡快到「個人設定」修改密碼。如果之後要重設密碼或改用自訂帳號名稱，請用下面「步驟 3」的 `seed-admin.js`（跟自動建立是兩支不同的腳本，`seed-admin.js` 會覆蓋密碼，自動建立的那支不會）。
+初始管理員帳號只會在資料庫裡完全沒有管理員時自動建立，不會覆蓋既有帳號。如果之後要重設密碼，用下面「步驟 3」的 `seed-admin.js`（跟自動建立是兩支不同的腳本，`seed-admin.js` 會覆蓋密碼，自動建立的那支不會）：
+
+```sh
+docker compose run --rm backend node seed-admin.js
+```
 
 如果需要在啟動前先自訂設定（M365 單一登入、SMTP、`CORS_ORIGIN` 等非隨機生成的值），請改用下面「步驟 1～3」的手動流程，或是先執行 `cp .env.example .env` 編輯好想要的值後再執行 `./deploy.sh`（腳本偵測到 `.env` 已存在就不會覆蓋，只會直接啟動）。
 
@@ -47,7 +68,7 @@ JWT_SECRET=改成一組長度足夠的隨機字串
 
 `.env` 不會被提交到版本控制。
 
-如果要開啟「使用 Microsoft 帳號登入」（M365 SSO，選用），需要額外設定 `MS_TENANT_ID`/`MS_CLIENT_ID`/`MS_CLIENT_SECRET`/`MS_REDIRECT_URI` 四個值，完整設定步驟見 [`API_SETUP_README.md`](API_SETUP_README.md#microsoft-365-單一登入選用)。沒設定就不會出現這個登入選項，不影響原本的帳號密碼登入。
+如果要開啟「使用 Microsoft 帳號登入」（M365 SSO，選用），只需要設定 `MS_TENANT_ID`/`MS_CLIENT_ID` 兩個公開識別碼（**不需要 client secret**，採用 PKCE；需要 HTTPS），完整設定步驟見 [`API_SETUP_README.md`](API_SETUP_README.md#microsoft-365-單一登入選用)。沒設定就不會出現這個登入選項，不影響原本的帳號密碼登入。
 
 ### 步驟 2：建置並啟動
 

@@ -15,10 +15,12 @@ export function clearToken(): void {
 
 export class ApiError extends Error {
   status: number;
+  code?: string;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -69,7 +71,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null);
-    throw new ApiError(response.status, formatApiErrorMessage(errorBody, response.status));
+    throw new ApiError(response.status, formatApiErrorMessage(errorBody, response.status), (errorBody as { code?: string } | null)?.code);
   }
 
   if (response.status === 204) {
