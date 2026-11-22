@@ -31,7 +31,7 @@ export const useLeavePeriodSettlements = () => {
       const result = await leavePeriodApi.settlePeriod(id, carryOverDays);
       await loadPendingSettlements();
       toast.success("結算完成", {
-        description: `應折現 ${result.cashOutDays} 天${result.cashOutAmount !== null ? `，折現金額 NT$${result.cashOutAmount.toLocaleString()}` : ""}，遞延 ${result.carriedOutDays} 天到下一期。${result.warning ? ` ${result.warning}` : ""}`,
+        description: `應折現 ${result.cashOutDays} 天${result.cashOutAmount != null ? `，折現金額 NT$${result.cashOutAmount.toLocaleString()}` : ""}，遞延 ${result.carriedOutDays} 天到下一期。${result.warning ? ` ${result.warning}` : ""}`,
         duration: 15000,
       });
     } catch (error) {

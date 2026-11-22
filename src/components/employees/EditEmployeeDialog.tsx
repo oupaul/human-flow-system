@@ -21,6 +21,8 @@ import { Switch } from "@/components/ui/switch";
 import { EmployeeFormData } from "@/types/employee";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/contexts/AuthContext";
+import { canViewSalary } from "@/services/authApi";
 import { departmentApi } from "@/services/departmentApi";
 
 interface EditEmployeeDialogProps {
@@ -43,6 +45,8 @@ const EditEmployeeDialog = ({
   onSave
 }: EditEmployeeDialogProps) => {
   const { t } = useTranslation(["employees", "common"]);
+  const { user } = useAuth();
+  const canSeeSalary = canViewSalary(user?.role);
   const [departments, setDepartments] = useState([]);
   useEffect(() => {
     if (open) {
@@ -186,18 +190,20 @@ const EditEmployeeDialog = ({
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="editMonthlySalary">{t("employees:form.monthlySalary")}</Label>
-            <Input
-              id="editMonthlySalary"
-              name="monthlySalary"
-              type="number"
-              min="0"
-              placeholder={t("employees:form.monthlySalaryPlaceholder")}
-              value={formData.monthlySalary ?? ""}
-              onChange={onFormChange}
-            />
-          </div>
+          {canSeeSalary && (
+            <div className="space-y-2">
+              <Label htmlFor="editMonthlySalary">{t("employees:form.monthlySalary")}</Label>
+              <Input
+                id="editMonthlySalary"
+                name="monthlySalary"
+                type="number"
+                min="0"
+                placeholder={t("employees:form.monthlySalaryPlaceholder")}
+                value={formData.monthlySalary ?? ""}
+                onChange={onFormChange}
+              />
+            </div>
+          )}
           <div className="flex items-center space-x-2">
             <Label htmlFor="active">{t("employees:editDialog.activeStatus")}</Label>
             <Switch

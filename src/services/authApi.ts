@@ -11,6 +11,11 @@ export interface AuthUser {
   gender: "male" | "female" | null;
 }
 
+// 只有 admin/hr 能看到與修改薪資、折現金額（後端同樣限制，這裡只是避免畫面出現空欄位或誤導文字）
+export function canViewSalary(role: string | undefined): boolean {
+  return role === "admin" || role === "hr";
+}
+
 export function isStaffRole(role: string): boolean {
   return (STAFF_ROLES as readonly string[]).includes(role);
 }

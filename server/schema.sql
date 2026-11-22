@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS leave_periods (
   carriedOutDays DECIMAL(4,1) NULL,
   cashOutDays DECIMAL(4,1) NULL,
   cashOutAmount DECIMAL(10,0) NULL,
+  settlementRemindedAt DATETIME NULL,        -- 已通知 HR 週年即將結算的時間，避免重複提醒
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (employeeId) REFERENCES employees(employeeId)

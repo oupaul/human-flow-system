@@ -14,6 +14,7 @@ import { sendNotification, getNotificationSettings, sendTestNotification } from 
 import { checkSeniorityBenefitReminders } from './seniorityBenefits.js';
 import { checkHolidayBenefitReminders } from './holidayBenefits.js';
 import { syncHolidaysFromTaipei, checkHolidayCalendar } from './holidaySync.js';
+import { computeSettlementSplit, checkLeaveSettlementReminders } from './leaveSettlement.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -250,7 +251,7 @@ async function getOrCreateActivePeriod(employeeId, joinDate, initialUsedDays = 0
 
 // 新增一位員工：建立員工紀錄、第一期特休週年紀錄、假別餘額預設值、登入帳號。
 // 供單筆新增（POST /employees）與批次匯入（POST /employees/import）共用
-async function createEmployeeRecord(data) {
+async function createEmployeeRecord(data, { canSetSalary = false } = {}) {
   const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, initialAnnualLeaveUsed } = data;
   if (!name || !employeeId || !department || !position || !email || !joinDate) {
     throw new Error('所有必填欄位皆需填寫（姓名、員工編號、部門、職位、電子郵件、到職日）');
@@ -258,7 +259,7 @@ async function createEmployeeRecord(data) {
 
   const [result] = await pool.execute(
     'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, monthlySalary || null, gender || null, attendanceAccount || null]
+    [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, (canSetSalary && monthlySalary) || null, gender || null, attendanceAccount || null]
   );
 
   await getOrCreateActivePeriod(employeeId, joinDate, Number(initialAnnualLeaveUsed) || 0);
@@ -326,16 +327,6 @@ function parseEmployeeCsv(csvText) {
       initialAnnualLeaveUsed: pick(cells, 'initialAnnualLeaveUsed') || 0,
     };
   });
-}
-
-// 依「遞延進來的天數優先使用」試算週年結算時：強制折現天數（遞延已逾期未休）
-// 與可選遞延天數（本期新發放、還沒到期，可選擇遞延或折現）
-function computeSettlementSplit(period) {
-  const usedFromCarriedIn = Math.min(period.usedDays, period.carriedInDays);
-  const usedFromGrant = period.usedDays - usedFromCarriedIn;
-  const mandatoryCashOutDays = period.carriedInDays - usedFromCarriedIn;
-  const remainingGrantDays = Math.max(0, period.grantedDays - usedFromGrant);
-  return { mandatoryCashOutDays, remainingGrantDays };
 }
 
 // 遲到/早退的容許誤差（分鐘），如需調整請直接改這個常數
@@ -748,9 +739,35 @@ function requireRole(...roles) {
   };
 }
 
+// 薪資與折現金額屬敏感資料：只有 admin/hr 看得到、能修改。
+// 主管（manager）雖可管理員工與請假，但不應看到或改動任何人的薪資。
+// 這裡在 API 出口統一把薪資相關欄位移除（而不是只靠各路由或前端隱藏），
+// 之後新增的路由即使 SELECT * 也不會漏出去
+const SALARY_ROLES = ['admin', 'hr'];
+const SALARY_FIELDS = new Set(['monthlySalary', 'cashOutAmount']);
+
+function stripSalaryFields(value) {
+  if (Array.isArray(value)) return value.map(stripSalaryFields);
+  if (value && typeof value === 'object' && !(value instanceof Date) && !Buffer.isBuffer(value)) {
+    const result = {};
+    for (const [key, inner] of Object.entries(value)) {
+      if (!SALARY_FIELDS.has(key)) result[key] = stripSalaryFields(inner);
+    }
+    return result;
+  }
+  return value;
+}
+
 // 以下路由皆須登入
 const api = express.Router();
 api.use(authMiddleware);
+api.use((req, res, next) => {
+  if (!SALARY_ROLES.includes(req.user.role)) {
+    const originalJson = res.json.bind(res);
+    res.json = (body) => originalJson(stripSalaryFields(body));
+  }
+  next();
+});
 
 api.get('/auth/me', async (req, res) => {
   try {
@@ -986,7 +1003,7 @@ api.get('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
 
 api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
-    const newEmployee = await createEmployeeRecord(req.body);
+    const newEmployee = await createEmployeeRecord(req.body, { canSetSalary: SALARY_ROLES.includes(req.user.role) });
     res.json(newEmployee);
   } catch (error) {
     console.error('Error creating employee:', error);
@@ -1008,11 +1025,12 @@ api.post('/employees/import', requireRole(...STAFF_ROLES), async (req, res) => {
       return res.status(400).json({ error: 'CSV 中沒有可匯入的員工資料' });
     }
 
+    const canSetSalary = SALARY_ROLES.includes(req.user.role);
     let created = 0;
     const failed = [];
     for (const [index, row] of rows.entries()) {
       try {
-        await createEmployeeRecord(row);
+        await createEmployeeRecord(row, { canSetSalary });
         created += 1;
       } catch (rowError) {
         failed.push({ row: index + 2, employeeId: row.employeeId || '(空白)', error: rowError.message });
@@ -1034,9 +1052,12 @@ api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     const [beforeRows] = await pool.execute('SELECT employeeId FROM employees WHERE id = ?', [id]);
     const previousEmployeeId = beforeRows[0]?.employeeId;
 
+    // 沒有薪資權限的角色（主管）送來的表單不含月薪，不能因此把既有月薪清成空值，所以不動這個欄位
+    const salaryClause = SALARY_ROLES.includes(req.user.role) ? ', monthlySalary = ?' : '';
+    const salaryParams = SALARY_ROLES.includes(req.user.role) ? [monthlySalary || null] : [];
     await pool.execute(
-      'UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, monthlySalary = ?, gender = ?, attendanceAccount = ? WHERE id = ?',
-      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', monthlySalary || null, gender || null, attendanceAccount || null, id]
+      `UPDATE employees SET name = ?, employeeId = ?, department = ?, position = ?, email = ?, phone = ?, joinDate = ?, active = ?, address = ?, notes = ?, gender = ?, attendanceAccount = ?${salaryClause} WHERE id = ?`,
+      [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', gender || null, attendanceAccount || null, ...salaryParams, id]
     );
 
     // 同步登入帳號：email 異動時登入帳號一併更新
@@ -2883,6 +2904,9 @@ app.listen(PORT, () => {
 
   checkSeniorityBenefitReminders(pool);
   setInterval(() => checkSeniorityBenefitReminders(pool), 24 * 60 * 60 * 1000);
+
+  checkLeaveSettlementReminders(pool);
+  setInterval(() => checkLeaveSettlementReminders(pool), 24 * 60 * 60 * 1000);
 
   // 先確認行事曆（缺就自動同步），再用行事曆日期檢查節日福利，順序不能反
   const runHolidayChecks = async () => {

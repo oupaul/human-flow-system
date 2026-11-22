@@ -31,7 +31,7 @@ export const useCompTimeSettlements = () => {
       const result = await compTimeApi.settleGrant(id);
       await loadPendingSettlements();
       toast.success("結算完成", {
-        description: `折算 ${result.cashOutHours} 小時${result.cashOutAmount !== null ? `，折算金額 NT$${result.cashOutAmount.toLocaleString()}` : ""}。${result.warning ? ` ${result.warning}` : ""}`,
+        description: `折算 ${result.cashOutHours} 小時${result.cashOutAmount != null ? `，折算金額 NT$${result.cashOutAmount.toLocaleString()}` : ""}。${result.warning ? ` ${result.warning}` : ""}`,
         duration: 15000,
       });
     } catch (error) {

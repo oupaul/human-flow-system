@@ -55,6 +55,7 @@ import { useCompTimeGrants } from "@/hooks/useCompTimeGrants";
 import { useCompTimeSettlements } from "@/hooks/useCompTimeSettlements";
 import { useCompTimeExpiringSoon } from "@/hooks/useCompTimeExpiringSoon";
 import { useAuth } from "@/contexts/AuthContext";
+import { canViewSalary } from "@/services/authApi";
 import { LeaveApplicationFormData, LeaveApplication, LeaveBalance } from "@/types/leave";
 import { OvertimeApplication, OvertimeApplicationFormData } from "@/types/overtime";
 import { PendingLeavePeriodSettlement } from "@/types/leavePeriod";
@@ -1205,6 +1206,7 @@ const LeaveManagement = () => {
                   </div>
                   <div className="rounded-md border p-3 text-sm space-y-1">
                     <p>{t("leaveManagement:settlement.settleDialog.cashOutLabel")}<strong>{(settlingPeriod.mandatoryCashOutDays + settlingPeriod.remainingGrantDays - carryOverDays).toFixed(1)} {t("common:table.days")}</strong></p>
+                    {canViewSalary(user?.role) && (
                     <p>
                       {t("leaveManagement:settlement.settleDialog.cashOutAmountLabel")}
                       <strong>
@@ -1213,6 +1215,7 @@ const LeaveManagement = () => {
                           : t("leaveManagement:settlement.settleDialog.noSalary")}
                       </strong>
                     </p>
+                    )}
                   </div>
                 </div>
               )}

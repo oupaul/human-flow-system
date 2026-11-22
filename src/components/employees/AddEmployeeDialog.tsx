@@ -20,6 +20,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmployeeFormData } from "@/types/employee";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/contexts/AuthContext";
+import { canViewSalary } from "@/services/authApi";
 import { departmentApi } from "@/services/departmentApi";
 
 interface AddEmployeeDialogProps {
@@ -40,6 +42,8 @@ const AddEmployeeDialog = ({
   onSave
 }: AddEmployeeDialogProps) => {
   const { t } = useTranslation(["employees", "common"]);
+  const { user } = useAuth();
+  const canSeeSalary = canViewSalary(user?.role);
   const [departments, setDepartments] = useState([]);
   useEffect(() => {
     if (open) {
@@ -183,18 +187,20 @@ const AddEmployeeDialog = ({
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="monthlySalary">{t("employees:form.monthlySalary")}</Label>
-            <Input
-              id="monthlySalary"
-              name="monthlySalary"
-              type="number"
-              min="0"
-              placeholder={t("employees:form.monthlySalaryPlaceholder")}
-              value={formData.monthlySalary ?? ""}
-              onChange={onFormChange}
-            />
-          </div>
+          {canSeeSalary && (
+            <div className="space-y-2">
+              <Label htmlFor="monthlySalary">{t("employees:form.monthlySalary")}</Label>
+              <Input
+                id="monthlySalary"
+                name="monthlySalary"
+                type="number"
+                min="0"
+                placeholder={t("employees:form.monthlySalaryPlaceholder")}
+                value={formData.monthlySalary ?? ""}
+                onChange={onFormChange}
+              />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="initialAnnualLeaveUsed">{t("employees:form.initialAnnualLeaveUsed")}</Label>
             <Input

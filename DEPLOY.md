@@ -117,6 +117,9 @@ docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_datab
 
 # 節日福利提醒（開工紅包、端午禮金、中秋禮金等日期每年不固定的全公司福利）
 docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/012_holiday_benefits.sql
+
+# 特休週年結算提醒（週年日前通知 HR，記錄是否已通知避免重複）
+docker compose exec -T db mariadb -u root -p"你的 DB_ROOT_PASSWORD" hrms_database < server/migrations/013_leave_settlement_reminder.sql
 ```
 
 全新安裝（第一次啟動 `db` 容器）不需要這步，`schema.sql` 已經包含最新結構。
