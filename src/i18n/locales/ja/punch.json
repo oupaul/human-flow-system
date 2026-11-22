@@ -7,7 +7,9 @@
     "today": "本日の勤怠",
     "events": "打刻記録",
     "devices": "端末の紐付け",
-    "settings": "打刻設定"
+    "settings": "打刻設定",
+    "exceptions": "打刻漏れと警告",
+    "requests": "申請の承認"
   },
   "types": {
     "in": "出勤",
@@ -22,7 +24,8 @@
     "device_other_employee": "他の従業員の端末",
     "device_pending": "端末承認待ち",
     "device_revoked": "端末無効",
-    "no_device_id": "端末ID なし"
+    "no_device_id": "端末ID なし",
+    "outing": "外出"
   },
   "card": {
     "title": "出勤・退勤の打刻",
@@ -110,7 +113,7 @@
     "autoApproveHint": "初回の打刻に使った端末は自動で紐付けられ、以降の端末は HR の承認が必要です。",
     "macNote": "MAC アドレスで紐付けない理由：ブラウザは Web ページに MAC の取得を許可せず、サーバーに見えるのは IP のみで、スマートフォンは MAC をランダム化します。そのためブラウザの識別子で紐付けます。本人の PC を遠隔操作されると防げません。",
     "shiftTitle": "既定の勤務時間",
-    "shiftHint": "システム打刻の従業員は、この勤務時間で遅刻・早退を判定します（猶予は既存の設定）。個人別・日別のシフトは後続のフェーズで提供します。",
+    "shiftHint": "シフトがない日は、固定制の従業員がこの勤務時間で遅刻・早退を判定します（猶予は既存の設定）。シフトがある場合はシフトが優先されます。休憩時間は労働時間の警告に使われます。",
     "shiftStart": "始業時刻",
     "shiftEnd": "終業時刻",
     "sourceTitle": "勤怠の取得元の一括設定",
@@ -118,10 +121,81 @@
     "selectDept": "部門を選択",
     "source": "勤怠の取得元",
     "apply": "適用",
-    "sourceApplied": "{{count}} 名を更新しました"
+    "sourceApplied": "{{count}} 名を更新しました",
+    "breakMinutes": "既定の休憩時間（分）"
   },
   "sourceMode": {
     "import": "外部取り込み",
     "system": "システム打刻"
+  },
+  "exceptions": {
+    "title": "打刻漏れ",
+    "description": "「勤務予定なのに打刻が揃っていない」従業員を毎日自動で検出し、HR に通知します（シフトがあればシフト、なければ固定制の既定の勤務時間とカレンダーで判断）。承認済みの休暇・外出は対象外です。",
+    "open": "未処理のみ",
+    "all": "すべて",
+    "run": "今すぐ検出",
+    "runDone": "検出完了。新規 {{count}} 件",
+    "kind": "種類",
+    "empty": "打刻漏れはありません",
+    "pending": "未処理",
+    "requestFiled": "補正申請済み",
+    "kinds": {
+      "no_punch": "打刻なし",
+      "missing_in": "出勤の打刻漏れ",
+      "missing_out": "退勤の打刻漏れ"
+    },
+    "resolvedBy": {
+      "punched": "打刻が揃った",
+      "leave": "休暇",
+      "outing": "外出",
+      "off": "休み",
+      "changed": "状況が変化"
+    }
+  },
+  "compliance": {
+    "title": "労働時間・シフトの警告",
+    "description": "補助的なチェックであり法的判断ではありません。1日の労働時間、連続勤務、7日間に休みがないこと、月の残業時間を確認します。適法性は人事または労務の専門家が確認してください。",
+    "empty": "今月の警告はありません",
+    "types": {
+      "daily_hours": "1日の労働時間",
+      "consecutive_days": "連続勤務",
+      "no_regular_off": "7日間に休みなし",
+      "monthly_overtime": "月の残業時間"
+    }
+  },
+  "requests": {
+    "correctionTitle": "打刻補正の申請",
+    "correctionHint": "承認すると打刻が自動で追加され（申請番号と承認者を記録）、日々の勤怠が更新されます。",
+    "outingTitle": "外出の申請",
+    "outingHint": "承認された日は打刻漏れになりません。その日は許可ネットワーク外でも打刻できます。",
+    "empty": "申請はありません",
+    "approve": "承認",
+    "reject": "差し戻し",
+    "rejectTitle": "申請の差し戻し",
+    "rejectReason": "理由（必須）",
+    "reviewNote": "審査メモ",
+    "period": "期間",
+    "destination": "行き先／用件",
+    "status": {
+      "pending": "承認待ち",
+      "approved": "承認済み",
+      "rejected": "差し戻し"
+    }
+  },
+  "extras": {
+    "scheduleTitle": "自分のシフト",
+    "scheduleHint": "今後14日間（公開済みのシフトのみ）",
+    "noSchedule": "今後の公開済みシフトはありません。",
+    "correctionButton": "打刻補正の申請",
+    "correctionDescription": "打刻を忘れたときに申請します。上長または HR が承認すると自動で追加されます。直近31日以内のみ。",
+    "outingButton": "外出の申請",
+    "outingDescription": "外出・出張の前に申請してください。承認された日は打刻漏れになりません。社内ネットワーク外でも打刻できます。",
+    "startDate": "開始日",
+    "endDate": "終了日",
+    "destinationPlaceholder": "例：客先での研修",
+    "note": "備考（任意）",
+    "myRequests": "自分の申請",
+    "correctionLine": "補正：{{date}} {{type}} {{time}}",
+    "outingLine": "外出：{{start}} ～ {{end}}　{{destination}}"
   }
 }

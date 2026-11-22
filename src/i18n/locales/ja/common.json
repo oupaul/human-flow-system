@@ -10,7 +10,8 @@
     "myPortal": "マイポータル",
     "seniorityBenefits": "福利リマインダー",
     "payroll": "人件費",
-    "punch": "勤怠・打刻"
+    "punch": "勤怠・打刻",
+    "schedule": "シフト管理"
   },
   "actions": {
     "save": "保存",

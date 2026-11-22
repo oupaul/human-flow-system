@@ -52,6 +52,7 @@ export interface AttendanceSettings {
   ipAllowlist: string;
   deviceBinding: "off" | "flag" | "enforce";
   maxDevicesPerEmployee: number;
+  defaultBreakMinutes: number;
   autoApproveFirstDevice: boolean;
   yourIp?: string;
 }

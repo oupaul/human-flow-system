@@ -7,7 +7,9 @@
     "today": "今日出勤",
     "events": "打卡紀錄",
     "devices": "裝置綁定",
-    "settings": "打卡設定"
+    "settings": "打卡設定",
+    "exceptions": "缺卡與警示",
+    "requests": "申請審核"
   },
   "types": {
     "in": "上班",
@@ -22,7 +24,8 @@
     "device_other_employee": "他人裝置",
     "device_pending": "裝置待核准",
     "device_revoked": "裝置已停用",
-    "no_device_id": "無裝置識別碼"
+    "no_device_id": "無裝置識別碼",
+    "outing": "公出"
   },
   "card": {
     "title": "上下班打卡",
@@ -110,7 +113,7 @@
     "autoApproveHint": "員工第一次打卡的裝置自動綁定；之後新增的裝置需 HR 核准。",
     "macNote": "為什麼不是綁定 MAC 位址？瀏覽器不開放網頁讀取 MAC，伺服器也只看得到 IP，手機還會隨機化 MAC，所以改用瀏覽器識別碼綁定。無法防止有人遠端操控本人的電腦。",
     "shiftTitle": "預設班別",
-    "shiftHint": "系統打卡的員工用這個班別判斷遲到、早退（寬限分鐘沿用現有設定）。每人或每天不同的班表將於後續階段提供。",
+    "shiftHint": "沒有班表的日子，固定制員工用這個班別判斷遲到、早退（寬限分鐘沿用現有設定）；有班表時以班表為準。休息時間用於工時警示。",
     "shiftStart": "上班時間",
     "shiftEnd": "下班時間",
     "sourceTitle": "出勤來源批次設定",
@@ -118,10 +121,81 @@
     "selectDept": "選擇部門",
     "source": "出勤來源",
     "apply": "套用",
-    "sourceApplied": "已更新 {{count}} 位員工"
+    "sourceApplied": "已更新 {{count}} 位員工",
+    "breakMinutes": "預設休息時間（分鐘）"
   },
   "sourceMode": {
     "import": "外部匯入",
     "system": "系統打卡"
+  },
+  "exceptions": {
+    "title": "缺卡異常",
+    "description": "每天自動偵測「該上班卻沒有完整打卡」的員工（有班表依班表、沒班表的固定制依預設班別與行事曆），並通知 HR。已核准的請假、公出不算缺卡。",
+    "open": "只看待處理",
+    "all": "全部",
+    "run": "立即偵測",
+    "runDone": "偵測完成，新增 {{count}} 筆",
+    "kind": "類型",
+    "empty": "沒有缺卡異常",
+    "pending": "待處理",
+    "requestFiled": "已提出補卡申請",
+    "kinds": {
+      "no_punch": "完全沒打卡",
+      "missing_in": "缺上班卡",
+      "missing_out": "缺下班卡"
+    },
+    "resolvedBy": {
+      "punched": "已有完整打卡",
+      "leave": "已請假",
+      "outing": "公出",
+      "off": "排休",
+      "changed": "狀況已變"
+    }
+  },
+  "compliance": {
+    "title": "工時與排班警示",
+    "description": "輔助檢查，不是法律判定：單日工時、連續上班、七日內沒有例假、當月加班時數。是否合法請由公司人資或勞動顧問確認。",
+    "empty": "這個月沒有警示",
+    "types": {
+      "daily_hours": "單日工時",
+      "consecutive_days": "連續上班",
+      "no_regular_off": "七日無例假",
+      "monthly_overtime": "月加班時數"
+    }
+  },
+  "requests": {
+    "correctionTitle": "補卡申請",
+    "correctionHint": "核准後會自動補登一筆打卡（留下申請編號與核准者），每日出勤隨之更新。",
+    "outingTitle": "公出申請",
+    "outingHint": "核准期間不算缺卡，當天也可在允許網路以外打卡。",
+    "empty": "沒有申請",
+    "approve": "核准",
+    "reject": "退回",
+    "rejectTitle": "退回申請",
+    "rejectReason": "退回原因（必填）",
+    "reviewNote": "審核備註",
+    "period": "期間",
+    "destination": "地點／事由",
+    "status": {
+      "pending": "待審核",
+      "approved": "已核准",
+      "rejected": "已退回"
+    }
+  },
+  "extras": {
+    "scheduleTitle": "我的班表",
+    "scheduleHint": "未來 14 天（僅顯示已發布的班表）",
+    "noSchedule": "最近沒有已發布的班表。",
+    "correctionButton": "補卡申請",
+    "correctionDescription": "忘記打卡時提出申請，主管或 HR 核准後會自動補登。只能申請最近 31 天內的。",
+    "outingButton": "公出申請",
+    "outingDescription": "外出洽公或出差前先申請。核准期間不算缺卡，也可以在公司網路以外打卡。",
+    "startDate": "開始日",
+    "endDate": "結束日",
+    "destinationPlaceholder": "例：客戶端教育訓練",
+    "note": "備註（選填）",
+    "myRequests": "我的申請",
+    "correctionLine": "補卡：{{date}} {{type}} {{time}}",
+    "outingLine": "公出：{{start}} ~ {{end}}　{{destination}}"
   }
 }

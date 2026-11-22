@@ -14,6 +14,7 @@ import zhTWReports from "./locales/zh-TW/reports.json";
 import zhTWSeniorityBenefits from "./locales/zh-TW/seniorityBenefits.json";
 import zhTWPayroll from "./locales/zh-TW/payroll.json";
 import zhTWPunch from "./locales/zh-TW/punch.json";
+import zhTWSchedule from "./locales/zh-TW/schedule.json";
 
 import enCommon from "./locales/en/common.json";
 import enAuth from "./locales/en/auth.json";
@@ -27,6 +28,7 @@ import enReports from "./locales/en/reports.json";
 import enSeniorityBenefits from "./locales/en/seniorityBenefits.json";
 import enPayroll from "./locales/en/payroll.json";
 import enPunch from "./locales/en/punch.json";
+import enSchedule from "./locales/en/schedule.json";
 
 import jaCommon from "./locales/ja/common.json";
 import jaAuth from "./locales/ja/auth.json";
@@ -40,6 +42,7 @@ import jaReports from "./locales/ja/reports.json";
 import jaSeniorityBenefits from "./locales/ja/seniorityBenefits.json";
 import jaPayroll from "./locales/ja/payroll.json";
 import jaPunch from "./locales/ja/punch.json";
+import jaSchedule from "./locales/ja/schedule.json";
 
 export const SUPPORTED_LANGUAGES = [
   { code: "zh-TW", labelKey: "language.zhTW" },
@@ -61,6 +64,7 @@ const resources = {
     seniorityBenefits: zhTWSeniorityBenefits,
     payroll: zhTWPayroll,
     punch: zhTWPunch,
+    schedule: zhTWSchedule,
   },
   en: {
     common: enCommon,
@@ -75,6 +79,7 @@ const resources = {
     seniorityBenefits: enSeniorityBenefits,
     payroll: enPayroll,
     punch: enPunch,
+    schedule: enSchedule,
   },
   ja: {
     common: jaCommon,
@@ -89,6 +94,7 @@ const resources = {
     seniorityBenefits: jaSeniorityBenefits,
     payroll: jaPayroll,
     punch: jaPunch,
+    schedule: jaSchedule,
   },
 };
 
@@ -100,7 +106,7 @@ i18n
     fallbackLng: "zh-TW",
     supportedLngs: ["zh-TW", "en", "ja"],
     defaultNS: "common",
-    ns: ["common", "auth", "dashboard", "employees", "departments", "leaveManagement", "myPortal", "settings", "reports", "seniorityBenefits", "payroll", "punch"],
+    ns: ["common", "auth", "dashboard", "employees", "departments", "leaveManagement", "myPortal", "settings", "reports", "seniorityBenefits", "payroll", "punch", "schedule"],
     interpolation: {
       escapeValue: false,
     },

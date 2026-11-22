@@ -22,6 +22,16 @@ import {
   voidPunchEvent, addCorrection, listDevices, setDeviceStatus, todayOverview, setAttendanceSource, normalizeIp,
 } from './punch.js';
 import {
+  ScheduleError, listShiftTypes, createShiftType, updateShiftType, deleteShiftType, getMonthSchedule, getMyPublishedSchedule,
+  setCells, fillSchedule, publishSchedule,
+} from './schedule.js';
+import {
+  createCorrectionRequest, listCorrectionRequests, reviewCorrectionRequest,
+  createOutingRequest, listOutingRequests, reviewOutingRequest,
+} from './punchRequests.js';
+import { detectPunchExceptions, listPunchExceptions } from './punchExceptions.js';
+import { getCompliance } from './compliance.js';
+import {
   PayrollError, isValidMonth, importRatesCsv, importBracketsCsv, listRates, listBracketSets, generateSnapshot,
   listSnapshots, getSnapshot, setSnapshotLock, deleteDraftSnapshot, snapshotToXlsx,
 } from './payroll.js';
@@ -2197,6 +2207,80 @@ api.put('/attendance/source', requireRole('admin', 'hr'), async (req, res) => {
   }
 });
 
+// 自建打卡階段 B：班表、補卡申請、公出、缺卡異常、工時警示
+function handleScheduleError(res, error, fallback) {
+  if (error instanceof ScheduleError) return res.status(error.status).json({ error: error.message });
+  return handlePunchError(res, error, fallback);
+}
+
+api.get('/schedule/shift-types', requireRole(...STAFF_ROLES), async (req, res) => {
+  try { res.json(await listShiftTypes(pool)); } catch (error) { handleScheduleError(res, error, '取得班別失敗'); }
+});
+api.post('/schedule/shift-types', requireRole('admin', 'hr'), async (req, res) => {
+  try { res.status(201).json({ id: await createShiftType(pool, req.body), message: '班別已建立' }); } catch (error) { handleScheduleError(res, error, '建立班別失敗'); }
+});
+api.put('/schedule/shift-types/:id', requireRole('admin', 'hr'), async (req, res) => {
+  try { await updateShiftType(pool, req.params.id, req.body); res.json({ message: '班別已更新' }); } catch (error) { handleScheduleError(res, error, '更新班別失敗'); }
+});
+api.delete('/schedule/shift-types/:id', requireRole('admin', 'hr'), async (req, res) => {
+  try { await deleteShiftType(pool, req.params.id); res.json({ message: '班別已刪除' }); } catch (error) { handleScheduleError(res, error, '刪除班別失敗'); }
+});
+
+api.get('/schedule', requireRole(...STAFF_ROLES), async (req, res) => {
+  try { res.json(await getMonthSchedule(pool, req.query.month, req.query.department)); } catch (error) { handleScheduleError(res, error, '取得班表失敗'); }
+});
+api.get('/schedule/mine', async (req, res) => {
+  try {
+    if (!req.user.employeeId) return res.json([]);
+    res.json(await getMyPublishedSchedule(pool, req.user.employeeId, req.query.from, req.query.to));
+  } catch (error) { handleScheduleError(res, error, '取得我的班表失敗'); }
+});
+api.put('/schedule/cells', requireRole('admin', 'hr'), async (req, res) => {
+  try { res.json({ message: '班表已儲存', changed: await setCells(pool, req.user.username, req.body.cells) }); } catch (error) { handleScheduleError(res, error, '儲存班表失敗'); }
+});
+api.post('/schedule/fill', requireRole('admin', 'hr'), async (req, res) => {
+  try { res.json({ message: '已填入班表', changed: await fillSchedule(pool, req.user.username, req.body) }); } catch (error) { handleScheduleError(res, error, '填入班表失敗'); }
+});
+api.post('/schedule/publish', requireRole('admin', 'hr'), async (req, res) => {
+  try { res.json({ message: '班表已發布，員工現在看得到了', published: await publishSchedule(pool, req.body.month, req.body.department) }); } catch (error) { handleScheduleError(res, error, '發布班表失敗'); }
+});
+
+// 補卡與公出：員工提出，STAFF_ROLES（主管、HR）審核
+api.post('/punch-requests/correction', async (req, res) => {
+  try { res.status(201).json({ id: await createCorrectionRequest(pool, req.user.employeeId, req.body), message: '補卡申請已送出' }); } catch (error) { handlePunchError(res, error, '送出補卡申請失敗'); }
+});
+api.get('/punch-requests/correction', async (req, res) => {
+  try {
+    const isStaff = STAFF_ROLES.includes(req.user.role);
+    res.json(await listCorrectionRequests(pool, { employeeId: isStaff && req.query.all === '1' ? undefined : req.user.employeeId, status: req.query.status }));
+  } catch (error) { handlePunchError(res, error, '取得補卡申請失敗'); }
+});
+api.post('/punch-requests/correction/:id/review', requireRole(...STAFF_ROLES), async (req, res) => {
+  try { await reviewCorrectionRequest(pool, req.params.id, req.user.username, req.body); res.json({ message: req.body.action === 'approve' ? '已核准並補登打卡' : '已退回' }); } catch (error) { handlePunchError(res, error, '審核補卡申請失敗'); }
+});
+api.post('/punch-requests/outing', async (req, res) => {
+  try { res.status(201).json({ id: await createOutingRequest(pool, req.user.employeeId, req.body), message: '公出申請已送出' }); } catch (error) { handlePunchError(res, error, '送出公出申請失敗'); }
+});
+api.get('/punch-requests/outing', async (req, res) => {
+  try {
+    const isStaff = STAFF_ROLES.includes(req.user.role);
+    res.json(await listOutingRequests(pool, { employeeId: isStaff && req.query.all === '1' ? undefined : req.user.employeeId, status: req.query.status }));
+  } catch (error) { handlePunchError(res, error, '取得公出申請失敗'); }
+});
+api.post('/punch-requests/outing/:id/review', requireRole(...STAFF_ROLES), async (req, res) => {
+  try { await reviewOutingRequest(pool, req.params.id, req.user.username, req.body); res.json({ message: req.body.action === 'approve' ? '已核准公出' : '已退回' }); } catch (error) { handlePunchError(res, error, '審核公出申請失敗'); }
+});
+
+api.get('/attendance/exceptions', requireRole(...STAFF_ROLES), async (req, res) => {
+  try { res.json(await listPunchExceptions(pool, req.query)); } catch (error) { handlePunchError(res, error, '取得缺卡異常失敗'); }
+});
+api.post('/attendance/exceptions/run', requireRole('admin', 'hr'), async (req, res) => {
+  try { res.json({ message: '缺卡偵測完成', ...(await detectPunchExceptions(pool)) }); } catch (error) { handlePunchError(res, error, '缺卡偵測失敗'); }
+});
+api.get('/attendance/compliance', requireRole(...STAFF_ROLES), async (req, res) => {
+  try { res.json(await getCompliance(pool, req.query.month)); } catch (error) { res.status(400).json({ error: '取得工時警示失敗', detail: error.message }); }
+});
+
 api.get('/attendance/records', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { year, month, employeeId } = req.query;
@@ -3469,6 +3553,10 @@ app.listen(PORT, () => {
 
   checkLeaveSettlementReminders(pool);
   setInterval(() => checkLeaveSettlementReminders(pool), 24 * 60 * 60 * 1000);
+
+  // 缺卡偵測：每天找出該上班卻沒完整打卡的員工（往回檢查最近 3 天），通知 HR
+  detectPunchExceptions(pool);
+  setInterval(() => detectPunchExceptions(pool), 6 * 60 * 60 * 1000);
 
   // 處理「未來生效」的調薪：每天把到期的薪資異動同步回 employees.monthlySalary
   const syncSalaries = () => syncCurrentSalary(pool).catch((error) =>

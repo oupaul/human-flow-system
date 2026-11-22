@@ -126,6 +126,7 @@ const AttendanceSettingsTab = () => {
         <CardContent className="flex flex-wrap items-end gap-4">
           <div className="space-y-1"><Label>{t("punch:settings.shiftStart")}</Label><Input type="time" value={settings.defaultShiftStart} onChange={(e) => setSettings({ ...settings, defaultShiftStart: e.target.value })} /></div>
           <div className="space-y-1"><Label>{t("punch:settings.shiftEnd")}</Label><Input type="time" value={settings.defaultShiftEnd} onChange={(e) => setSettings({ ...settings, defaultShiftEnd: e.target.value })} /></div>
+          <div className="space-y-1"><Label>{t("punch:settings.breakMinutes")}</Label><Input type="number" min={0} max={240} className="w-32" value={settings.defaultBreakMinutes} onChange={(e) => setSettings({ ...settings, defaultBreakMinutes: Number(e.target.value) })} /></div>
         </CardContent>
       </Card>
 

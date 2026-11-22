@@ -12,6 +12,7 @@ import Reports from "./pages/Reports";
 import SeniorityBenefits from "./pages/SeniorityBenefits";
 import Payroll from "./pages/Payroll";
 import Punch from "./pages/Punch";
+import Schedule from "./pages/Schedule";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import SsoCallback from "./pages/SsoCallback";
@@ -50,6 +51,7 @@ const App = () => (
                   <Route path="leave-management" element={<LeaveManagement />} />
                   <Route path="reports" element={<Reports />} />
                   <Route path="punch" element={<Punch />} />
+                  <Route path="schedule" element={<Schedule />} />
                   <Route element={<RoleRoute allow={["admin", "hr"]} fallback="/" />}>
                     <Route path="seniority-benefits" element={<SeniorityBenefits />} />
                     <Route path="payroll" element={<Payroll />} />

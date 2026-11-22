@@ -1,0 +1,71 @@
+{
+  "page": {
+    "description": "每人每天指派班別或排休。草稿也會被打卡（遲到、早退）與排班制薪資使用，「發布」只決定員工看不看得到。沒有班表的日子，固定制依預設班別與行事曆判斷。",
+    "allDepartments": "全部部門",
+    "modeAll": "全部員工",
+    "modeRotating": "只看排班制",
+    "modeSystem": "只看系統打卡",
+    "shiftTypes": "班別管理",
+    "quickFill": "快速填入",
+    "publish": "發布",
+    "legendHint": "黃框＝尚未發布的草稿；滑鼠移到格子上可看詳細",
+    "empty": "沒有符合條件的員工",
+    "rotatingTag": "排班",
+    "draftHint": "點格子可設定當天的班別或排休；週末與行事曆上的節日會標色。排班制的休息日、例假日、國定假日都是平移，請排在實際休息的那天。"
+  },
+  "weekdays": {
+    "1": "一",
+    "2": "二",
+    "3": "三",
+    "4": "四",
+    "5": "五",
+    "6": "六",
+    "7": "日"
+  },
+  "off": {
+    "rest_day": "休息日",
+    "regular_off": "例假日",
+    "national_holiday": "國定假日（平移）"
+  },
+  "cell": {
+    "choose": "選擇這一天的班別或排休類別",
+    "clear": "清除這一天的班表"
+  },
+  "shiftTypes": {
+    "title": "班別管理",
+    "description": "定義班別的上下班時間與休息時間。下班時間早於上班時間代表跨夜班。",
+    "name": "班別名稱",
+    "time": "上下班時間",
+    "break": "休息時間（分鐘）",
+    "minutes": "{{count}} 分鐘",
+    "empty": "尚未建立班別",
+    "crosses": "跨夜",
+    "inactive": "停用",
+    "add": "新增班別",
+    "edit": "編輯班別",
+    "namePlaceholder": "例：早班",
+    "start": "上班",
+    "end": "下班",
+    "activeLabel": "啟用",
+    "crossHint": "休息時間不計入工時，用於工時警示。已被班表使用的班別不能刪除，請改為停用。"
+  },
+  "quickFill": {
+    "title": "快速填入班表",
+    "description": "選擇員工與日期區間，一次填入同一個班別或排休類別（也可清除）。",
+    "employees": "員工",
+    "selectAll": "全選",
+    "clearAll": "取消全選",
+    "from": "起始日",
+    "to": "結束日",
+    "weekdays": "套用的星期",
+    "fillWith": "填入",
+    "choose": "選擇班別或排休類別",
+    "clear": "清除班表",
+    "done": "已更新 {{count}} 格"
+  },
+  "publish": {
+    "title": "發布 {{month}} 的班表？",
+    "body": "目前有 {{count}} 格草稿尚未發布，發布後員工就能在自己的入口頁看到。已發布的格子之後再修改，員工看到的也會跟著更新。",
+    "done": "已發布 {{count}} 格"
+  }
+}

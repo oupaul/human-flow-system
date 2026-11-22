@@ -7,7 +7,9 @@
     "today": "Today",
     "events": "Punch Records",
     "devices": "Devices",
-    "settings": "Settings"
+    "settings": "Settings",
+    "exceptions": "Missed Punches & Alerts",
+    "requests": "Requests"
   },
   "types": {
     "in": "Clock in",
@@ -22,7 +24,8 @@
     "device_other_employee": "Other employee's device",
     "device_pending": "Device pending",
     "device_revoked": "Device revoked",
-    "no_device_id": "No device ID"
+    "no_device_id": "No device ID",
+    "outing": "Outing"
   },
   "card": {
     "title": "Clock In / Out",
@@ -110,7 +113,7 @@
     "autoApproveHint": "The device used for an employee's first punch is bound automatically; later devices need HR approval.",
     "macNote": "Why not bind MAC addresses? Browsers do not let web pages read them, the server only sees IPs, and phones randomize MACs, so a browser ID is used instead. It cannot stop someone remotely controlling the employee's own computer.",
     "shiftTitle": "Default Shift",
-    "shiftHint": "System-punch employees use this shift to detect late arrival and early leave (grace minutes follow the existing setting). Per-person or per-day schedules come in a later phase.",
+    "shiftHint": "For days without a schedule, fixed-schedule employees use this shift to detect late arrival and early leave (grace minutes follow the existing setting); a schedule takes precedence. Break time is used by the working-hours alerts.",
     "shiftStart": "Start time",
     "shiftEnd": "End time",
     "sourceTitle": "Bulk Attendance Source",
@@ -118,10 +121,81 @@
     "selectDept": "Select a department",
     "source": "Attendance source",
     "apply": "Apply",
-    "sourceApplied": "{{count}} employee(s) updated"
+    "sourceApplied": "{{count}} employee(s) updated",
+    "breakMinutes": "Default break (minutes)"
   },
   "sourceMode": {
     "import": "External import",
     "system": "System punch"
+  },
+  "exceptions": {
+    "title": "Missed Punches",
+    "description": "Automatically detects employees who were supposed to work but did not punch fully (by schedule, or by default shift and calendar for fixed-schedule employees without one) and notifies HR. Approved leave and outings are not counted.",
+    "open": "Open only",
+    "all": "All",
+    "run": "Run now",
+    "runDone": "Detection complete, {{count}} new",
+    "kind": "Type",
+    "empty": "No missed punches",
+    "pending": "Open",
+    "requestFiled": "Correction requested",
+    "kinds": {
+      "no_punch": "No punches",
+      "missing_in": "Missing clock-in",
+      "missing_out": "Missing clock-out"
+    },
+    "resolvedBy": {
+      "punched": "Fully punched",
+      "leave": "On leave",
+      "outing": "Outing",
+      "off": "Day off",
+      "changed": "Changed"
+    }
+  },
+  "compliance": {
+    "title": "Working Hours & Scheduling Alerts",
+    "description": "A helper check, not a legal judgement: daily hours, consecutive work days, no mandatory day off within 7 days, and monthly overtime. Have HR or a labor consultant confirm legality.",
+    "empty": "No alerts this month",
+    "types": {
+      "daily_hours": "Daily hours",
+      "consecutive_days": "Consecutive days",
+      "no_regular_off": "No day off in 7 days",
+      "monthly_overtime": "Monthly overtime"
+    }
+  },
+  "requests": {
+    "correctionTitle": "Punch Correction Requests",
+    "correctionHint": "On approval a punch is added automatically (with the request number and approver) and the daily attendance is updated.",
+    "outingTitle": "Outing Requests",
+    "outingHint": "Approved days are not counted as missed punches, and the employee may punch outside the allowed network that day.",
+    "empty": "No requests",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectTitle": "Reject request",
+    "rejectReason": "Reason (required)",
+    "reviewNote": "Review note",
+    "period": "Period",
+    "destination": "Destination / purpose",
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    }
+  },
+  "extras": {
+    "scheduleTitle": "My Schedule",
+    "scheduleHint": "Next 14 days (published schedules only)",
+    "noSchedule": "No published schedule for the coming days.",
+    "correctionButton": "Punch Correction",
+    "correctionDescription": "If you forgot to punch, submit a request; once your manager or HR approves it, it is added automatically. Only the last 31 days.",
+    "outingButton": "Outing Request",
+    "outingDescription": "Request before an outing or business trip. Approved days are not counted as missed punches, and you may punch outside the company network.",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "destinationPlaceholder": "e.g. Training at a client site",
+    "note": "Note (optional)",
+    "myRequests": "My requests",
+    "correctionLine": "Correction: {{date}} {{type}} {{time}}",
+    "outingLine": "Outing: {{start}} ~ {{end}}  {{destination}}"
   }
 }

@@ -6,6 +6,8 @@ import TodayTab from "@/components/punch/TodayTab";
 import EventsTab from "@/components/punch/EventsTab";
 import DevicesTab from "@/components/punch/DevicesTab";
 import AttendanceSettingsTab from "@/components/punch/AttendanceSettingsTab";
+import ExceptionsTab from "@/components/punch/ExceptionsTab";
+import RequestsTab from "@/components/punch/RequestsTab";
 
 // HR／主管的打卡管理：今日出勤、打卡紀錄（admin/hr 可作廢與補登）、裝置綁定與設定（僅 admin/hr）
 const Punch = () => {
@@ -25,11 +27,15 @@ const Punch = () => {
       <Tabs value={tab} onValueChange={(v) => setSearchParams(v === "today" ? {} : { tab: v })}>
         <TabsList>
           <TabsTrigger value="today">{t("punch:tabs.today")}</TabsTrigger>
+          <TabsTrigger value="exceptions">{t("punch:tabs.exceptions")}</TabsTrigger>
+          <TabsTrigger value="requests">{t("punch:tabs.requests")}</TabsTrigger>
           <TabsTrigger value="events">{t("punch:tabs.events")}</TabsTrigger>
           {canManage && <TabsTrigger value="devices">{t("punch:tabs.devices")}</TabsTrigger>}
           {canManage && <TabsTrigger value="settings">{t("punch:tabs.settings")}</TabsTrigger>}
         </TabsList>
         <TabsContent value="today"><TodayTab /></TabsContent>
+        <TabsContent value="exceptions"><ExceptionsTab canRun={canManage} /></TabsContent>
+        <TabsContent value="requests"><RequestsTab /></TabsContent>
         <TabsContent value="events"><EventsTab canEdit={canManage} /></TabsContent>
         {canManage && <TabsContent value="devices"><DevicesTab /></TabsContent>}
         {canManage && <TabsContent value="settings"><AttendanceSettingsTab /></TabsContent>}

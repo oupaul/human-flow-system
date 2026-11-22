@@ -15,6 +15,7 @@ import {
   Gift,
   Calculator,
   Fingerprint,
+  CalendarRange,
   Settings as SettingsIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -53,6 +54,7 @@ const Layout = () => {
     { to: "/departments", icon: <Building2 className="h-5 w-5" />, label: t("nav.departments") },
     { to: "/leave-management", icon: <Calendar className="h-5 w-5" />, label: t("nav.leaveManagement") },
     { to: "/punch", icon: <Fingerprint className="h-5 w-5" />, label: t("nav.punch") },
+    { to: "/schedule", icon: <CalendarRange className="h-5 w-5" />, label: t("nav.schedule") },
     { to: "/reports", icon: <BarChart3 className="h-5 w-5" />, label: t("nav.reports") },
     ...(user?.role === "admin" || user?.role === "hr"
       ? [{ to: "/seniority-benefits", icon: <Gift className="h-5 w-5" />, label: t("nav.seniorityBenefits") },

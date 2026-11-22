@@ -1,0 +1,71 @@
+{
+  "page": {
+    "description": "Assign a shift or day off per person per day. Drafts are also used by punching (late/early) and shift-based payroll; \"Publish\" only controls whether employees can see them. For days without a schedule, fixed-schedule employees follow the default shift and calendar.",
+    "allDepartments": "All departments",
+    "modeAll": "All employees",
+    "modeRotating": "Shift employees only",
+    "modeSystem": "System-punch only",
+    "shiftTypes": "Shift Types",
+    "quickFill": "Quick Fill",
+    "publish": "Publish",
+    "legendHint": "Amber outline = unpublished draft; hover a cell for details",
+    "empty": "No matching employees",
+    "rotatingTag": "Shift",
+    "draftHint": "Click a cell to set that day's shift or day off. Weekends and calendar holidays are shaded. For shift schedules, rest days, mandatory days off and national holidays are all shifted — put them on the actual day off."
+  },
+  "weekdays": {
+    "1": "Mon",
+    "2": "Tue",
+    "3": "Wed",
+    "4": "Thu",
+    "5": "Fri",
+    "6": "Sat",
+    "7": "Sun"
+  },
+  "off": {
+    "rest_day": "Rest day",
+    "regular_off": "Mandatory day off",
+    "national_holiday": "National holiday (shifted)"
+  },
+  "cell": {
+    "choose": "Choose the shift or day-off type for this day",
+    "clear": "Clear this day's schedule"
+  },
+  "shiftTypes": {
+    "title": "Shift Types",
+    "description": "Define each shift's start and end times and break. An end time earlier than the start time means an overnight shift.",
+    "name": "Shift name",
+    "time": "Hours",
+    "break": "Break (minutes)",
+    "minutes": "{{count}} min",
+    "empty": "No shift types yet",
+    "crosses": "Overnight",
+    "inactive": "Inactive",
+    "add": "Add Shift Type",
+    "edit": "Edit Shift Type",
+    "namePlaceholder": "e.g. Morning",
+    "start": "Start",
+    "end": "End",
+    "activeLabel": "Active",
+    "crossHint": "Break time is not counted as working time, which is used by the working-hours alerts. A shift used by a schedule cannot be deleted; deactivate it instead."
+  },
+  "quickFill": {
+    "title": "Quick Fill Schedule",
+    "description": "Pick employees and a date range to fill the same shift or day-off type in one go (or clear).",
+    "employees": "Employees",
+    "selectAll": "Select all",
+    "clearAll": "Clear all",
+    "from": "From",
+    "to": "To",
+    "weekdays": "Weekdays",
+    "fillWith": "Fill with",
+    "choose": "Choose a shift or day-off type",
+    "clear": "Clear schedule",
+    "done": "{{count}} cell(s) updated"
+  },
+  "publish": {
+    "title": "Publish the {{month}} schedule?",
+    "body": "{{count}} draft cell(s) are not yet published. Once published, employees can see them in their portal. Later edits to published cells are reflected for employees too.",
+    "done": "{{count}} cell(s) published"
+  }
+}

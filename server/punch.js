@@ -9,6 +9,7 @@
 //     所以改用每個瀏覽器的隨機識別碼，登記在某位員工名下；同一個識別碼不能替兩個人打卡。
 
 import crypto from 'crypto';
+import { getScheduleForDay, OFF_LABELS } from './schedule.js';
 
 export class PunchError extends Error {
   constructor(status, code, message, extra = {}) {
@@ -88,6 +89,7 @@ export async function getAttendanceSettings(pool) {
     ipAllowlist: r.ipAllowlist || '',
     deviceBinding: r.deviceBinding || 'enforce',
     maxDevicesPerEmployee: r.maxDevicesPerEmployee ?? 2,
+    defaultBreakMinutes: r.defaultBreakMinutes ?? 60,
     autoApproveFirstDevice: r.autoApproveFirstDevice === undefined ? true : !!r.autoApproveFirstDevice,
   };
 }
@@ -100,10 +102,12 @@ export async function saveAttendanceSettings(pool, body) {
   if (!['off', 'flag', 'enforce'].includes(body.deviceBinding)) throw new Error('裝置綁定模式不正確');
   const max = Number(body.maxDevicesPerEmployee);
   if (!Number.isInteger(max) || max < 1 || max > 10) throw new Error('每位員工裝置上限必須是 1 到 10 的整數');
+  const breakMinutes = Number(body.defaultBreakMinutes ?? 60);
+  if (!Number.isInteger(breakMinutes) || breakMinutes < 0 || breakMinutes > 240) throw new Error('預設休息時間必須是 0 到 240 分鐘的整數');
   await pool.execute(
     `UPDATE attendance_settings SET defaultShiftStart = ?, defaultShiftEnd = ?, ipAllowlist = ?, deviceBinding = ?,
-       maxDevicesPerEmployee = ?, autoApproveFirstDevice = ? WHERE id = 1`,
-    [`${body.defaultShiftStart}:00`, `${body.defaultShiftEnd}:00`, String(body.ipAllowlist || '').trim() || null, body.deviceBinding, max, body.autoApproveFirstDevice !== false]
+       maxDevicesPerEmployee = ?, autoApproveFirstDevice = ?, defaultBreakMinutes = ? WHERE id = 1`,
+    [`${body.defaultShiftStart}:00`, `${body.defaultShiftEnd}:00`, String(body.ipAllowlist || '').trim() || null, body.deviceBinding, max, body.autoApproveFirstDevice !== false, breakMinutes]
   );
 }
 
@@ -127,14 +131,28 @@ export async function recomputeDay(pool, employeeId, workDate) {
   const lastOut = outs.length > 0 ? outs[outs.length - 1] : null;
   const clockOut = lastOut && (!ins[0] || String(lastOut.punchAt) > String(ins[0].punchAt)) ? timeOf(lastOut) : null;
   const settings = await getAttendanceSettings(pool);
+  // 班別：有班表就用班表（上班＝該班別時間；排休日出勤沒有班別，不算遲到早退），沒有班表用預設班別
+  const sched = await getScheduleForDay(pool, employeeId, workDate);
+  let shiftStart = `${settings.defaultShiftStart}:00`;
+  let shiftEnd = `${settings.defaultShiftEnd}:00`;
+  let scheduleNote = null;
+  if (sched?.kind === 'shift') {
+    shiftStart = `${sched.startTime}:00`;
+    shiftEnd = `${sched.endTime}:00`;
+  } else if (sched?.kind === 'off') {
+    shiftStart = null;
+    shiftEnd = null;
+    scheduleNote = `${OFF_LABELS[sched.offType]}出勤`;
+  }
   const status = clockIn && clockOut ? 'normal' : 'missing';
-  const note = status === 'missing' && workDate === taipeiNow().date && clockIn && !clockOut ? '進行中' : null;
+  const inProgress = status === 'missing' && workDate === taipeiNow().date && clockIn && !clockOut;
+  const note = inProgress ? '進行中' : scheduleNote;
   await pool.execute(
     `INSERT INTO attendance_records (employeeId, date, shiftStart, shiftEnd, clockIn, clockOut, status, note, source)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'system')
      ON DUPLICATE KEY UPDATE shiftStart = VALUES(shiftStart), shiftEnd = VALUES(shiftEnd), clockIn = VALUES(clockIn),
        clockOut = VALUES(clockOut), status = VALUES(status), note = VALUES(note), source = 'system'`,
-    [employeeId, workDate, `${settings.defaultShiftStart}:00`, `${settings.defaultShiftEnd}:00`, clockIn, clockOut, status, note]
+    [employeeId, workDate, shiftStart, shiftEnd, clockIn, clockOut, status, note]
   );
   return { clockIn, clockOut, status };
 }
@@ -206,6 +224,15 @@ async function checkDevice(pool, settings, employeeId, deviceToken, ip, userAgen
 
 // ---- 打卡 -----------------------------------------------------------------------------
 
+// 今天（含）落在已核准公出期間內：可在允許網路以外打卡（外出洽公、出差本來就不在公司）
+async function hasApprovedOutingOn(pool, employeeId, date) {
+  const [rows] = await pool.execute(
+    `SELECT id FROM outing_applications WHERE employeeId = ? AND status = 'approved' AND startDate <= ? AND endDate >= ? LIMIT 1`,
+    [employeeId, date, date]
+  );
+  return rows.length > 0;
+}
+
 async function getEmployee(pool, employeeId) {
   const [rows] = await pool.execute(
     'SELECT employeeId, name, active, attendanceSource, punchIpExempt FROM employees WHERE employeeId = ?', [employeeId]
@@ -238,7 +265,7 @@ export async function getPunchStatus(pool, user, { ip, deviceToken }) {
     `SELECT type, punchAt FROM punch_events WHERE employeeId = ? AND workDate = ? AND status = 'valid' ORDER BY punchAt`,
     [employee.employeeId, open ? open.workDate : now.date]
   );
-  const ipOk = employee.punchIpExempt || ipAllowed(ip, settings.ipAllowlist);
+  const ipOk = employee.punchIpExempt || ipAllowed(ip, settings.ipAllowlist) || (await hasApprovedOutingOn(pool, employee.employeeId, now.date));
   let deviceState = 'off';
   if (settings.deviceBinding !== 'off') {
     deviceState = 'unknown';
@@ -265,11 +292,11 @@ export async function punch(pool, user, { type, ip, userAgent, deviceToken }) {
 
   const settings = await getAttendanceSettings(pool);
   const cleanIp = normalizeIp(ip);
-  if (!employee.punchIpExempt && !ipAllowed(cleanIp, settings.ipAllowlist)) {
-    throw new PunchError(403, 'IP_BLOCKED', `目前的網路不在允許打卡的範圍內（您的 IP：${cleanIp || '未知'}）`);
-  }
-
   const now = taipeiNow();
+  const outing = !employee.punchIpExempt && !ipAllowed(cleanIp, settings.ipAllowlist) ? await hasApprovedOutingOn(pool, employee.employeeId, now.date) : false;
+  if (!employee.punchIpExempt && !outing && !ipAllowed(cleanIp, settings.ipAllowlist)) {
+    throw new PunchError(403, 'IP_BLOCKED', `目前的網路不在允許打卡的範圍內（您的 IP：${cleanIp || '未知'}）；如果是外出洽公，請先申請公出`);
+  }
   const device = await checkDevice(pool, settings, employee.employeeId, deviceToken, cleanIp, userAgent, now.dateTime);
 
   const { last, open } = await findOpenSession(pool, employee.employeeId, now.dateTime);
@@ -280,14 +307,15 @@ export async function punch(pool, user, { type, ip, userAgent, deviceToken }) {
   }
 
   const workDate = type === 'out' ? open.workDate : now.date;
-  const flags = device.flags.length > 0 ? device.flags.join(',') : null;
+  const allFlags = outing ? [...device.flags, 'outing'] : device.flags;
+  const flags = allFlags.length > 0 ? allFlags.join(',') : null;
   await pool.execute(
     `INSERT INTO punch_events (employeeId, punchAt, workDate, type, source, ip, userAgent, deviceId, flags)
      VALUES (?, ?, ?, ?, 'web', ?, ?, ?, ?)`,
     [employee.employeeId, now.dateTime, workDate, type, cleanIp || null, String(userAgent || '').slice(0, 255) || null, device.deviceId, flags]
   );
   const day = await recomputeDay(pool, employee.employeeId, workDate);
-  return { type, punchAt: now.dateTime, workDate, flags: device.flags, day };
+  return { type, punchAt: now.dateTime, workDate, flags: allFlags, day };
 }
 
 // ---- HR：查詢、作廢、補登、裝置、批次設定 ---------------------------------------------------

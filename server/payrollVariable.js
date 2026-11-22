@@ -112,7 +112,7 @@ export function isoWeekday(dateStr) {
 }
 
 // 排班制假日津貼：排定上班的日子落在規則指定的星期（或行事曆上有節日名稱的日子）就額外給固定金額。
-//   請假日、排定休息日不給；規則要求實際出勤時，缺卡也不給並提示。同一天符合多條規則則各自計算
+//   請假日、排定休息日不給；規則要求實際出勤時，缺卡或排班了卻沒有打卡紀錄（scheduled）也不給並提示。同一天符合多條規則則各自計算
 export function calculateAllowance(attendanceRows, rules, holidayNames) {
   const lines = [];
   const warnings = [];
@@ -127,6 +127,7 @@ export function calculateAllowance(attendanceRows, rules, holidayNames) {
       if (!matchesWeekday && !matchesHoliday) continue;
       if (rule.requireAttendance && row.status !== 'normal') {
         if (row.status === 'missing') warnings.push(`${row.date} 排班在「${rule.name}」適用日但缺卡，津貼未計`);
+        else if (row.status === 'scheduled') warnings.push(`${row.date} 排班在「${rule.name}」適用日但沒有打卡紀錄，津貼未計`);
         continue;
       }
       lines.push({ date: row.date, rule: rule.name, amount: rule.amount });

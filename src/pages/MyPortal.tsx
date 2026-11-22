@@ -38,6 +38,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, Clock, Loader2, Paperclip, Plus, XCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import PunchCard from "@/components/PunchCard";
+import PunchExtras from "@/components/PunchExtras";
 import { useLeaveManagement } from "@/hooks/useLeaveManagement";
 import { useOvertimeApplications } from "@/hooks/useOvertimeApplications";
 import { useLeaveGrants } from "@/hooks/useLeaveGrants";
@@ -364,6 +365,8 @@ const MyPortal = () => {
       </div>
 
       <PunchCard />
+
+      <PunchExtras />
 
       {balance && (
         <Card>

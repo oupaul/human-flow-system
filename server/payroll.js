@@ -10,6 +10,7 @@ import {
   getSettings, payPeriodFor, classifyOvertimeDay, classifyScheduledDay, calculateOvertimePay, calculateLeaveDeduction,
   calculateAllowance, listAllowanceRules,
 } from './payrollVariable.js';
+import { getScheduleMap, OFF_LABELS } from './schedule.js';
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -179,23 +180,55 @@ async function loadVariableInputs(pool, period, employeeList, settings) {
   const ratioByType = {};
   for (const r of ratioRows) ratioByType[r.leaveTypeId] = Number(r.deductRatio);
 
-  // 排班制員工的考勤（排班）資料：計薪區間內完全沒有任何一筆，代表當月考勤還沒匯入，直接報錯指出是誰
+  // 排班制員工的「每日排班與出勤」：系統班表為主（排班＝上班日、排休＝休息日／例假日／國定假日），
+  // 沒有班表的日子退回外部匯入的考勤。合併後再疊上已核准的請假、公出。
+  // 區間內完全沒有班表也沒有任何考勤的排班制員工，代表資料還沒建立，直接報錯指出是誰
   const attendanceByEmployee = new Map();
   let allowanceRules = [];
   const holidayNames = {};
   if (rotatingIds.size > 0) {
+    const ids = [...rotatingIds];
     const [attendance] = await pool.query(
       `SELECT employeeId, date, shiftStart, status, note FROM attendance_records
        WHERE employeeId IN (?) AND date BETWEEN ? AND ? ORDER BY date`,
-      [[...rotatingIds], period.start, period.end]
+      [ids, period.start, period.end]
     );
-    for (const a of attendance) {
-      if (!attendanceByEmployee.has(a.employeeId)) attendanceByEmployee.set(a.employeeId, []);
-      attendanceByEmployee.get(a.employeeId).push(a);
+    const schedules = await getScheduleMap(pool, ids, period.start, period.end);
+    const [leaves2] = await pool.query(
+      `SELECT employeeId, startDate, endDate FROM leave_applications WHERE status = 'approved' AND employeeId IN (?) AND startDate <= ? AND endDate >= ?`,
+      [ids, period.end, period.start]
+    );
+    const [outings] = await pool.query(
+      `SELECT employeeId, startDate, endDate FROM outing_applications WHERE status = 'approved' AND employeeId IN (?) AND startDate <= ? AND endDate >= ?`,
+      [ids, period.end, period.start]
+    );
+    const covers = (list, id, date) => list.some((r) => r.employeeId === id && r.startDate <= date && r.endDate >= date);
+    const attByKey = new Map(attendance.map((a) => [`${a.employeeId}|${a.date}`, a]));
+    const dates = new Set();
+    for (const a of attendance) dates.add(`${a.employeeId}|${a.date}`);
+    for (const [id, m] of schedules) for (const d of m.keys()) dates.add(`${id}|${d}`);
+
+    for (const key of [...dates].sort()) {
+      const [employeeId, date] = key.split('|');
+      const sched = schedules.get(employeeId)?.get(date);
+      const att = attByKey.get(key);
+      let row;
+      if (sched?.kind === 'off') {
+        row = { employeeId, date, status: 'day_off', note: OFF_LABELS[sched.offType] };
+      } else if (sched?.kind === 'shift') {
+        const status = covers(leaves2, employeeId, date) ? 'leave'
+          : att && att.status !== 'day_off' && att.status !== 'leave' ? att.status
+          : covers(outings, employeeId, date) ? 'normal' : 'scheduled';
+        row = { employeeId, date, status, note: null };
+      } else {
+        row = att; // 沒有班表：用匯入的考勤（備援）
+      }
+      if (!attendanceByEmployee.has(employeeId)) attendanceByEmployee.set(employeeId, []);
+      attendanceByEmployee.get(employeeId).push(row);
     }
     const noData = employeeList.filter((e) => rotatingIds.has(e.employeeId) && !attendanceByEmployee.has(e.employeeId));
     if (noData.length > 0) {
-      throw new PayrollError(400, `排班制員工在計薪區間 ${period.start} ~ ${period.end} 內沒有任何考勤（排班）資料，請先匯入該期間的考勤：${noData.map((e) => `${e.name}（${e.employeeId}）`).join('、')}`);
+      throw new PayrollError(400, `排班制員工在計薪區間 ${period.start} ~ ${period.end} 內沒有任何班表或考勤資料，請先建立班表或匯入該期間的考勤：${noData.map((e) => `${e.name}（${e.employeeId}）`).join('、')}`);
     }
     allowanceRules = (await listAllowanceRules(pool)).filter((r) => r.active);
     const [holidays] = await pool.execute(

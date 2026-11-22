@@ -10,7 +10,8 @@
     "myPortal": "我的入口",
     "seniorityBenefits": "福利提醒",
     "payroll": "人事成本",
-    "punch": "出勤打卡"
+    "punch": "出勤打卡",
+    "schedule": "班表管理"
   },
   "actions": {
     "save": "儲存",

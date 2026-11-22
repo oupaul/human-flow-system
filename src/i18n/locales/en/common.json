@@ -10,7 +10,8 @@
     "myPortal": "My Portal",
     "seniorityBenefits": "Benefit Reminders",
     "payroll": "Payroll Cost",
-    "punch": "Attendance & Punch"
+    "punch": "Attendance & Punch",
+    "schedule": "Schedule"
   },
   "actions": {
     "save": "Save",
