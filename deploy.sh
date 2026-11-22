@@ -29,12 +29,23 @@ CHECK_ONLY=0
 if [ "${1:-}" = "--reset-admin" ]; then
   D="docker"
   docker info >/dev/null 2>&1 || D="sudo docker"
-  NEWPW="$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 14)"
-  if $D compose run --rm -e ADMIN_USERNAME=admin -e ADMIN_PASSWORD="$NEWPW" backend node seed-admin.js >/dev/null 2>&1; then
-    printf '\n✅ 管理員密碼已重設（請登入後到「個人設定」修改）\n   帳號：admin\n   密碼：%s\n\n' "$NEWPW"
+  # 不含容易看錯的字元（0/O、1/l/I）
+  NEWPW="$(head -c 64 /dev/urandom | base64 | tr -dc 'A-HJ-NP-Za-km-z2-9' | head -c 14)"
+  if ! $D compose run --rm -e ADMIN_USERNAME=admin -e ADMIN_PASSWORD="$NEWPW" backend node seed-admin.js >/dev/null 2>&1; then
+    printf '❌ 重設失敗：請確認服務已啟動（先執行 ./deploy.sh）\n' >&2
+    exit 1
+  fi
+  # 真的用這組帳密登入一次，確認可用（不要只相信「寫入成功」）
+  PORT="$(grep -E '^FRONTEND_PORT=' .env 2>/dev/null | tail -n1 | cut -d= -f2 | tr -d '"' || true)"
+  CODE="$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://localhost:${PORT:-8080}/api/auth/login" -H 'Content-Type: application/json' -d "{\"username\":\"admin\",\"password\":\"$NEWPW\"}" 2>/dev/null || true)"
+  if [ "$CODE" = "200" ]; then
+    printf '\n✅ 管理員密碼已重設，並已實際登入驗證成功（請登入後到「個人設定」修改）\n   帳號：admin\n   密碼：%s\n\n' "$NEWPW"
     exit 0
   fi
-  printf '❌ 重設失敗：請確認服務已啟動（先執行 ./deploy.sh）\n' >&2
+  printf '\n❌ 密碼已寫入資料庫，但實際登入驗證失敗（HTTP %s，連接埠 %s）。\n' "${CODE:-無回應}" "${PORT:-8080}" >&2
+  printf '   你連到的網址是否為這台主機的 http://主機位址:%s ？請把以下輸出貼給開發者：\n' "${PORT:-8080}" >&2
+  $D compose ps >&2 || true
+  $D compose logs --tail=15 backend >&2 || true
   exit 1
 fi
 
