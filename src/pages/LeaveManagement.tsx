@@ -1159,9 +1159,13 @@ const LeaveManagement = () => {
                           <TableCell className="text-red-600">{period.mandatoryCashOutDays}</TableCell>
                           <TableCell>{period.remainingGrantDays}</TableCell>
                           <TableCell className="text-right">
-                            <Button size="sm" onClick={() => openSettleDialog(period)}>
-                              {t("leaveManagement:settlement.settleButton")}
-                            </Button>
+                            {canViewSalary(user?.role) ? (
+                              <Button size="sm" onClick={() => openSettleDialog(period)}>
+                                {t("leaveManagement:settlement.settleButton")}
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">{t("leaveManagement:settlement.restricted")}</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))
@@ -1260,9 +1264,13 @@ const LeaveManagement = () => {
                           <TableCell className="text-red-600">{(grant.hours - grant.usedHours).toFixed(1)}</TableCell>
                           <TableCell>{grant.deadline}</TableCell>
                           <TableCell className="text-right">
-                            <Button size="sm" onClick={() => handleSettleComp(grant.id)}>
-                              {t("leaveManagement:compSettlement.settleButton")}
-                            </Button>
+                            {canViewSalary(user?.role) ? (
+                              <Button size="sm" onClick={() => handleSettleComp(grant.id)}>
+                                {t("leaveManagement:compSettlement.settleButton")}
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">{t("leaveManagement:settlement.restricted")}</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))

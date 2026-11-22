@@ -189,7 +189,8 @@
       "cashOutAmountLabel": "Estimated cash-out amount: ",
       "noSalary": "Monthly salary not set; cannot estimate",
       "confirm": "Confirm Settlement"
-    }
+    },
+    "restricted": "HR or admin only"
   },
   "compSettlement": {
     "title": "Comp Time Settlement",

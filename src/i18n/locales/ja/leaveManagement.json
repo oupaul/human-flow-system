@@ -189,7 +189,8 @@
       "cashOutAmountLabel": "買い取り見込み額：",
       "noSalary": "月給が未設定のため試算できません",
       "confirm": "精算を確定"
-    }
+    },
+    "restricted": "人事または管理者のみ"
   },
   "compSettlement": {
     "title": "代休精算",

@@ -189,7 +189,8 @@
       "cashOutAmountLabel": "預估折現金額：",
       "noSalary": "尚未設定月薪，無法試算",
       "confirm": "確認結算"
-    }
+    },
+    "restricted": "僅人資或管理者可結算"
   },
   "compSettlement": {
     "title": "補休結算",

@@ -1688,7 +1688,8 @@ api.get('/leave-periods/pending-settlement', requireRole(...STAFF_ROLES), async 
 
 // 結算一筆到期的特休週年期間：依勞基法第 38 條，本期新發放且尚未休完的天數可
 // 選擇遞延一次或折現，但上一期遞延進來、這期仍未休完的天數不可再遞延，必須全數折現
-api.post('/leave-periods/:id/settle', requireRole(...STAFF_ROLES), async (req, res) => {
+// 折現結算涉及薪資金額，僅 admin/hr 可執行（主管只能檢視待結算清單）
+api.post('/leave-periods/:id/settle', requireRole(...SALARY_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
     const carryOverDays = Number(req.body.carryOverDays) || 0;
@@ -2265,7 +2266,7 @@ api.get('/comp-time-grants/pending-settlement', requireRole(...STAFF_ROLES), asy
 
 // 結算一筆到期未休完的補休額度：剩餘時數全數折算加班費（比照勞基法函釋，
 // 補休僅能遞延一次的精神，逾期不可再遞延，需以加班費結清）
-api.post('/comp-time-grants/:id/settle', requireRole(...STAFF_ROLES), async (req, res) => {
+api.post('/comp-time-grants/:id/settle', requireRole(...SALARY_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
     const [rows] = await pool.execute(`
