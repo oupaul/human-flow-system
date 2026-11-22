@@ -18,10 +18,11 @@ export const leavePeriodApi = {
     });
   },
 
-  async adjustUsedDays(id: number, usedDays: number): Promise<LeavePeriod> {
+  // 調整某一期的已用天數與／或上期遞延天數（遞延天數僅 admin/hr 可改）
+  async adjustPeriod(id: number, data: { usedDays?: number; carriedInDays?: number }): Promise<LeavePeriod> {
     return apiFetch<LeavePeriod>(`/leave-periods/${id}`, {
       method: "PUT",
-      body: JSON.stringify({ usedDays }),
+      body: JSON.stringify(data),
     });
   },
 };

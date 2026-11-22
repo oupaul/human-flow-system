@@ -98,11 +98,17 @@ export const useLeaveManagement = (year?: number) => {
 
   const adjustLeaveBalance = async (
     balance: LeaveBalance,
-    updates: { annualLeaveUsed: number; sickLeave: number; sickLeaveUsed: number }
+    updates: { annualLeaveUsed: number; annualCarriedIn: number; sickLeave: number; sickLeaveUsed: number }
   ) => {
     try {
-      if (balance.activePeriodId && updates.annualLeaveUsed !== balance.annualLeaveUsed) {
-        await leavePeriodApi.adjustUsedDays(balance.activePeriodId, updates.annualLeaveUsed);
+      if (balance.activePeriodId) {
+        // 只送有變動的欄位，避免沒有權限調整遞延的角色因為送出遞延欄位而整筆被拒
+        const periodChanges: { usedDays?: number; carriedInDays?: number } = {};
+        if (updates.annualLeaveUsed !== balance.annualLeaveUsed) periodChanges.usedDays = updates.annualLeaveUsed;
+        if (updates.annualCarriedIn !== balance.annualCarriedIn) periodChanges.carriedInDays = updates.annualCarriedIn;
+        if (Object.keys(periodChanges).length > 0) {
+          await leavePeriodApi.adjustPeriod(balance.activePeriodId, periodChanges);
+        }
       }
       await leaveApi.updateLeaveBalance(balance.employeeId, {
         sickLeave: updates.sickLeave,

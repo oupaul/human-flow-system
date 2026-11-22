@@ -41,6 +41,7 @@ export interface LeaveBalance {
   employee: string;
   activePeriodId: number | null;
   annualLeave: number;
+  annualCarriedIn: number;
   annualLeaveUsed: number;
   sickLeave: number;
   sickLeaveUsed: number;

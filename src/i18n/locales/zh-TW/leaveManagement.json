@@ -141,11 +141,14 @@
     "adjustDialog": {
       "title": "調整假別餘額",
       "descriptionLine": "{{employee}}（{{employeeId}}）",
-      "annualUsedLabel": "特休已用天數（可用天數 {{days}} 天由到職年資自動計算，這裡只能調整「已用」）",
+      "annualUsedLabel": "特休已用天數（目前可用 {{days}} 天＝本期依年資發放＋上期遞延，這裡調整「已用」）",
       "noActivePeriod": "此員工尚無特休週年紀錄，無法調整",
       "sickAvailable": "病假可用",
       "sickUsed": "病假已用",
-      "compHint": "補休可用／已用時數改由加班核准與請假使用自動計算，不再開放手動調整；請至「補休明細」查看來源。"
+      "compHint": "補休可用／已用時數改由加班核准與請假使用自動計算，不再開放手動調整；請至「補休明細」查看來源。",
+      "carriedInLabel": "本期上期遞延天數",
+      "carriedInHint": "遞延進來的天數須在本期休完，否則週年結算時依法折現；已用天數會優先抵用這部分。到職第一期沒有上一期，不能填大於 0。",
+      "carriedInRestricted": "僅人資或管理者可調整上期遞延天數"
     },
     "compLedgerDialog": {
       "title": "補休明細",
@@ -162,7 +165,8 @@
       "statusOverdue": "已逾期，待 HR 結算",
       "statusAvailable": "可使用",
       "empty": "尚無補休紀錄"
-    }
+    },
+    "carriedTag": "含遞延 {{days}}"
   },
   "settlement": {
     "title": "特休週年結算",

@@ -141,11 +141,14 @@
     "adjustDialog": {
       "title": "Adjust Leave Balance",
       "descriptionLine": "{{employee}} ({{employeeId}})",
-      "annualUsedLabel": "Annual Leave Used Days (available days ({{days}}) are calculated automatically from the join date; only \"used\" can be adjusted here)",
+      "annualUsedLabel": "Annual leave days used (currently {{days}} days available = granted for this period by tenure + carried over; adjust \"used\" here)",
       "noActivePeriod": "This employee has no annual leave anniversary record yet, so it cannot be adjusted",
       "sickAvailable": "Sick Leave Available",
       "sickUsed": "Sick Leave Used",
-      "compHint": "Comp time available/used hours are now calculated automatically from approved overtime and leave usage, and can no longer be adjusted manually. See \"Comp Time Details\" for the source."
+      "compHint": "Comp time available/used hours are now calculated automatically from approved overtime and leave usage, and can no longer be adjusted manually. See \"Comp Time Details\" for the source.",
+      "carriedInLabel": "Days carried over from the previous period",
+      "carriedInHint": "Carried-in days must be used within this period, otherwise they are cashed out at the anniversary settlement; days already used are applied to them first. Not available for the first period after joining.",
+      "carriedInRestricted": "Only HR or admin can adjust carried-over days"
     },
     "compLedgerDialog": {
       "title": "Comp Time Details",
@@ -162,7 +165,8 @@
       "statusOverdue": "Overdue, pending HR settlement",
       "statusAvailable": "Available",
       "empty": "No comp time records yet"
-    }
+    },
+    "carriedTag": "incl. {{days}} carried over"
   },
   "settlement": {
     "title": "Annual Leave Settlement",

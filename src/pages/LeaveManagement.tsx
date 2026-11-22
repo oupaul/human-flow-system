@@ -204,6 +204,7 @@ const LeaveManagement = () => {
   const [adjustingBalance, setAdjustingBalance] = useState<LeaveBalance | null>(null);
   const [adjustForm, setAdjustForm] = useState({
     annualLeaveUsed: 0,
+    annualCarriedIn: 0,
     sickLeave: 0,
     sickLeaveUsed: 0,
   });
@@ -297,6 +298,7 @@ const LeaveManagement = () => {
     setAdjustingBalance(balance);
     setAdjustForm({
       annualLeaveUsed: balance.annualLeaveUsed,
+      annualCarriedIn: balance.annualCarriedIn,
       sickLeave: balance.sickLeave,
       sickLeaveUsed: balance.sickLeaveUsed,
     });
@@ -980,7 +982,14 @@ const LeaveManagement = () => {
                       <TableRow key={balance.id}>
                         <TableCell>{balance.employeeId}</TableCell>
                         <TableCell>{balance.employee}</TableCell>
-                        <TableCell>{balance.annualLeave}</TableCell>
+                        <TableCell>
+                          {balance.annualLeave}
+                          {balance.annualCarriedIn > 0 && (
+                            <span className="ml-1 text-xs text-muted-foreground">
+                              {t("leaveManagement:balance.carriedTag", { days: balance.annualCarriedIn })}
+                            </span>
+                          )}
+                        </TableCell>
                         <TableCell>{balance.annualLeaveUsed}</TableCell>
                         <TableCell>{balance.sickLeave}</TableCell>
                         <TableCell>{balance.sickLeaveUsed}</TableCell>
@@ -1029,6 +1038,24 @@ const LeaveManagement = () => {
                   {!adjustingBalance.activePeriodId && (
                     <p className="text-xs text-muted-foreground">{t("leaveManagement:balance.adjustDialog.noActivePeriod")}</p>
                   )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="adjustCarriedIn">{t("leaveManagement:balance.adjustDialog.carriedInLabel")}</Label>
+                  <Input
+                    id="adjustCarriedIn"
+                    type="number"
+                    min={0}
+                    max={30}
+                    step={0.5}
+                    disabled={!adjustingBalance.activePeriodId || !canViewSalary(user?.role)}
+                    value={adjustForm.annualCarriedIn}
+                    onChange={(e) => setAdjustForm({ ...adjustForm, annualCarriedIn: Number(e.target.value) })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {canViewSalary(user?.role)
+                      ? t("leaveManagement:balance.adjustDialog.carriedInHint")
+                      : t("leaveManagement:balance.adjustDialog.carriedInRestricted")}
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

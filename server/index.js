@@ -1576,6 +1576,7 @@ const LEAVE_BALANCE_SELECT = `
     e.name as employee,
     lp.id as activePeriodId,
     IFNULL(lp.grantedDays + lp.carriedInDays, 0) as annualLeave,
+    IFNULL(lp.carriedInDays, 0) as annualCarriedIn,
     IFNULL(lp.usedDays, 0) as annualLeaveUsed,
     IFNULL(comp.granted, 0) as compensatoryLeave,
     IFNULL(comp.used, 0) as compensatoryLeaveUsed,
@@ -1680,24 +1681,55 @@ api.get('/leave-periods', requireRole(...STAFF_ROLES), async (req, res) => {
 
 // 直接調整某期特休的已用天數。用途：(1) 系統上線時導入既有員工，事後補登
 // 他們在此之前已休掉的天數 (2) 更正誤植的核准紀錄。不限制上限，由 HR 專業判斷
+// 調整某一期特休：已用天數（STAFF_ROLES）與上期遞延天數（僅 admin/hr，因為會影響週年結算的折現）。
+// 遞延天數只能改「尚未結算」的期間，且到職第一期沒有上一期可以遞延
 api.put('/leave-periods/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const { usedDays } = req.body;
-    if (usedDays === undefined || usedDays === null || Number(usedDays) < 0) {
+    const { usedDays, carriedInDays } = req.body;
+    const hasUsed = usedDays !== undefined && usedDays !== null;
+    const hasCarried = carriedInDays !== undefined && carriedInDays !== null;
+    if (!hasUsed && !hasCarried) {
+      return res.status(400).json({ error: '請提供要調整的已用天數或上期遞延天數' });
+    }
+    if (hasUsed && (!Number.isFinite(Number(usedDays)) || Number(usedDays) < 0)) {
       return res.status(400).json({ error: '已用天數不可為負數' });
     }
 
-    const [result] = await pool.execute('UPDATE leave_periods SET usedDays = ? WHERE id = ?', [Number(usedDays), id]);
-    if (result.affectedRows === 0) {
+    const [periods] = await pool.execute(
+      `SELECT lp.*, e.joinDate FROM leave_periods lp LEFT JOIN employees e ON lp.employeeId = e.employeeId WHERE lp.id = ?`,
+      [id]
+    );
+    const period = periods[0];
+    if (!period) {
       return res.status(404).json({ error: '找不到該筆特休週年紀錄' });
+    }
+
+    if (hasCarried) {
+      if (!SALARY_ROLES.includes(req.user.role)) {
+        return res.status(403).json({ error: '調整上期遞延天數會影響週年結算折現，僅人資或管理者可執行' });
+      }
+      const days = Number(carriedInDays);
+      if (!Number.isFinite(days) || days < 0 || days > 30) {
+        return res.status(400).json({ error: '上期遞延天數必須介於 0 到 30 之間' });
+      }
+      if (period.settledAt) {
+        return res.status(400).json({ error: '這一期已經結算，不能再調整遞延天數' });
+      }
+      if (days > 0 && period.periodStart === period.joinDate) {
+        return res.status(400).json({ error: '這是員工到職後的第一期，沒有上一期特休可以遞延，上期遞延天數請填 0' });
+      }
+      await pool.execute('UPDATE leave_periods SET carriedInDays = ? WHERE id = ?', [days, id]);
+    }
+    if (hasUsed) {
+      await pool.execute('UPDATE leave_periods SET usedDays = ? WHERE id = ?', [Number(usedDays), id]);
     }
 
     const [rows] = await pool.execute('SELECT * FROM leave_periods WHERE id = ?', [id]);
     res.json(rows[0]);
   } catch (error) {
-    console.error('Error adjusting leave period usedDays:', error);
-    res.status(500).json({ error: '調整特休已用天數失敗', detail: error.message });
+    console.error('Error adjusting leave period:', error);
+    res.status(500).json({ error: '調整特休天數失敗', detail: error.message });
   }
 });
 
