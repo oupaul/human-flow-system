@@ -64,13 +64,21 @@ export async function buildScheduleWorkbook(pool, month, department) {
 }
 
 // 標題儲存格 → YYYY-MM-DD；認不出來回傳 null
-function parseHeaderDate(text, month) {
+function parseHeaderDate(text, month, rawValue) {
+  // Excel 常把「2026-12-01」自動轉成真正的日期格子（內部是序號，顯示成 12/1/26 之類），優先用序號還原
+  if (typeof rawValue === 'number' && rawValue >= 20000 && rawValue < 80000) {
+    // Excel 序號：1900 日期系統下 25569 ＝ 1970-01-01（已含 Excel 把 1900 年當閏年的誤差）
+    const d = new Date(Date.UTC(1970, 0, 1) + (Math.floor(rawValue) - 25569) * 86400000);
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+  }
+  if (rawValue instanceof Date && !Number.isNaN(rawValue.getTime())) return `${rawValue.getFullYear()}-${pad(rawValue.getMonth() + 1)}-${pad(rawValue.getDate())}`;
   const t = norm(text).replace(/[（(].*$/, '').trim();
   if (!t) return null;
   const [my, mm] = month.split('-').map(Number);
   let y; let m; let d;
   let r;
   if ((r = t.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/))) [y, m, d] = [r[1], r[2], r[3]].map(Number);
+  else if ((r = t.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/))) [y, m, d] = [Number(r[3]) < 100 ? 2000 + Number(r[3]) : Number(r[3]), Number(r[1]), Number(r[2])]; // 美式 M/D/YY、M/D/YYYY
   else if ((r = t.match(/^(\d{1,2})[-/](\d{1,2})$/))) [y, m, d] = [my, Number(r[1]), Number(r[2])];
   else if ((r = t.match(/^(\d{1,2})$/))) [y, m, d] = [my, mm, Number(r[1])];
   else return null;
@@ -95,6 +103,7 @@ export async function parseScheduleWorkbook(pool, buffer, month, options = {}) {
   const { name: sheetName, sheet } = pickSheet(workbook, month);
   if (!sheet) throw new ScheduleError(400, '檔案裡沒有工作表');
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, dateNF: 'yyyy-mm-dd', defval: '' });
+  const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' }); // 日期標題要看原始值（可能是日期序號）
 
   // 標準格式：第一欄標題「員工編號」；值班表格式：第一欄「編號」（流水號）＋第二欄姓名，以姓名對應員工
   let headerIndex = rows.findIndex((r) => ID_HEADERS.includes(key(r[0])));
@@ -113,7 +122,7 @@ export async function parseScheduleWorkbook(pool, buffer, month, options = {}) {
   const headerRow = rows[headerIndex];
   headerRow.forEach((cell, index) => {
     if (index < 2 || !norm(cell)) return;
-    const date = parseHeaderDate(cell, month);
+    const date = parseHeaderDate(cell, month, rawRows[headerIndex]?.[index]);
     if (date) columns.push({ index, date });
   });
   // 最後一個日期欄之後的欄位（如值班次數、津貼統計）直接忽略；夾在日期之間認不出來的才回報
