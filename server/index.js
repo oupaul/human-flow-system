@@ -2226,7 +2226,7 @@ api.post('/schedule/excel-preview', requireRole('admin', 'hr'), (req, res, next)
 }, async (req, res) => {
   try {
     if (!req.file) throw new ScheduleError(400, '請選擇要匯入的 Excel 檔案');
-    const parsed = await parseScheduleWorkbook(pool, req.file.buffer, String(req.body.month || ''));
+    const parsed = await parseScheduleWorkbook(pool, req.file.buffer, String(req.body.month || ''), { blankShiftTypeId: req.body.blankShiftTypeId });
     const preview = parsed.cells.length > 0 ? (await previewScenarios(pool, [{ key: 'import', cells: parsed.cells }])).import : null;
     res.json({ ...parsed, preview });
   } catch (error) { handleScheduleError(res, error, '解析班表檔案失敗'); }

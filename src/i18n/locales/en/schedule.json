@@ -156,6 +156,15 @@
     "errors": "{{count}} problems; those cells or rows will be skipped",
     "rowPrefix": "Row {{row}}: ",
     "apply": "Apply (save as draft)",
-    "done": "Imported {{count}} cells as drafts; publish after reviewing"
+    "done": "Imported {{count}} cells as drafts; publish after reviewing",
+    "blankLabel": "Blank cells:",
+    "blankKeep": "Leave unchanged",
+    "blankWork": "Treat as working: fill \"{{name}}\"",
+    "blankHint": "In duty rosters, blank weekdays mean a normal working day. Pick a shift to fill them so schedule checks apply. Codes such as [D] need a shift type with the same short name in Shift Types.",
+    "source": "Sheet \"{{sheet}}\", employees matched by {{by}}",
+    "matchedBy": {
+      "employeeId": "employee ID",
+      "name": "name"
+    }
   }
 }

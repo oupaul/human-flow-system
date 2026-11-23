@@ -83,6 +83,8 @@ export interface PatternParams {
 
 export interface ExcelPreview {
   cells: CellInput[];
+  sheetName: string;
+  matchedBy: "employeeId" | "name";
   errors: { row: number; message: string }[];
   errorTotal: number;
   employees: number;

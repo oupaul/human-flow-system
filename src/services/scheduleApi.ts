@@ -26,10 +26,11 @@ export const scheduleApi = {
     if (department) q.set("department", department);
     return apiFetchBlob(`/schedule/excel-template?${q.toString()}`);
   },
-  previewExcel(file: File, month: string): Promise<ExcelPreview> {
+  previewExcel(file: File, month: string, blankShiftTypeId?: number): Promise<ExcelPreview> {
     const form = new FormData();
     form.append("file", file);
     form.append("month", month);
+    if (blankShiftTypeId) form.append("blankShiftTypeId", String(blankShiftTypeId));
     return apiFetch("/schedule/excel-preview", { method: "POST", body: form });
   },
   publish(month: string, department?: string): Promise<{ message: string; published: number }> {

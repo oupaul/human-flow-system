@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Download, FileSpreadsheet, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import FillPreviewBox from "@/components/schedule/FillPreviewBox";
 import { scheduleApi } from "@/services/scheduleApi";
-import { ExcelPreview, ScheduleEmployee } from "@/types/schedule";
+import { ExcelPreview, ScheduleEmployee, ShiftType } from "@/types/schedule";
 
 const CHUNK = 800; // 一次送出的格數（後端 JSON 上限約 100 KB）
 
@@ -25,10 +26,29 @@ const ScheduleExcelDialog = ({ open, onOpenChange, month, department, employees,
   const { t } = useTranslation(["schedule", "common"]);
   const [parsed, setParsed] = useState<ExcelPreview | null>(null);
   const [busy, setBusy] = useState(false);
-  const [fileName, setFileName] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [shiftTypes, setShiftTypes] = useState<ShiftType[]>([]);
+  const [blankShift, setBlankShift] = useState("none"); // 空白格視為上班時填入的班別 id；none＝不變更
   const names = new Map(employees.map((e) => [e.employeeId, e.name]));
 
-  const reset = () => { setParsed(null); setFileName(""); };
+  const reset = () => { setParsed(null); setFile(null); };
+
+  useEffect(() => {
+    if (!open) return;
+    scheduleApi.getShiftTypes().then((list) => setShiftTypes(list.filter((x) => x.active))).catch(() => setShiftTypes([]));
+  }, [open]);
+
+  const parse = async (f: File, blank: string) => {
+    try {
+      setBusy(true);
+      setParsed(await scheduleApi.previewExcel(f, month, blank === "none" ? undefined : Number(blank)));
+    } catch (error) {
+      setParsed(null);
+      toast.error(t("schedule:excel.parseFailed"), { description: error instanceof Error ? error.message : undefined });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const download = async () => {
     try {
@@ -48,19 +68,16 @@ const ScheduleExcelDialog = ({ open, onOpenChange, month, department, employees,
   };
 
   const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const f = e.target.files?.[0];
     e.target.value = "";
-    if (!file) return;
-    try {
-      setBusy(true);
-      setFileName(file.name);
-      setParsed(await scheduleApi.previewExcel(file, month));
-    } catch (error) {
-      setParsed(null);
-      toast.error(t("schedule:excel.parseFailed"), { description: error instanceof Error ? error.message : undefined });
-    } finally {
-      setBusy(false);
-    }
+    if (!f) return;
+    setFile(f);
+    await parse(f, blankShift);
+  };
+
+  const changeBlank = async (value: string) => {
+    setBlankShift(value);
+    if (file) await parse(file, value);
   };
 
   const apply = async () => {
@@ -103,12 +120,24 @@ const ScheduleExcelDialog = ({ open, onOpenChange, month, department, employees,
               <Input type="file" accept=".xlsx,.xls" className="hidden" onChange={pick} disabled={busy} />
               <span className="inline-flex h-10 items-center rounded-md border bg-white px-4 text-sm hover:bg-gray-50"><Upload className="mr-2 h-4 w-4" />{t("schedule:excel.choose")}</span>
             </label>
-            {fileName && <span className="ml-3 text-sm text-muted-foreground">{fileName}</span>}
+            {file && <span className="ml-3 text-sm text-muted-foreground">{file.name}</span>}
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              <span>{t("schedule:excel.blankLabel")}</span>
+              <Select value={blankShift} onValueChange={changeBlank} disabled={busy}>
+                <SelectTrigger className="h-9 w-56"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t("schedule:excel.blankKeep")}</SelectItem>
+                  {shiftTypes.map((x) => <SelectItem key={x.id} value={String(x.id)}>{t("schedule:excel.blankWork", { name: x.name })}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{t("schedule:excel.blankHint")}</p>
           </div>
 
           {parsed && (
             <div className="space-y-3">
               <div className="rounded-md border p-3 text-sm">
+                <div className="mb-1 text-xs text-muted-foreground">{t("schedule:excel.source", { sheet: parsed.sheetName, by: t(`schedule:excel.matchedBy.${parsed.matchedBy}`) })}</div>
                 <div>{t("schedule:excel.summary", { employees: parsed.employees, cells: parsed.cells.length, from: parsed.from, to: parsed.to })}</div>
                 {parsed.cells.length === 0 && <div className="mt-1 text-amber-700">{t("schedule:excel.noCells")}</div>}
               </div>

@@ -156,6 +156,15 @@
     "errors": "有 {{count}} 個問題，這些格子或列會被略過",
     "rowPrefix": "第 {{row}} 列：",
     "apply": "套用（存成草稿）",
-    "done": "已匯入 {{count}} 格，都是草稿，確認後再發布"
+    "done": "已匯入 {{count}} 格，都是草稿，確認後再發布",
+    "blankLabel": "空白格：",
+    "blankKeep": "不變更",
+    "blankWork": "視為上班，填入「{{name}}」",
+    "blankHint": "值班表的平日空白代表正常上班；選一個班別填入，排班檢查才會對這些人生效。【D】等代號要先在班別管理建立同簡稱的班別。",
+    "source": "工作表「{{sheet}}」，以{{by}}對應員工",
+    "matchedBy": {
+      "employeeId": "員工編號",
+      "name": "姓名"
+    }
   }
 }
