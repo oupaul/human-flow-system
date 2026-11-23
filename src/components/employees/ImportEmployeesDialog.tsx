@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload } from "lucide-react";
+import { Download, Upload } from "lucide-react";
 import { ImportEmployeesResult } from "@/services/employeeApi";
 
 interface ImportEmployeesDialogProps {
@@ -22,6 +22,17 @@ interface ImportEmployeesDialogProps {
 }
 
 const SAMPLE_CSV = "姓名,員工編號,部門,職位,電子郵件,電話,到職日,地址,備註,月薪,性別,考勤帳號,已用特休天數,上期遞延天數\n王小明,EMP101,資訊部,工程師,wang@example.com,0912345678,2020/03/01,,,50000,男,nicole,2,3";
+
+// 下載範本：加 BOM 讓 Excel 直接以 UTF-8 開啟不亂碼；範例列為虛構資料，匯入前請刪除
+const downloadTemplate = () => {
+  const blob = new Blob(["\uFEFF" + SAMPLE_CSV + "\n"], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "employee-import-template.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 const ImportEmployeesDialog = ({ open, onOpenChange, onImport }: ImportEmployeesDialogProps) => {
   const { t } = useTranslation(["employees", "common"]);
@@ -66,7 +77,12 @@ const ImportEmployeesDialog = ({ open, onOpenChange, onImport }: ImportEmployees
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="csvFile">{t("employees:import.uploadLabel")}</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="csvFile">{t("employees:import.uploadLabel")}</Label>
+              <Button type="button" variant="outline" size="sm" onClick={downloadTemplate}>
+                <Download className="mr-2 h-4 w-4" />{t("employees:import.downloadTemplate")}
+              </Button>
+            </div>
             <Input id="csvFile" type="file" accept=".csv,text/csv" onChange={handleFileChange} />
           </div>
           <div className="space-y-2">

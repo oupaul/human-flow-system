@@ -133,7 +133,8 @@
       "reason": "失敗原因"
     },
     "importing": "匯入中...",
-    "startImport": "開始匯入"
+    "startImport": "開始匯入",
+    "downloadTemplate": "下載範本"
   },
   "compensation": {
     "title": "薪資與投保",

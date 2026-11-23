@@ -133,7 +133,8 @@
       "reason": "失敗理由"
     },
     "importing": "インポート中...",
-    "startImport": "インポート開始"
+    "startImport": "インポート開始",
+    "downloadTemplate": "テンプレートをダウンロード"
   },
   "compensation": {
     "title": "給与と保険",

@@ -133,7 +133,8 @@
       "reason": "Failure Reason"
     },
     "importing": "Importing...",
-    "startImport": "Start Import"
+    "startImport": "Start Import",
+    "downloadTemplate": "Download template"
   },
   "compensation": {
     "title": "Compensation & Insurance",
