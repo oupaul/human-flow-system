@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { notificationSettingsApi } from "@/services/notificationSettingsApi";
 import { NotificationSettingsFormData } from "@/types/notificationSettings";
 import { ApiError } from "@/lib/apiClient";
+import BrandingCard from "@/components/settings/BrandingCard";
 
 const emptyForm: NotificationSettingsFormData = {
   channel: "none",
@@ -135,6 +136,8 @@ const Settings = () => {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold tracking-tight">{t("common:nav.settings")}</h1>
+
+      <BrandingCard />
 
       <Card>
         <CardHeader>

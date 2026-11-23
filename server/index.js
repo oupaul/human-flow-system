@@ -25,6 +25,7 @@ import {
   ScheduleError, listShiftTypes, createShiftType, updateShiftType, deleteShiftType, getMonthSchedule, getMyPublishedSchedule,
   setCells, fillSchedule, expandPatternCells, publishSchedule, ensureScheduleSchema, parseWorkTime,
 } from './schedule.js';
+import { ensureBrandingSchema, getBranding, getFavicon, setFavicon, clearFavicon, BrandingError } from './branding.js';
 import { checkMonth, previewScenarios } from './scheduleCheck.js';
 import { buildScheduleWorkbook, parseScheduleWorkbook } from './scheduleExcel.js';
 import {
@@ -678,6 +679,23 @@ app.post('/api/auth/login', async (req, res) => {
     console.error('Error during login:', error);
     res.status(500).json({ error: '登入失敗', detail: error.message });
   }
+});
+
+// 瀏覽器分頁圖示：讀取是公開的（登入頁也要顯示），上傳／還原見 api 區段（admin）
+app.get('/api/branding', async (req, res) => {
+  try { res.json(await getBranding(pool)); } catch (error) { res.json({ hasFavicon: false, version: 0 }); }
+});
+app.get('/api/branding/favicon', async (req, res) => {
+  try {
+    const icon = await getFavicon(pool);
+    if (!icon) return res.status(404).end();
+    res.setHeader('Content-Type', icon.type);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    // SVG 直接開網址時不得執行其中的腳本
+    res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.send(icon.data);
+  } catch (error) { res.status(404).end(); }
 });
 
 // Microsoft 365（Entra ID）單一登入：不使用 client secret（細節與安全性說明見 microsoftSso.js）。
@@ -2244,6 +2262,21 @@ api.post('/schedule/excel-preview', requireRole('admin', 'hr'), (req, res, next)
     res.json({ ...parsed, preview });
   } catch (error) { handleScheduleError(res, error, '解析班表檔案失敗'); }
 });
+api.put('/branding/favicon', requireRole('admin'), (req, res, next) => {
+  uploadImportFile.single('file')(req, res, (err) => (err ? res.status(400).json({ error: err.message }) : next()));
+}, async (req, res) => {
+  try {
+    await setFavicon(pool, req.file?.buffer);
+    res.json({ message: '分頁圖示已更新', ...(await getBranding(pool)) });
+  } catch (error) {
+    if (error instanceof BrandingError) return res.status(error.status).json({ error: error.message });
+    console.error('Error setting favicon:', error);
+    res.status(500).json({ error: '更新分頁圖示失敗' });
+  }
+});
+api.delete('/branding/favicon', requireRole('admin'), async (req, res) => {
+  try { await clearFavicon(pool); res.json({ message: '已還原預設圖示', ...(await getBranding(pool)) }); } catch (error) { console.error('Error clearing favicon:', error); res.status(500).json({ error: '還原預設圖示失敗' }); }
+});
 api.post('/schedule/publish', requireRole('admin', 'hr'), async (req, res) => {
   try { res.json({ message: '班表已發布，員工現在看得到了', published: await publishSchedule(pool, req.body.month, req.body.department) }); } catch (error) { handleScheduleError(res, error, '發布班表失敗'); }
 });
@@ -3552,6 +3585,7 @@ async function checkCompTimeExpiryReminders() {
   }
 }
 
+await ensureBrandingSchema(pool).catch((error) => console.error('建立外觀設定資料表失敗：', error.message));
 await ensureScheduleSchema(pool).catch((error) => console.error('補上班別簡稱欄位失敗：', error.message));
 
 app.listen(PORT, () => {

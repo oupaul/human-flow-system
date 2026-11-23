@@ -42,5 +42,17 @@
     "sending": "Sending...",
     "saveSettings": "Save Settings",
     "saving": "Saving..."
+  },
+  "branding": {
+    "title": "Browser tab icon",
+    "description": "Customize the small icon (favicon) shown on the browser tab. Everyone, including the login page, will see it.",
+    "default": "Using the default icon",
+    "custom": "Using a custom icon",
+    "upload": "Upload icon",
+    "reset": "Restore default",
+    "uploaded": "Tab icon updated",
+    "resetDone": "Default icon restored",
+    "tooLarge": "Image is too large (max {{kb}} KB)",
+    "hint": "PNG, ICO, SVG, JPG and WEBP are supported, up to {{kb}} KB. A square image (PNG at 64×64 or larger, or SVG) works best. Others see the change after refreshing; browsers sometimes cache the old icon, so try a hard refresh if needed."
   }
 }
