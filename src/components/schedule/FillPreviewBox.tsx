@@ -6,10 +6,11 @@ interface Props {
   preview: PreviewResult | null;
   loading: boolean;
   names: Map<string, string>;
+  shiftNames?: Map<number, string>;
 }
 
 // 套用前的預覽：會新增／修改幾格，以及會新增或解除哪些排班警示（不會寫入）
-const FillPreviewBox = ({ preview, loading, names }: Props) => {
+const FillPreviewBox = ({ preview, loading, names, shiftNames }: Props) => {
   const { t } = useTranslation("schedule");
   if (!loading && !preview) return null;
   return (
@@ -21,6 +22,27 @@ const FillPreviewBox = ({ preview, loading, names }: Props) => {
           <div className="font-medium">
             {t("check.preview.stats", { added: preview.stats.added, changed: preview.stats.changed, unchanged: preview.stats.unchanged })}
           </div>
+          {preview.coverage && (
+            <div className="rounded border bg-muted/40 p-2 text-xs">
+              {preview.coverage.shortageTotal === 0
+                ? <div className="text-emerald-700">{t("coverage.noShortage")}</div>
+                : (
+                  <>
+                    <div className="font-medium text-red-700">{t("coverage.shortage", { count: preview.coverage.shortageTotal })}</div>
+                    <ul className="max-h-24 overflow-y-auto">
+                      {preview.coverage.shortages.slice(0, 12).map((s, i) => (
+                        <li key={i}>{s.date.slice(5)} {shiftNames?.get(s.shiftTypeId) ?? s.shiftTypeId}：{t("coverage.missing", { missing: s.missing, required: s.required })}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              {preview.coverage.summary.length > 0 && (
+                <div className="mt-1 text-muted-foreground">
+                  {t("coverage.workDays", { min: Math.min(...preview.coverage.summary.map((x) => x.workDays)), max: Math.max(...preview.coverage.summary.map((x) => x.workDays)) })}
+                </div>
+              )}
+            </div>
+          )}
           {preview.newCount === 0 ? (
             <div className="text-emerald-700">{t("check.quickFill.clean")}</div>
           ) : (

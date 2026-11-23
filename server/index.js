@@ -25,6 +25,7 @@ import {
   ScheduleError, listShiftTypes, createShiftType, updateShiftType, deleteShiftType, getMonthSchedule, getMyPublishedSchedule,
   setCells, fillSchedule, expandPatternCells, publishSchedule, ensureScheduleSchema, parseWorkTime,
 } from './schedule.js';
+import { expandCoverageCells } from './scheduleCoverage.js';
 import { runMigrations } from './migrate.js';
 import { ensureBrandingSchema, getBranding, getFavicon, setFavicon, clearFavicon, setSiteTitle, BrandingError } from './branding.js';
 import { checkMonth, previewScenarios } from './scheduleCheck.js';
@@ -343,6 +344,8 @@ function parseCsvWorkTime(modeText, cycleStart) {
   if (!mode) return {};
   const lower = mode.toLowerCase();
   const workTimeMode = ['二週變形', '二週變形工時', '二週', '2週變形', 'flex2w'].includes(lower) ? 'flex2w'
+    : ['四週變形', '四週變形工時', '四週', '4週變形', 'flex4w'].includes(lower) ? 'flex4w'
+    : ['八週變形', '八週變形工時', '八週', '8週變形', 'flex8w'].includes(lower) ? 'flex8w'
     : ['一般', '一般工時', 'standard'].includes(lower) ? 'standard' : mode;
   return { workTimeMode, workTimeCycleStart: cycleStart || undefined };
 }
@@ -2277,6 +2280,14 @@ api.post('/schedule/pattern', requireRole('admin', 'hr'), async (req, res) => {
     const cells = await expandPatternCells(pool, req.body);
     res.json({ message: '已依輪替樣式預排', changed: await setCells(pool, req.user.username, cells) });
   } catch (error) { handleScheduleError(res, error, '預排班表失敗'); }
+});
+api.post('/schedule/coverage', requireRole('admin', 'hr'), async (req, res) => {
+  try {
+    const cells = await expandCoverageCells(pool, req.body);
+    let changed = 0;
+    for (let i = 0; i < cells.length; i += 5000) changed += await setCells(pool, req.user.username, cells.slice(i, i + 5000));
+    res.json({ message: '已依需求人數自動排班', changed });
+  } catch (error) { handleScheduleError(res, error, '自動排班失敗'); }
 });
 api.get('/schedule/excel-template', requireRole('admin', 'hr'), async (req, res) => {
   try {

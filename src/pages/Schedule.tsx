@@ -23,11 +23,15 @@ import { departmentApi } from "@/services/departmentApi";
 import { currentMonthStr } from "@/lib/taipeiDate";
 import { CellInput, MonthSchedule, OffType, ScheduleCell, ScheduleIssue } from "@/types/schedule";
 
-// 二週變形：是否為週期的第一天（起算日起每 14 天一期）
-const isCycleStart = (date: string, cycleStart: string | null) => {
-  if (!cycleStart) return false;
+// 變形工時：二週／四週／八週的週期天數
+const CYCLE_DAYS: Record<string, number> = { flex2w: 14, flex4w: 28, flex8w: 56 };
+const CYCLE_WEEKS: Record<string, number> = { flex2w: 2, flex4w: 4, flex8w: 8 };
+
+// 是否為週期的第一天（起算日起每 14／28／56 天一期）
+const isCycleStart = (date: string, cycleStart: string | null, mode: string) => {
+  if (!cycleStart || !CYCLE_DAYS[mode]) return false;
   const diff = (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${cycleStart}T00:00:00Z`)) / 86400000;
-  return diff % 14 === 0;
+  return diff % CYCLE_DAYS[mode] === 0;
 };
 
 const shiftMonth = (month: string, delta: number) => {
@@ -223,7 +227,7 @@ const Schedule = () => {
                 <td className={`sticky left-0 z-10 whitespace-nowrap px-2 py-1 ${focusId === e.employeeId ? "bg-amber-50" : "bg-white"}`}>
                   {e.name}<span className="ml-1 text-muted-foreground">{e.employeeId}</span>
                   {e.scheduleMode === "rotating" && <Badge variant="outline" className="ml-1 px-1 py-0 text-[10px]">{t("schedule:page.rotatingTag")}</Badge>}
-                  {e.workTimeMode === "flex2w" && <Badge variant="outline" className="ml-1 border-violet-300 px-1 py-0 text-[10px] text-violet-700">{t("schedule:check.flexTag")}</Badge>}
+                  {e.workTimeMode !== "standard" && <Badge variant="outline" className="ml-1 border-violet-300 px-1 py-0 text-[10px] text-violet-700">{t("schedule:check.flexTag", { weeks: CYCLE_WEEKS[e.workTimeMode] })}</Badge>}
                   {rowWarnings.has(e.employeeId) && (
                     <Badge variant="outline" className="ml-1 border-red-300 px-1 py-0 text-[10px] text-red-700" title={(rowWarnings.get(e.employeeId) ?? []).map((i) => `${t(`schedule:check.types.${i.type}`)}：${t(`schedule:check.detail.${i.type}`, i.params)}（${i.startDate}~${i.endDate}）`).join("\n")}>
                       ⚠ {t("schedule:check.rowBadge", { count: rowWarnings.get(e.employeeId)?.length })}
@@ -237,7 +241,7 @@ const Schedule = () => {
                   const warnTitle = (flagged ?? []).map((i) => `⚠ ${t(`schedule:check.detail.${i.type}`, i.params)}`).join("\n");
                   const cls = c ? (c.kind === "off" ? OFF_CLASS[c.offType as OffType] : SHIFT_CLASSES[shiftIndex(c.shiftTypeId) % SHIFT_CLASSES.length]) : "";
                   return (
-                    <td key={d.date} className={`p-0.5 text-center ${e.workTimeMode === "flex2w" && isCycleStart(d.date, e.workTimeCycleStart) ? "border-l-2 border-l-violet-400" : ""}`}>
+                    <td key={d.date} className={`p-0.5 text-center ${isCycleStart(d.date, e.workTimeCycleStart, e.workTimeMode) ? "border-l-2 border-l-violet-400" : ""}`}>
                       <button
                         type="button"
                         disabled={!canEdit}

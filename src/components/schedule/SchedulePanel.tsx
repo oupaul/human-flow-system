@@ -40,7 +40,7 @@ const SchedulePanel = ({ issues, employees, onFocus }: Props) => {
         </div>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">{t("check.hint")}</p>
-      {employees.some((e) => e.workTimeMode === "flex2w") && <p className="mt-1 text-xs text-violet-700">{t("check.cycleHint")}</p>}
+      {employees.some((e) => e.workTimeMode !== "standard") && <p className="mt-1 text-xs text-violet-700">{t("check.cycleHint")}</p>}
       {open && (
         <ul className="mt-3 max-h-72 space-y-1 overflow-y-auto">
           {issues.map((i, idx) => (

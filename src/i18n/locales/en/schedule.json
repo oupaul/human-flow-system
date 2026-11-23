@@ -67,7 +67,8 @@
     "clear": "Clear schedule",
     "done": "{{count}} cell(s) updated",
     "modeSingle": "Single fill",
-    "modePattern": "Rotation pattern"
+    "modePattern": "Rotation pattern",
+    "modeCoverage": "By headcount"
   },
   "publish": {
     "title": "Publish the {{month}} schedule?",
@@ -102,9 +103,9 @@
       "no_regular_off": "{{days}} consecutive days without a regular day off",
       "no_rest_day": "{{days}} consecutive days without a rest day",
       "weekly_hours": "{{hours}} scheduled hours that week, over {{limit}} (will generate overtime)",
-      "cycle_days_off": "Only {{count}} regular/rest days off in this two-week cycle; at least {{required}} are required",
-      "daily_normal_hours": "Scheduled {{hours}} hours, over the {{limit}}-hour daily normal hours of the two-week flexible schedule (the excess is overtime)",
-      "cycle_hours": "{{hours}} scheduled hours in this two-week cycle, over {{limit}} (will generate overtime)"
+      "cycle_days_off": "Only {{count}} regular/rest days off in this {{weeks}}-week cycle; at least {{required}} are required",
+      "daily_normal_hours": "Scheduled {{hours}} hours, over the {{limit}}-hour daily normal hours of flexible schedules (the excess is overtime)",
+      "cycle_hours": "Scheduled {{hours}} hours in this {{weeks}}-week cycle, over {{limit}} hours (overtime will result)"
     },
     "preview": {
       "loading": "Checking…",
@@ -124,8 +125,8 @@
       "body": "Please review or adjust the schedule before publishing.",
       "confirm": "I have reviewed these warnings (e.g. flexible hours approved or consent obtained) and still want to publish"
     },
-    "flexTag": "2-week flex",
-    "cycleHint": "Two-week flexible employees: at least one regular day off every seven days, and at least 4 regular/rest days off in each two-week cycle. Cycles repeat every 14 days from the start date set on the employee (the thick line on the left of a cell marks a cycle start)."
+    "flexTag": "{{weeks}}-week flex",
+    "cycleHint": "Flexible-hours employees: at least one regular day off every seven days, and at least 4 regular/rest days off in every two weeks (4 per 2-week cycle, 8 per 4-week, 16 per 8-week). Cycles repeat from the start date set on the employee (the thick line on the left of a cell marks a cycle start)."
   },
   "pattern": {
     "description": "Pre-schedule everyone selected from a rotation pattern: define a cycle (e.g. 5 work days, a rest day, a regular day off) and it repeats across the range from the start date; with many people you can stagger them in groups. Results are drafts you can adjust cell by cell afterwards.",
@@ -140,7 +141,14 @@
     "groupSizeAll": "Blank = one group",
     "offsetStep": "Days to shift each group",
     "groupHint": "E.g. groups of 2, shifted 1 day each: people 1–2 start at pattern day 1, people 3–4 at day 2, and so on; 0 = everyone in sync. People are grouped in the order of the list above.",
-    "skipExisting": "Do not overwrite cells already scheduled (fill empty cells only)"
+    "skipExisting": "Do not overwrite cells already scheduled (fill empty cells only)",
+    "holidayMode": "National holidays",
+    "holiday": {
+      "ignore": "Follow the pattern (no special handling)",
+      "off": "Always schedule a national holiday off",
+      "skip": "Leave holidays untouched (schedule manually later)"
+    },
+    "holidayHint": "National holidays come from the holiday calendar. \"Always off\" marks everyone off on those dates (schedule any compensatory day elsewhere yourself). For holidays that need duty staff, choose \"Leave untouched\" and fill them in manually."
   },
   "excel": {
     "title": "Import/export schedule with Excel",
@@ -166,5 +174,19 @@
       "employeeId": "employee ID",
       "name": "name"
     }
+  },
+  "coverage": {
+    "description": "Set how many people each shift needs on each weekday (blank = 0). The system assigns the selected employees automatically and keeps worked days as even as possible.",
+    "shift": "Shift",
+    "copyWeekdays": "Mon → Fri",
+    "noShifts": "No shifts yet. Add some in Shift Types first.",
+    "holidayOff": "Everyone off on national holidays (no scheduling)",
+    "holidayIgnore": "Schedule national holidays like normal days",
+    "skipExisting": "Do not overwrite already scheduled cells (they count toward the required headcount)",
+    "rules": "Rules followed: at most 5 working days per Mon–Sun week with at least one regular day off and one rest day, no more than 6 consecutive working days, and at least 11 hours between shifts. Where staff are short, the dates and shifts are listed instead of forcing a schedule. Adjust leave and special cases manually afterwards.",
+    "noShortage": "Every shift is fully staffed",
+    "shortage": "{{count}} understaffed slots",
+    "missing": "needs {{required}}, short by {{missing}}",
+    "workDays": "Working days per person: {{min}}–{{max}}"
   }
 }

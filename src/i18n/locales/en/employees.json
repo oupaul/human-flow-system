@@ -93,8 +93,10 @@
     "workTimeStandard": "Standard hours",
     "workTimeFlex2w": "Two-week flexible hours",
     "workTimeCycleStart": "Cycle start date",
-    "workTimeHint": "Only for employees covered by the company's approved arrangement. Two-week flexible: schedule checks use the flexible-hours rules (10-hour days, at least 4 days off per two weeks, etc.). Cycles repeat every 14 days from the start date; use the first day of a cycle.",
-    "workTimeCycleRequired": "A cycle start date is required for two-week flexible hours"
+    "workTimeHint": "Only for employees covered by the company's approved arrangement. Flexible hours: schedule checks use the flexible-hours rules (10-hour days, at least 4 days off per two weeks, etc.). Cycles repeat every 14/28/56 days (2/4/8 weeks) from the start date; use the first day of a cycle.",
+    "workTimeCycleRequired": "A cycle start date is required for flexible hours",
+    "workTimeFlex4w": "Four-week flexible hours",
+    "workTimeFlex8w": "Eight-week flexible hours"
   },
   "addDialog": {
     "title": "Add Employee",
@@ -120,7 +122,7 @@
   },
   "import": {
     "title": "Bulk Import Employees",
-    "description": "Upload a CSV file, or paste the content directly. The header row must include \"姓名、員工編號、部門、職位、電子郵件、到職日\" (name, employee ID, department, position, email, join date); phone, address, notes, monthly salary, gender, attendance account, annual leave days used, and annual leave days carried over from the previous period (header \"上期遞延天數\") are optional (gender should be \"男\" or \"女\", used to restrict gender-specific leave types such as menstrual leave; attendance account is used to match records imported from the external time-clock system). A login account is created automatically for each employee (username = email, default password = employee ID). Optional columns \"工時制度\" (work-time system: \"一般工時\" or \"二週變形\"; blank = standard) and \"週期起算日\" (cycle start date, required for 二週變形) are available; only HR and admins can set them.",
+    "description": "Upload a CSV file, or paste the content directly. The header row must include \"姓名、員工編號、部門、職位、電子郵件、到職日\" (name, employee ID, department, position, email, join date); phone, address, notes, monthly salary, gender, attendance account, annual leave days used, and annual leave days carried over from the previous period (header \"上期遞延天數\") are optional (gender should be \"男\" or \"女\", used to restrict gender-specific leave types such as menstrual leave; attendance account is used to match records imported from the external time-clock system). A login account is created automatically for each employee (username = email, default password = employee ID). Optional columns \"工時制度\" (work-time system: \"一般工時\", \"二週變形\", \"四週變形\" or \"八週變形\"; blank = standard) and \"週期起算日\" (cycle start date, required for flexible hours) are available; only HR and admins can set them.",
     "uploadLabel": "Upload CSV File",
     "pasteLabel": "Or paste CSV content",
     "result": {

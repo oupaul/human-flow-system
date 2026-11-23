@@ -11,7 +11,7 @@ interface Props {
   onSelectChange: (name: string, value: string) => void;
 }
 
-// 工時制度：一般工時或二週變形工時（公司需已向勞工局核備；排班檢查依此套用不同規則）
+// 工時制度：一般工時或二／四／八週變形工時（公司需已向勞工局核備；排班檢查依此套用不同規則）
 const WorkTimeFields = ({ idPrefix, formData, onFormChange, onSelectChange }: Props) => {
   const { t } = useTranslation("employees");
   return (
@@ -22,9 +22,11 @@ const WorkTimeFields = ({ idPrefix, formData, onFormChange, onSelectChange }: Pr
         <SelectContent>
           <SelectItem value="standard">{t("form.workTimeStandard")}</SelectItem>
           <SelectItem value="flex2w">{t("form.workTimeFlex2w")}</SelectItem>
+          <SelectItem value="flex4w">{t("form.workTimeFlex4w")}</SelectItem>
+          <SelectItem value="flex8w">{t("form.workTimeFlex8w")}</SelectItem>
         </SelectContent>
       </Select>
-      {formData.workTimeMode === "flex2w" && (
+      {formData.workTimeMode !== "standard" && (
         <div className="space-y-1">
           <Label htmlFor={`${idPrefix}WorkTimeCycleStart`}>{t("form.workTimeCycleStart")}</Label>
           <Input id={`${idPrefix}WorkTimeCycleStart`} name="workTimeCycleStart" type="date" value={formData.workTimeCycleStart} onChange={onFormChange} />

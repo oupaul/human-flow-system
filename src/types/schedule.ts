@@ -31,7 +31,7 @@ export interface ScheduleEmployee {
   department: string;
   scheduleMode: "fixed" | "rotating" | null;
   attendanceSource: "import" | "system";
-  workTimeMode: "standard" | "flex2w";
+  workTimeMode: "standard" | "flex2w" | "flex4w" | "flex8w";
   workTimeCycleStart: string | null;
 }
 
@@ -55,7 +55,24 @@ export interface MonthSchedule {
   warnings: ScheduleIssue[];
 }
 
+// 依需求人數自動排班：每個班別週一到週日各需幾人
+export interface CoverageDemand { shiftTypeId: number; counts: number[] }
+export interface CoverageParams {
+  employeeIds: string[];
+  from: string;
+  to: string;
+  demand: CoverageDemand[];
+  holidayMode: "ignore" | "off";
+  skipExisting: boolean;
+}
+export interface CoverageReport {
+  shortageTotal: number;
+  shortages: { date: string; shiftTypeId: number; required: number; missing: number }[];
+  summary: { employeeId: string; workDays: number; weekendDays: number; shifts: Record<string, number> }[];
+}
+
 export interface PreviewResult {
+  coverage?: CoverageReport;
   stats: { added: number; changed: number; unchanged: number };
   newCount: number;
   resolvedCount: number;
@@ -79,6 +96,7 @@ export interface PatternParams {
   groupSize: number;
   offsetStep: number;
   skipExisting: boolean;
+  holidayMode?: "ignore" | "off" | "skip";
 }
 
 export interface ExcelPreview {
@@ -96,6 +114,7 @@ export interface ExcelPreview {
 export type PreviewScenario =
   | { key: string; cells: CellInput[] }
   | { key: string; pattern: PatternParams }
+  | { key: string; coverage: CoverageParams }
   | { key: string; fill: { employeeIds: string[]; from: string; to: string; weekdays: number[]; kind?: "shift" | "off"; shiftTypeId?: number; offType?: OffType; clear?: boolean } };
 
 export type CellInput =

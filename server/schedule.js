@@ -42,14 +42,14 @@ export async function ensureScheduleSchema(pool) {
   await pool.execute('ALTER TABLE employees ADD COLUMN IF NOT EXISTS workTimeCycleStart DATE NULL');
 }
 
-// 工時制度：standard＝一般工時；flex2w＝二週變形工時（週期起算日往後每 14 天一個週期）
-export const WORK_TIME_MODES = ['standard', 'flex2w'];
+// 工時制度：standard＝一般工時；flex2w／flex4w／flex8w＝二週／四週／八週變形工時（週期起算日往後每 14／28／56 天一個週期）
+export const WORK_TIME_MODES = ['standard', 'flex2w', 'flex4w', 'flex8w'];
 export function parseWorkTime(body) {
   if (body.workTimeMode === undefined) return null; // 沒帶＝不變更
   if (!WORK_TIME_MODES.includes(body.workTimeMode)) throw new ScheduleError(400, '工時制度不正確');
   if (body.workTimeMode === 'standard') return { mode: 'standard', cycleStart: null };
-  if (!DATE_RE.test(String(body.workTimeCycleStart || ''))) throw new ScheduleError(400, '二週變形工時需要填寫週期起算日');
-  return { mode: 'flex2w', cycleStart: body.workTimeCycleStart };
+  if (!DATE_RE.test(String(body.workTimeCycleStart || ''))) throw new ScheduleError(400, '變形工時需要填寫週期起算日');
+  return { mode: body.workTimeMode, cycleStart: body.workTimeCycleStart };
 }
 
 export async function listShiftTypes(pool) {
@@ -231,13 +231,26 @@ export async function expandPatternCells(pool, p) {
     existing = new Set(rows.map((r) => `${r.employeeId}|${r.date}`));
   }
 
+  // 國定假日處理（假日行事曆裡週六日也標成假日但沒有名稱，只取有名稱的節日）：ignore＝照樣式；off＝國定假日當天一律排「國定假日」；skip＝國定假日當天不動
+  const holidayMode = ['off', 'skip'].includes(p.holidayMode) ? p.holidayMode : 'ignore';
+  let holidays = new Set();
+  if (holidayMode !== 'ignore') {
+    const [rows] = await pool.query('SELECT date FROM holidays WHERE isHoliday = TRUE AND CHAR_LENGTH(name) > 0 AND date BETWEEN ? AND ?', [from, to]);
+    holidays = new Set(rows.map((r) => String(r.date).slice(0, 10)));
+  }
+
   const n = steps.length;
   const cells = [];
   employeeIds.forEach((employeeId, index) => {
     const offset = (Math.floor(index / groupSize) * offsetStep) % n;
     for (let d = from, guard = 0; d <= to && guard < 100; d = new Date(Date.parse(`${d}T00:00:00Z`) + 86400000).toISOString().slice(0, 10), guard += 1) {
+      if (existing.has(`${employeeId}|${d}`)) continue;
+      if (holidays.has(d)) {
+        if (holidayMode === 'off') cells.push({ employeeId, date: d, kind: 'off', shiftTypeId: null, offType: 'national_holiday' });
+        continue;
+      }
       const step = steps[((dayDiff(anchor, d) + offset) % n + n) % n];
-      if (!step || existing.has(`${employeeId}|${d}`)) continue;
+      if (!step) continue;
       cells.push({ employeeId, date: d, ...step });
     }
   });

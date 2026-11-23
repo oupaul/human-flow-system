@@ -1,6 +1,6 @@
 export type Gender = "male" | "female";
 export type ScheduleMode = "fixed" | "rotating";
-export type WorkTimeMode = "standard" | "flex2w";
+export type WorkTimeMode = "standard" | "flex2w" | "flex4w" | "flex8w";
 
 export interface Employee {
   id: number;
@@ -46,7 +46,7 @@ export interface EmployeeFormData {
   gender: Gender | "";
   // 出勤制度：空字串＝使用公司預設；排班制的休息日、例假日、國定假日都平移，日別依個人排班判斷
   scheduleMode: ScheduleMode | "";
-  // 工時制度：standard＝一般工時；flex2w＝二週變形工時（需填週期起算日，只有 admin/hr 能設定）
+  // 工時制度：standard＝一般工時；flex2w／flex4w／flex8w＝二週／四週／八週變形工時（需填週期起算日，只有 admin/hr 能設定）
   workTimeMode: WorkTimeMode;
   workTimeCycleStart: string;
   // 出勤來源：import＝考勤由外部系統匯入；system＝使用系統打卡（匯入時略過）；punchIpExempt＝不受打卡 IP 限制（外勤）

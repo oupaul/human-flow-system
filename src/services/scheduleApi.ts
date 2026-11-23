@@ -1,5 +1,5 @@
 import { apiFetch, apiFetchBlob } from "@/lib/apiClient";
-import { CellInput, ExcelPreview, MonthSchedule, OffType, PatternParams, PreviewResult, PreviewScenario, ScheduleCell, ShiftType } from "@/types/schedule";
+import { CellInput, ExcelPreview, MonthSchedule, OffType, PatternParams, PreviewResult, PreviewScenario, ScheduleCell, ShiftType, CoverageParams } from "@/types/schedule";
 
 type ShiftTypeBody = Pick<ShiftType, "name" | "shortName" | "startTime" | "endTime" | "breakMinutes" | "active">;
 
@@ -20,6 +20,9 @@ export const scheduleApi = {
   },
   applyPattern(params: PatternParams): Promise<{ message: string; changed: number }> {
     return apiFetch("/schedule/pattern", { method: "POST", body: JSON.stringify(params) });
+  },
+  applyCoverage(params: CoverageParams): Promise<{ message: string; changed: number }> {
+    return apiFetch("/schedule/coverage", { method: "POST", body: JSON.stringify(params) });
   },
   downloadExcel(month: string, department?: string): Promise<Blob> {
     const q = new URLSearchParams({ month });

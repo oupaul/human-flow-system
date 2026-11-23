@@ -9,7 +9,8 @@
 //   no_rest_day       任何連續 7 天有例假日，但沒有「休息日」（國定假日平移的排休也算）（第 36 條）          ［警示］
 //   weekly_hours      整週（週一到週日）七天都已排班，且排班工時超過 40 小時，代表會產生加班              ［提示］
 //
-// 二週變形工時（勞基法第 30 條第 2 項、第 36 條第 2 項）的員工改用下列規則（週期由員工設定的起算日起每 14 天一期）：
+// 變形工時（二週：勞基法第 30 條第 2 項；四週、八週：第 30 條之 1；例假休息日：第 36 條）的員工改用下列規則
+// （週期由員工設定的起算日起，每 14／28／56 天一期；二週期內例假＋休息日至少 4 天，故四週 8 天、八週 16 天）：
 //   * 單日排班超過 10 小時（變形後每日正常工時上限）為提示，超過 12 小時仍是警示
 //   * 週工時門檻改為 48 小時（提示）；整個週期排班超過 80 小時為提示（cycle_hours）
 //   * 不再要求「每七天一個休息日」，改為：每七天至少一日例假，且每二週內例假＋休息日至少 4 日（cycle_days_off，警示）
@@ -17,11 +18,17 @@
 //
 // 七天視窗檢查只看「整段七天都已排班」的區間，避免尚未排完時誤報。
 
+import { planCoverage } from './scheduleCoverage.js';
 import { getScheduleMap, listShiftTypes, normalizeCell, expandFillCells, expandPatternCells, ScheduleError } from './schedule.js';
 
 export const LIMITS = {
   dailyHours: 12, minRestHours: 11, weeklyHours: 40,
-  flex2w: { dailyNormalHours: 10, weeklyHours: 48, cycleHours: 80, cycleDays: 14, cycleDaysOff: 4 },
+  // 二週／四週／八週變形：週期天數、週期內例假＋休息日至少幾天（每二週 4 天）、週期正常工時上限（週平均 40 小時）
+  flex: {
+    flex2w: { weeks: 2, dailyNormalHours: 10, weeklyHours: 48, cycleHours: 80, cycleDays: 14, cycleDaysOff: 4 },
+    flex4w: { weeks: 4, dailyNormalHours: 10, weeklyHours: 48, cycleHours: 160, cycleDays: 28, cycleDaysOff: 8 },
+    flex8w: { weeks: 8, dailyNormalHours: 10, weeklyHours: 48, cycleHours: 320, cycleDays: 56, cycleDaysOff: 16 },
+  },
 };
 export const SEVERITY = {
   daily_hours: 'warning', rest_interval: 'warning', consecutive_days: 'warning',
@@ -57,7 +64,7 @@ const daysBetween = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.pa
 
 // days：Map<日期, { kind, offType?, startTime?, endTime?, breakMinutes? }>；回傳與 [from, to] 有交集的警示
 export function analyzeEmployee(employeeId, days, from, to, profile = null) {
-  const flex = profile?.mode === 'flex2w' && DATE_RE.test(String(profile.cycleStart || '')) ? LIMITS.flex2w : null;
+  const flex = LIMITS.flex[profile?.mode] && DATE_RE.test(String(profile.cycleStart || '')) ? LIMITS.flex[profile.mode] : null;
   const info = new Map();
   for (const [date, cell] of days) info.set(date, dayInfo(cell));
   const issues = [];
@@ -67,7 +74,7 @@ export function analyzeEmployee(employeeId, days, from, to, profile = null) {
     const x = info.get(d);
     if (x?.kind !== 'shift') continue;
     if (x.hours > LIMITS.dailyHours) push('daily_hours', d, d, { hours: round1(x.hours), limit: LIMITS.dailyHours });
-    else if (flex && x.hours > flex.dailyNormalHours) push('daily_normal_hours', d, d, { hours: round1(x.hours), limit: flex.dailyNormalHours });
+    else if (flex && x.hours > flex.dailyNormalHours) push('daily_normal_hours', d, d, { hours: round1(x.hours), limit: flex.dailyNormalHours, weeks: flex.weeks });
   }
 
   for (let d = addDays(from, -1); d <= to; d = addDays(d, 1)) {
@@ -100,7 +107,7 @@ export function analyzeEmployee(employeeId, days, from, to, profile = null) {
     if (hours > limit) push('weekly_hours', ws, addDays(ws, 6), { hours: round1(hours), limit });
   }
 
-  // 二週變形：以起算日為準的固定 14 天週期（不是滾動視窗）
+  // 變形工時：以起算日為準的固定週期（14／28／56 天，不是滾動視窗）（不是滾動視窗）
   if (flex) {
     const offset = Math.floor((Date.parse(`${from}T00:00:00Z`) - Date.parse(`${profile.cycleStart}T00:00:00Z`)) / 86400000 / flex.cycleDays);
     for (let cs = addDays(profile.cycleStart, offset * flex.cycleDays); cs <= to; cs = addDays(cs, flex.cycleDays)) {
@@ -108,9 +115,9 @@ export function analyzeEmployee(employeeId, days, from, to, profile = null) {
       if (cycle.some((x) => !x)) continue;
       const end = addDays(cs, flex.cycleDays - 1);
       const daysOff = cycle.filter((x) => x.kind === 'off').length;
-      if (daysOff < flex.cycleDaysOff) push('cycle_days_off', cs, end, { count: daysOff, required: flex.cycleDaysOff });
+      if (daysOff < flex.cycleDaysOff) push('cycle_days_off', cs, end, { count: daysOff, required: flex.cycleDaysOff, weeks: flex.weeks });
       const total = cycle.reduce((sum, x) => sum + (x.kind === 'shift' ? x.hours : 0), 0);
-      if (total > flex.cycleHours) push('cycle_hours', cs, end, { hours: round1(total), limit: flex.cycleHours });
+      if (total > flex.cycleHours) push('cycle_hours', cs, end, { hours: round1(total), limit: flex.cycleHours, weeks: flex.weeks });
     }
   }
 
@@ -135,7 +142,7 @@ async function loadProfiles(pool, employeeIds) {
 export async function checkMonth(pool, month, employeeIds) {
   const { from, to } = monthBounds(month);
   if (employeeIds.length === 0) return [];
-  const map = await getScheduleMap(pool, employeeIds, addDays(from, -15), addDays(to, 15));
+  const map = await getScheduleMap(pool, employeeIds, addDays(from, -60), addDays(to, 60));
   const profiles = await loadProfiles(pool, employeeIds);
   const issues = [];
   for (const [employeeId, days] of map) issues.push(...analyzeEmployee(employeeId, days, from, to, profiles.get(employeeId)));
@@ -146,24 +153,27 @@ const overlaps = (a, b) => a.employeeId === b.employeeId && a.type === b.type &&
 const MAX_LISTED = 50;
 
 // 預覽：假設做了這些變更，會「新增」哪些警示、「解除」哪些警示、哪些「仍然存在」（不會寫入資料庫）
-// scenarios：[{ key, cells } 或 { key, fill }]
+// scenarios：[{ key, cells } 或 { key, fill } 或 { key, pattern } 或 { key, coverage }]
 export async function previewScenarios(pool, scenarios) {
   if (!Array.isArray(scenarios) || scenarios.length === 0 || scenarios.length > 30) throw new ScheduleError(400, '預覽的情境數量不正確');
   const prepared = [];
   for (const sc of scenarios) {
-    const raw = sc.cells ?? (sc.pattern ? await expandPatternCells(pool, sc.pattern) : expandFillCells(sc.fill || {}));
+    let report = null;
+    let raw = sc.cells;
+    if (!raw && sc.coverage) { const plan = await planCoverage(pool, sc.coverage); raw = plan.cells; report = plan.report; }
+    if (!raw) raw = sc.pattern ? await expandPatternCells(pool, sc.pattern) : expandFillCells(sc.fill || {});
     if (!Array.isArray(raw) || raw.length === 0 || raw.length > 20000) throw new ScheduleError(400, '預覽的儲存格數量不正確');
-    prepared.push({ key: String(sc.key), cells: raw.map(normalizeCell) });
+    prepared.push({ key: String(sc.key), cells: raw.map(normalizeCell), report });
   }
   const all = prepared.flatMap((p) => p.cells);
   const employeeIds = [...new Set(all.map((c) => c.employeeId))];
   const dates = all.map((c) => c.date).sort();
-  const base = await getScheduleMap(pool, employeeIds, addDays(dates[0], -15), addDays(dates[dates.length - 1], 15));
+  const base = await getScheduleMap(pool, employeeIds, addDays(dates[0], -60), addDays(dates[dates.length - 1], 60));
   const shiftTypes = new Map((await listShiftTypes(pool)).map((t) => [t.id, t]));
   const profiles = await loadProfiles(pool, employeeIds);
 
   const results = {};
-  for (const { key, cells } of prepared) {
+  for (const { key, cells, report } of prepared) {
     const cellDates = cells.map((c) => c.date).sort();
     const from = cellDates[0];
     const to = cellDates[cellDates.length - 1];
@@ -195,6 +205,7 @@ export async function previewScenarios(pool, scenarios) {
       else stats.changed += 1;
     }
     results[key] = {
+      ...(report ? { coverage: report } : {}),
       stats,
       newCount: newIssues.length,
       resolvedCount: resolvedIssues.length,

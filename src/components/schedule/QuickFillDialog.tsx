@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FillPreviewBox from "@/components/schedule/FillPreviewBox";
 import PatternBuilder from "@/components/schedule/PatternBuilder";
+import CoverageBuilder from "@/components/schedule/CoverageBuilder";
 import { scheduleApi } from "@/services/scheduleApi";
-import { OffType, PatternStep, PreviewResult, ScheduleEmployee, ShiftType } from "@/types/schedule";
+import { CoverageParams, OffType, PatternStep, PreviewResult, ScheduleEmployee, ShiftType } from "@/types/schedule";
 
 interface Props {
   open: boolean;
@@ -34,10 +35,11 @@ const mondayOnOrBefore = (month: string) => {
   return d.toISOString().slice(0, 10);
 };
 
-type Mode = "single" | "pattern";
+type Mode = "single" | "pattern" | "coverage";
 
-// 快速填入：選員工與日期區間後，可「單一填入」（同一個班別或排休）或「輪替預排」
-// （依輪替樣式一次排好所有人，可分組錯開起點，之後再人工微調）。套用前都會先預覽。
+// 快速填入：選員工與日期區間後，可「單一填入」（同一個班別或排休）、「輪替預排」
+// （依輪替樣式一次排好所有人，可分組錯開起點）或「依需求排班」（設定每班每天需要幾人，自動分配）。
+// 結果都是草稿，之後再人工微調；套用前都會先預覽。
 const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onDone }: Props) => {
   const { t } = useTranslation(["schedule", "common"]);
   const [mode, setMode] = useState<Mode>("single");
@@ -53,6 +55,11 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
   const [groupSize, setGroupSize] = useState("");
   const [offsetStep, setOffsetStep] = useState("0");
   const [skipExisting, setSkipExisting] = useState(true);
+  const [holidayMode, setHolidayMode] = useState<"ignore" | "off" | "skip">("ignore");
+  // 依需求排班
+  const [demand, setDemand] = useState<Record<number, string[]>>({});
+  const [coverageHoliday, setCoverageHoliday] = useState<"ignore" | "off">("off");
+  const [coverageSkip, setCoverageSkip] = useState(true);
 
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
@@ -71,14 +78,24 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
   // 依畫面上的順序排列，輪替分組才符合直覺
   const orderedIds = useMemo(() => employees.filter((e) => selected.has(e.employeeId)).map((e) => e.employeeId), [employees, selected]);
   const patternReady = pattern.some((p) => p.kind !== "skip");
-  const ready = orderedIds.length > 0 && !!from && !!to && from <= to && (mode === "single" ? !!choice && weekdays.length > 0 : patternReady && !!anchor);
+  const coverageParams = useMemo<CoverageParams>(() => ({
+    employeeIds: orderedIds, from, to,
+    demand: Object.entries(demand)
+      .map(([id, row]) => ({ shiftTypeId: Number(id), counts: row.map((n) => Number(n) || 0) }))
+      .filter((d) => d.counts.some((n) => n > 0)),
+    holidayMode: coverageHoliday, skipExisting: coverageSkip,
+  }), [orderedIds, from, to, demand, coverageHoliday, coverageSkip]);
+  const coverageReady = coverageParams.demand.length > 0;
+  const ready = orderedIds.length > 0 && !!from && !!to && from <= to
+    && (mode === "single" ? !!choice && weekdays.length > 0 : mode === "pattern" ? patternReady && !!anchor : coverageReady);
 
   const patternParams = useMemo(() => ({
     employeeIds: orderedIds, from, to, anchor, pattern,
     groupSize: Number(groupSize) > 0 ? Number(groupSize) : orderedIds.length,
     offsetStep: Math.max(0, Number(offsetStep) || 0),
     skipExisting,
-  }), [orderedIds, from, to, anchor, pattern, groupSize, offsetStep, skipExisting]);
+    holidayMode,
+  }), [orderedIds, from, to, anchor, pattern, groupSize, offsetStep, skipExisting, holidayMode]);
 
   const singleFill = () => {
     const base = { employeeIds: orderedIds, from, to, weekdays };
@@ -93,25 +110,26 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
     if (!open || !ready) { setPreviewing(false); return; }
     let cancelled = false;
     setPreviewing(true);
-    const scenario = mode === "single" ? { key: "fill", fill: singleFill() } : { key: "fill", pattern: patternParams };
+    const scenario = mode === "single" ? { key: "fill", fill: singleFill() } : mode === "pattern" ? { key: "fill", pattern: patternParams } : { key: "fill", coverage: coverageParams };
     const timer = window.setTimeout(() => {
       scheduleApi.preview([scenario])
         .then((r) => { if (!cancelled) setPreview(r.results.fill ?? null); })
-        .catch((error) => { if (!cancelled) { setPreview(null); if (mode === "pattern") toast.error(error instanceof Error ? error.message : t("common:common.loadFailed")); } })
+        .catch((error) => { if (!cancelled) { setPreview(null); if (mode !== "single") toast.error(error instanceof Error ? error.message : t("common:common.loadFailed")); } })
         .finally(() => { if (!cancelled) setPreviewing(false); });
     }, 400);
     return () => { cancelled = true; window.clearTimeout(timer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, ready, mode, orderedIds, choice, weekdays, from, to, patternParams]);
+  }, [open, ready, mode, orderedIds, choice, weekdays, from, to, patternParams, coverageParams]);
 
   const names = new Map(employees.map((e) => [e.employeeId, e.name]));
+  const shiftNames = new Map(shiftTypes.map((s) => [s.id, s.label || s.name]));
   const toggleDay = (d: number) => setWeekdays((w) => (w.includes(d) ? w.filter((x) => x !== d) : [...w, d].sort()));
   const toggleEmp = (id: string) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const submit = async () => {
     try {
       setBusy(true);
-      const result = mode === "pattern" ? await scheduleApi.applyPattern(patternParams) : await scheduleApi.fill(singleFill());
+      const result = mode === "pattern" ? await scheduleApi.applyPattern(patternParams) : mode === "coverage" ? await scheduleApi.applyCoverage(coverageParams) : await scheduleApi.fill(singleFill());
       toast.success(t("schedule:quickFill.done", { count: result.changed }));
       onOpenChange(false);
       onDone();
@@ -152,9 +170,10 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
           </div>
 
           <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="single">{t("schedule:quickFill.modeSingle")}</TabsTrigger>
               <TabsTrigger value="pattern">{t("schedule:quickFill.modePattern")}</TabsTrigger>
+              <TabsTrigger value="coverage">{t("schedule:quickFill.modeCoverage")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="single" className="space-y-4 pt-2">
@@ -200,14 +219,46 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">{t("schedule:pattern.groupHint")}</p>
+              <div className="space-y-1">
+                <Label>{t("schedule:pattern.holidayMode")}</Label>
+                <Select value={holidayMode} onValueChange={(v) => setHolidayMode(v as "ignore" | "off" | "skip")}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ignore">{t("schedule:pattern.holiday.ignore")}</SelectItem>
+                    <SelectItem value="off">{t("schedule:pattern.holiday.off")}</SelectItem>
+                    <SelectItem value="skip">{t("schedule:pattern.holiday.skip")}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">{t("schedule:pattern.holidayHint")}</p>
+              </div>
               <label className="flex cursor-pointer items-center gap-2 text-sm">
                 <Checkbox checked={skipExisting} onCheckedChange={(v) => setSkipExisting(v === true)} />
                 {t("schedule:pattern.skipExisting")}
               </label>
             </TabsContent>
+
+            <TabsContent value="coverage" className="space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">{t("schedule:coverage.description")}</p>
+              <CoverageBuilder shiftTypes={shiftTypes} demand={demand} onChange={setDemand} />
+              <div className="space-y-1">
+                <Label>{t("schedule:pattern.holidayMode")}</Label>
+                <Select value={coverageHoliday} onValueChange={(v) => setCoverageHoliday(v as "ignore" | "off")}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="off">{t("schedule:coverage.holidayOff")}</SelectItem>
+                    <SelectItem value="ignore">{t("schedule:coverage.holidayIgnore")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <Checkbox checked={coverageSkip} onCheckedChange={(v) => setCoverageSkip(v === true)} />
+                {t("schedule:coverage.skipExisting")}
+              </label>
+              <p className="text-xs text-muted-foreground">{t("schedule:coverage.rules")}</p>
+            </TabsContent>
           </Tabs>
         </div>
-        <FillPreviewBox preview={preview} loading={previewing} names={names} />
+        <FillPreviewBox preview={preview} loading={previewing} names={names} shiftNames={shiftNames} />
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common:actions.cancel")}</Button>
           <Button disabled={busy || !ready} onClick={submit}>{t("common:actions.confirm")}</Button>
