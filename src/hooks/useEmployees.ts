@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Employee, EmployeeFormData, employeeToFormData } from "@/types/employee";
 import { employeeApi, ImportEmployeesResult } from "@/services/employeeApi";
+import { ApiError } from "@/lib/apiClient";
 
 export const useEmployees = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -86,7 +87,8 @@ export const useEmployees = () => {
     } catch (error) {
       console.error('Failed to delete employee:', error);
       toast.error("員工刪除失敗", {
-        description: "請檢查網路連線或聯繫系統管理員",
+        description: error instanceof ApiError ? error.message : "請檢查網路連線或聯繫系統管理員",
+        duration: 12000,
       });
     }
   };

@@ -1156,14 +1156,50 @@ api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   }
 });
 
+// 刪除員工：只允許「沒有實際作業紀錄」的員工（例如誤建、試用的帳號）。
+// 已有請假、加班、考勤、薪資等紀錄的員工不能刪（刪了會讓歷史資料失去對象），請改用「離職」。
+// 建立員工時系統自動產生的資料（假別餘額、特休期間、薪資基本資料、登入帳號、排班、打卡裝置）會一併刪除。
+const EMPLOYEE_ACTIVITY_TABLES = [
+  ['leave_applications', '請假申請'], ['overtime_applications', '加班申請'], ['comp_time_grants', '補休'],
+  ['imported_leave_records', '匯入的請假紀錄'], ['attendance_records', '考勤紀錄'], ['punch_events', '打卡紀錄'],
+  ['punch_correction_requests', '補卡申請'], ['outing_applications', '公出申請'], ['punch_exceptions', '出勤異常'],
+  ['punch_rejections', '打卡拒絕紀錄'], ['payroll_snapshot_items', '薪資結算'], ['seniority_benefit_records', '年資福利紀錄'],
+  ['leave_adjustment_logs', '假別調整紀錄'], ['leave_grants', '假別發放'],
+];
+const EMPLOYEE_OWNED_TABLES = ['work_schedules', 'punch_devices', 'employee_compensation', 'leave_balances', 'leave_periods'];
+
 api.delete('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
+  let conn;
   try {
-    const { id } = req.params;
-    await pool.execute('DELETE FROM employees WHERE id = ?', [id]);
+    const [[employee]] = await pool.execute('SELECT id, employeeId, name FROM employees WHERE id = ?', [req.params.id]);
+    if (!employee) return res.status(404).json({ error: '找不到這位員工' });
+    if (employee.employeeId === req.user.employeeId) return res.status(400).json({ error: '不能刪除自己的員工資料' });
+
+    const used = [];
+    for (const [table, label] of EMPLOYEE_ACTIVITY_TABLES) {
+      const [[{ count }]] = await pool.query('SELECT COUNT(*) AS count FROM ?? WHERE employeeId = ?', [table, employee.employeeId]);
+      if (count > 0) used.push(`${label} ${count} 筆`);
+    }
+    if (used.length > 0) {
+      return res.status(409).json({
+        error: `${employee.name}（${employee.employeeId}）已有${used.join('、')}，無法刪除，以免歷史資料失去對象。請改用「離職」處理。`,
+        code: 'EMPLOYEE_HAS_RECORDS',
+      });
+    }
+
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+    for (const table of EMPLOYEE_OWNED_TABLES) await conn.query('DELETE FROM ?? WHERE employeeId = ?', [table, employee.employeeId]);
+    await conn.query('DELETE FROM users WHERE employee_id = ?', [employee.employeeId]);
+    await conn.query('DELETE FROM employees WHERE id = ?', [employee.id]);
+    await conn.commit();
     res.json({ message: '員工刪除成功' });
   } catch (error) {
+    if (conn) await conn.rollback().catch(() => {});
     console.error('Error deleting employee:', error);
     res.status(500).json({ error: '刪除員工失敗', detail: error.message });
+  } finally {
+    conn?.release();
   }
 });
 
