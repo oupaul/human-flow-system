@@ -336,6 +336,15 @@ async function createEmployeeRecord(data, { canSetSalary = false, changedBy = nu
 }
 
 // 解析批次匯入員工的 CSV：欄位以標題關鍵字辨識，允許欄位順序調整、只填必要欄位
+function parseCsvWorkTime(modeText, cycleStart) {
+  const mode = modeText.trim();
+  if (!mode) return {};
+  const lower = mode.toLowerCase();
+  const workTimeMode = ['二週變形', '二週變形工時', '二週', '2週變形', 'flex2w'].includes(lower) ? 'flex2w'
+    : ['一般', '一般工時', 'standard'].includes(lower) ? 'standard' : mode;
+  return { workTimeMode, workTimeCycleStart: cycleStart || undefined };
+}
+
 function parseEmployeeCsv(csvText) {
   const lines = csvText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   if (lines.length === 0) return [];
@@ -360,6 +369,8 @@ function parseEmployeeCsv(csvText) {
     initialAnnualLeaveUsed: findColumn(['已用特休', '特休已用']),
     initialCarriedInDays: findColumn(['上期遞延', '遞延特休', '遞延']),
     scheduleMode: findColumn(['出勤制度', '排班制']),
+    workTimeMode: findColumn(['工時制度', '變形工時']),
+    workTimeCycleStart: findColumn(['週期起算', '週期起始', '周期起算']),
   };
 
   if (columns.name === -1 || columns.employeeId === -1 || columns.department === -1 ||
@@ -395,6 +406,8 @@ function parseEmployeeCsv(csvText) {
       initialCarriedInDays: pick(cells, 'initialCarriedInDays') || 0,
       scheduleMode: ['排班制', '排班', 'rotating'].includes(pick(cells, 'scheduleMode').trim()) ? 'rotating'
         : ['固定制', '固定', 'fixed'].includes(pick(cells, 'scheduleMode').trim()) ? 'fixed' : null,
+      // 工時制度：空白＝不設定（一般工時）；認不得的值原樣帶入，由 parseWorkTime 回報錯誤
+      ...parseCsvWorkTime(pick(cells, 'workTimeMode'), normalizeDate(pick(cells, 'workTimeCycleStart'))),
     };
   });
 }
