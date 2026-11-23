@@ -1,5 +1,5 @@
-import { apiFetch } from "@/lib/apiClient";
-import { CellInput, MonthSchedule, OffType, PreviewResult, PreviewScenario, ScheduleCell, ShiftType } from "@/types/schedule";
+import { apiFetch, apiFetchBlob } from "@/lib/apiClient";
+import { CellInput, ExcelPreview, MonthSchedule, OffType, PatternParams, PreviewResult, PreviewScenario, ScheduleCell, ShiftType } from "@/types/schedule";
 
 type ShiftTypeBody = Pick<ShiftType, "name" | "shortName" | "startTime" | "endTime" | "breakMinutes" | "active">;
 
@@ -17,6 +17,20 @@ export const scheduleApi = {
   },
   fill(data: { employeeIds: string[]; from: string; to: string; weekdays: number[]; kind?: "shift" | "off"; shiftTypeId?: number; offType?: OffType; clear?: boolean }): Promise<{ message: string; changed: number }> {
     return apiFetch("/schedule/fill", { method: "POST", body: JSON.stringify(data) });
+  },
+  applyPattern(params: PatternParams): Promise<{ message: string; changed: number }> {
+    return apiFetch("/schedule/pattern", { method: "POST", body: JSON.stringify(params) });
+  },
+  downloadExcel(month: string, department?: string): Promise<Blob> {
+    const q = new URLSearchParams({ month });
+    if (department) q.set("department", department);
+    return apiFetchBlob(`/schedule/excel-template?${q.toString()}`);
+  },
+  previewExcel(file: File, month: string): Promise<ExcelPreview> {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("month", month);
+    return apiFetch("/schedule/excel-preview", { method: "POST", body: form });
   },
   publish(month: string, department?: string): Promise<{ message: string; published: number }> {
     return apiFetch("/schedule/publish", { method: "POST", body: JSON.stringify({ month, department }) });

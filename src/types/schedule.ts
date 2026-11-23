@@ -56,13 +56,44 @@ export interface MonthSchedule {
 }
 
 export interface PreviewResult {
+  stats: { added: number; changed: number; unchanged: number };
+  newCount: number;
+  resolvedCount: number;
   newIssues: ScheduleIssue[];
   resolvedIssues: ScheduleIssue[];
   remainingIssues: ScheduleIssue[];
 }
 
+// 輪替樣式的一格：班別、排休，或「不動」（保留原本的班表）
+export type PatternStep =
+  | { kind: "shift"; shiftTypeId: number }
+  | { kind: "off"; offType: OffType }
+  | { kind: "skip" };
+
+export interface PatternParams {
+  employeeIds: string[];
+  from: string;
+  to: string;
+  anchor: string;
+  pattern: PatternStep[];
+  groupSize: number;
+  offsetStep: number;
+  skipExisting: boolean;
+}
+
+export interface ExcelPreview {
+  cells: CellInput[];
+  errors: { row: number; message: string }[];
+  errorTotal: number;
+  employees: number;
+  from: string;
+  to: string;
+  preview: PreviewResult | null;
+}
+
 export type PreviewScenario =
   | { key: string; cells: CellInput[] }
+  | { key: string; pattern: PatternParams }
   | { key: string; fill: { employeeIds: string[]; from: string; to: string; weekdays: number[]; kind?: "shift" | "off"; shiftTypeId?: number; offType?: OffType; clear?: boolean } };
 
 export type CellInput =

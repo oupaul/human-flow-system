@@ -194,6 +194,57 @@ export async function fillSchedule(pool, actor, params) {
   return setCells(pool, actor, expandFillCells(params));
 }
 
+// ---- 輪替樣式預排 ----------------------------------------------------------------------
+
+export const MAX_PATTERN_LENGTH = 56;
+const dayDiff = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
+
+// 輪替樣式：樣式是一個 N 天的循環（每格是班別、排休或「不動」），從 anchor 當天起算第 1 天。
+// 多位員工可分組錯開：每 groupSize 人一組，每一組往後錯開 offsetStep 天（0＝全員同步）。
+// pattern 的每一格：{ kind:'shift', shiftTypeId } | { kind:'off', offType } | { kind:'skip' }
+export async function expandPatternCells(pool, p) {
+  const { employeeIds, from, to, pattern } = p || {};
+  if (!Array.isArray(employeeIds) || employeeIds.length === 0) throw new ScheduleError(400, '請選擇員工');
+  if (employeeIds.length > 500) throw new ScheduleError(400, '一次最多預排 500 位員工');
+  if (!DATE_RE.test(String(from)) || !DATE_RE.test(String(to)) || from > to) throw new ScheduleError(400, '日期區間不正確');
+  if (dayDiff(from, to) > 92) throw new ScheduleError(400, '一次最多預排 93 天');
+  if (!Array.isArray(pattern) || pattern.length < 1 || pattern.length > MAX_PATTERN_LENGTH) throw new ScheduleError(400, `輪替樣式需為 1 到 ${MAX_PATTERN_LENGTH} 天`);
+  const anchor = p.anchor ? String(p.anchor) : from;
+  if (!DATE_RE.test(anchor)) throw new ScheduleError(400, '週期起點日格式不正確');
+  const groupSize = Number(p.groupSize) > 0 ? Math.floor(Number(p.groupSize)) : employeeIds.length;
+  const offsetStep = Number.isFinite(Number(p.offsetStep)) ? Math.floor(Number(p.offsetStep)) : 0;
+  if (offsetStep < 0 || offsetStep >= MAX_PATTERN_LENGTH) throw new ScheduleError(400, '錯開天數不正確');
+
+  const steps = pattern.map((st) => {
+    if (st?.kind === 'skip') return null;
+    if (st?.kind === 'shift') {
+      if (!Number.isInteger(Number(st.shiftTypeId))) throw new ScheduleError(400, '輪替樣式有未選班別的格子');
+      return { kind: 'shift', shiftTypeId: Number(st.shiftTypeId), offType: null };
+    }
+    if (st?.kind === 'off' && OFF_TYPES.includes(st.offType)) return { kind: 'off', shiftTypeId: null, offType: st.offType };
+    throw new ScheduleError(400, '輪替樣式內容不正確');
+  });
+
+  let existing = new Set();
+  if (p.skipExisting) {
+    const [rows] = await pool.query('SELECT employeeId, date FROM work_schedules WHERE employeeId IN (?) AND date BETWEEN ? AND ?', [employeeIds, from, to]);
+    existing = new Set(rows.map((r) => `${r.employeeId}|${r.date}`));
+  }
+
+  const n = steps.length;
+  const cells = [];
+  employeeIds.forEach((employeeId, index) => {
+    const offset = (Math.floor(index / groupSize) * offsetStep) % n;
+    for (let d = from, guard = 0; d <= to && guard < 100; d = new Date(Date.parse(`${d}T00:00:00Z`) + 86400000).toISOString().slice(0, 10), guard += 1) {
+      const step = steps[((dayDiff(anchor, d) + offset) % n + n) % n];
+      if (!step || existing.has(`${employeeId}|${d}`)) continue;
+      cells.push({ employeeId, date: d, ...step });
+    }
+  });
+  if (cells.length === 0) throw new ScheduleError(400, '這個輪替樣式沒有任何要填入的格子');
+  return cells;
+}
+
 // 發布：把整個月（可限定部門）的草稿班表變成員工看得到的
 export async function publishSchedule(pool, month, department) {
   const { from, to } = monthRange(month);

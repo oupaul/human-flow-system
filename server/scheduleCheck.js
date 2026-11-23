@@ -17,7 +17,7 @@
 //
 // 七天視窗檢查只看「整段七天都已排班」的區間，避免尚未排完時誤報。
 
-import { getScheduleMap, listShiftTypes, normalizeCell, expandFillCells, ScheduleError } from './schedule.js';
+import { getScheduleMap, listShiftTypes, normalizeCell, expandFillCells, expandPatternCells, ScheduleError } from './schedule.js';
 
 export const LIMITS = {
   dailyHours: 12, minRestHours: 11, weeklyHours: 40,
@@ -149,11 +149,12 @@ const MAX_LISTED = 50;
 // scenarios：[{ key, cells } 或 { key, fill }]
 export async function previewScenarios(pool, scenarios) {
   if (!Array.isArray(scenarios) || scenarios.length === 0 || scenarios.length > 30) throw new ScheduleError(400, '預覽的情境數量不正確');
-  const prepared = scenarios.map((sc) => {
-    const raw = sc.cells ?? expandFillCells(sc.fill || {});
-    if (!Array.isArray(raw) || raw.length === 0 || raw.length > 5000) throw new ScheduleError(400, '預覽的儲存格數量不正確');
-    return { key: String(sc.key), cells: raw.map(normalizeCell) };
-  });
+  const prepared = [];
+  for (const sc of scenarios) {
+    const raw = sc.cells ?? (sc.pattern ? await expandPatternCells(pool, sc.pattern) : expandFillCells(sc.fill || {}));
+    if (!Array.isArray(raw) || raw.length === 0 || raw.length > 20000) throw new ScheduleError(400, '預覽的儲存格數量不正確');
+    prepared.push({ key: String(sc.key), cells: raw.map(normalizeCell) });
+  }
   const all = prepared.flatMap((p) => p.cells);
   const employeeIds = [...new Set(all.map((c) => c.employeeId))];
   const dates = all.map((c) => c.date).sort();
@@ -182,9 +183,23 @@ export async function previewScenarios(pool, scenarios) {
 
     const beforeIssues = affected.flatMap((id) => analyzeEmployee(id, base.get(id) ?? new Map(), from, to, profiles.get(id)));
     const afterIssues = affected.flatMap((id) => analyzeEmployee(id, after.get(id), from, to, profiles.get(id)));
+    const newIssues = afterIssues.filter((a) => !beforeIssues.some((b) => overlaps(a, b)));
+    const resolvedIssues = beforeIssues.filter((b) => !afterIssues.some((a) => overlaps(a, b)));
+    // 格子層級的統計：新增（原本沒排）、修改（內容不同）、不變
+    const stats = { added: 0, changed: 0, unchanged: 0 };
+    for (const c of cells) {
+      const cur = base.get(c.employeeId)?.get(c.date);
+      if (c.clear) { if (cur) stats.changed += 1; else stats.unchanged += 1; }
+      else if (!cur) stats.added += 1;
+      else if (c.kind === 'shift' ? cur.kind === 'shift' && cur.shiftTypeId === c.shiftTypeId : cur.kind === 'off' && cur.offType === c.offType) stats.unchanged += 1;
+      else stats.changed += 1;
+    }
     results[key] = {
-      newIssues: afterIssues.filter((a) => !beforeIssues.some((b) => overlaps(a, b))).slice(0, MAX_LISTED),
-      resolvedIssues: beforeIssues.filter((b) => !afterIssues.some((a) => overlaps(a, b))).slice(0, MAX_LISTED),
+      stats,
+      newCount: newIssues.length,
+      resolvedCount: resolvedIssues.length,
+      newIssues: newIssues.slice(0, MAX_LISTED),
+      resolvedIssues: resolvedIssues.slice(0, MAX_LISTED),
       // 原本就有、套用後仍然存在的警示（單格預覽用：選了這個選項，那一天還是有問題）
       remainingIssues: afterIssues.filter((a) => beforeIssues.some((b) => overlaps(a, b))).slice(0, MAX_LISTED),
     };

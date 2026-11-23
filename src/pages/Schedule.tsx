@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Clock, Send, Wand2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, FileSpreadsheet, Send, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,6 +15,7 @@ import QuickFillDialog from "@/components/schedule/QuickFillDialog";
 import CellDialog from "@/components/schedule/CellDialog";
 import { OFF_CLASS, OFF_SHORT, SHIFT_CLASSES } from "@/components/schedule/scheduleStyles";
 import SchedulePanel from "@/components/schedule/SchedulePanel";
+import ScheduleExcelDialog from "@/components/schedule/ScheduleExcelDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { scheduleApi } from "@/services/scheduleApi";
 import { holidayApi } from "@/services/holidayApi";
@@ -51,6 +52,7 @@ const Schedule = () => {
 
   const [shiftOpen, setShiftOpen] = useState(false);
   const [fillOpen, setFillOpen] = useState(false);
+  const [excelOpen, setExcelOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
   const [active, setActive] = useState<{ employeeId: string; name: string; date: string } | null>(null);
   const [publishAck, setPublishAck] = useState(false);
@@ -180,8 +182,9 @@ const Schedule = () => {
             <SelectItem value="system">{t("schedule:page.modeSystem")}</SelectItem>
           </SelectContent>
         </Select>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setShiftOpen(true)}><Clock className="mr-2 h-4 w-4" />{t("schedule:page.shiftTypes")}</Button>
+          {canEdit && <Button variant="outline" onClick={() => setExcelOpen(true)}><FileSpreadsheet className="mr-2 h-4 w-4" />{t("schedule:page.excel")}</Button>}
           {canEdit && <Button variant="outline" onClick={() => setFillOpen(true)}><Wand2 className="mr-2 h-4 w-4" />{t("schedule:page.quickFill")}</Button>}
           {canEdit && <Button className="bg-hrms-accent" onClick={() => setPublishOpen(true)} disabled={unpublished === 0}><Send className="mr-2 h-4 w-4" />{t("schedule:page.publish")}{unpublished > 0 && `（${unpublished}）`}</Button>}
         </div>
@@ -265,6 +268,7 @@ const Schedule = () => {
       />
 
       <ShiftTypesDialog open={shiftOpen} onOpenChange={setShiftOpen} canEdit={canEdit} onChanged={load} />
+      <ScheduleExcelDialog open={excelOpen} onOpenChange={setExcelOpen} month={month} department={department} employees={employees} onDone={load} />
       <QuickFillDialog open={fillOpen} onOpenChange={setFillOpen} month={month} employees={employees} shiftTypes={data?.shiftTypes ?? []} onDone={load} />
 
       <AlertDialog open={publishOpen} onOpenChange={(o) => { setPublishOpen(o); if (!o) setPublishAck(false); }}>

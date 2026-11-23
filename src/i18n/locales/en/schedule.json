@@ -11,7 +11,8 @@
     "legendHint": "Amber outline = unpublished draft; hover a cell for details",
     "empty": "No matching employees",
     "rotatingTag": "Shift",
-    "draftHint": "Click a cell to set that day's shift or day off. Weekends and calendar holidays are shaded. For shift schedules, rest days, mandatory days off and national holidays are all shifted — put them on the actual day off."
+    "draftHint": "Click a cell to set that day's shift or day off. Weekends and calendar holidays are shaded. For shift schedules, rest days, mandatory days off and national holidays are all shifted — put them on the actual day off.",
+    "excel": "Excel import/export"
   },
   "weekdays": {
     "1": "Mon",
@@ -64,7 +65,9 @@
     "fillWith": "Fill with",
     "choose": "Choose a shift or day-off type",
     "clear": "Clear schedule",
-    "done": "{{count}} cell(s) updated"
+    "done": "{{count}} cell(s) updated",
+    "modeSingle": "Single fill",
+    "modePattern": "Rotation pattern"
   },
   "publish": {
     "title": "Publish the {{month}} schedule?",
@@ -107,7 +110,8 @@
       "loading": "Checking…",
       "adds": "Would cause: ",
       "resolves": "Resolves {{count}} warnings",
-      "clean": "No new warnings"
+      "clean": "No new warnings",
+      "stats": "After applying: {{added}} new, {{changed}} changed, {{unchanged}} unchanged cells"
     },
     "quickFill": {
       "adds": "Applying will add {{count}} warnings",
@@ -122,5 +126,36 @@
     },
     "flexTag": "2-week flex",
     "cycleHint": "Two-week flexible employees: at least one regular day off every seven days, and at least 4 regular/rest days off in each two-week cycle. Cycles repeat every 14 days from the start date set on the employee (the thick line on the left of a cell marks a cycle start)."
+  },
+  "pattern": {
+    "description": "Pre-schedule everyone selected from a rotation pattern: define a cycle (e.g. 5 work days, a rest day, a regular day off) and it repeats across the range from the start date; with many people you can stagger them in groups. Results are drafts you can adjust cell by cell afterwards.",
+    "anchor": "Cycle start date",
+    "anchorHint": "Day 1 of the pattern falls on this date. For a 7-day pattern \"Mon–Fri work, Sat rest day, Sun regular day off\", choose a Monday.",
+    "length": "Cycle length (days)",
+    "weekPreset": "Use weekly pattern (5 work days + rest day + regular day off)",
+    "brush": "Brush (pick one, then click the cells below)",
+    "skip": "Leave as is",
+    "hint": "Cells marked \"Leave as is\" keep the existing schedule. Weekdays below the cells follow the start date.",
+    "groupSize": "People per group",
+    "groupSizeAll": "Blank = one group",
+    "offsetStep": "Days to shift each group",
+    "groupHint": "E.g. groups of 2, shifted 1 day each: people 1–2 start at pattern day 1, people 3–4 at day 2, and so on; 0 = everyone in sync. People are grouped in the order of the list above.",
+    "skipExisting": "Do not overwrite cells already scheduled (fill empty cells only)"
+  },
+  "excel": {
+    "title": "Import/export schedule with Excel",
+    "description": "One row per employee, one column per day; cells hold a shift code or rest/regular/national day-off codes. The downloaded file includes the current schedule, so you can edit and re-import it.",
+    "step1": "1. Download (with current schedule)",
+    "download": "Download {{month}} schedule",
+    "downloadHint": "Downloads the department currently selected. The \"說明\" sheet lists valid codes; blank = no change, \"清除\" = delete that cell.",
+    "step2": "2. Upload the completed file",
+    "choose": "Choose Excel file",
+    "parseFailed": "Could not read the file",
+    "summary": "Read {{employees}} employees and {{cells}} cells ({{from}} ~ {{to}})",
+    "noCells": "Nothing to apply (blank cells leave the schedule unchanged).",
+    "errors": "{{count}} problems; those cells or rows will be skipped",
+    "rowPrefix": "Row {{row}}: ",
+    "apply": "Apply (save as draft)",
+    "done": "Imported {{count}} cells as drafts; publish after reviewing"
   }
 }

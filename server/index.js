@@ -23,9 +23,10 @@ import {
 } from './punch.js';
 import {
   ScheduleError, listShiftTypes, createShiftType, updateShiftType, deleteShiftType, getMonthSchedule, getMyPublishedSchedule,
-  setCells, fillSchedule, publishSchedule, ensureScheduleSchema, parseWorkTime,
+  setCells, fillSchedule, expandPatternCells, publishSchedule, ensureScheduleSchema, parseWorkTime,
 } from './schedule.js';
 import { checkMonth, previewScenarios } from './scheduleCheck.js';
+import { buildScheduleWorkbook, parseScheduleWorkbook } from './scheduleExcel.js';
 import {
   createCorrectionRequest, listCorrectionRequests, reviewCorrectionRequest,
   createOutingRequest, listOutingRequests, reviewOutingRequest,
@@ -2202,6 +2203,33 @@ api.put('/schedule/cells', requireRole('admin', 'hr'), async (req, res) => {
 });
 api.post('/schedule/fill', requireRole('admin', 'hr'), async (req, res) => {
   try { res.json({ message: '已填入班表', changed: await fillSchedule(pool, req.user.username, req.body) }); } catch (error) { handleScheduleError(res, error, '填入班表失敗'); }
+});
+api.post('/schedule/pattern', requireRole('admin', 'hr'), async (req, res) => {
+  try {
+    const cells = await expandPatternCells(pool, req.body);
+    res.json({ message: '已依輪替樣式預排', changed: await setCells(pool, req.user.username, cells) });
+  } catch (error) { handleScheduleError(res, error, '預排班表失敗'); }
+});
+api.get('/schedule/excel-template', requireRole('admin', 'hr'), async (req, res) => {
+  try {
+    const month = String(req.query.month || '');
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) throw new ScheduleError(400, '月份格式不正確（需 YYYY-MM）');
+    const buffer = await buildScheduleWorkbook(pool, month, req.query.department);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="schedule-${month}.xlsx"`);
+    res.send(buffer);
+  } catch (error) { handleScheduleError(res, error, '下載班表範本失敗'); }
+});
+// 匯入只做解析、檢查與預覽，不寫入；前端確認後再呼叫 PUT /schedule/cells
+api.post('/schedule/excel-preview', requireRole('admin', 'hr'), (req, res, next) => {
+  uploadImportFile.single('file')(req, res, (err) => (err ? res.status(400).json({ error: err.message }) : next()));
+}, async (req, res) => {
+  try {
+    if (!req.file) throw new ScheduleError(400, '請選擇要匯入的 Excel 檔案');
+    const parsed = await parseScheduleWorkbook(pool, req.file.buffer, String(req.body.month || ''));
+    const preview = parsed.cells.length > 0 ? (await previewScenarios(pool, [{ key: 'import', cells: parsed.cells }])).import : null;
+    res.json({ ...parsed, preview });
+  } catch (error) { handleScheduleError(res, error, '解析班表檔案失敗'); }
 });
 api.post('/schedule/publish', requireRole('admin', 'hr'), async (req, res) => {
   try { res.json({ message: '班表已發布，員工現在看得到了', published: await publishSchedule(pool, req.body.month, req.body.department) }); } catch (error) { handleScheduleError(res, error, '發布班表失敗'); }
