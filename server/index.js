@@ -25,6 +25,7 @@ import {
   ScheduleError, listShiftTypes, createShiftType, updateShiftType, deleteShiftType, getMonthSchedule, getMyPublishedSchedule,
   setCells, fillSchedule, expandPatternCells, publishSchedule, ensureScheduleSchema, parseWorkTime,
 } from './schedule.js';
+import { runMigrations } from './migrate.js';
 import { ensureBrandingSchema, getBranding, getFavicon, setFavicon, clearFavicon, setSiteTitle, BrandingError } from './branding.js';
 import { checkMonth, previewScenarios } from './scheduleCheck.js';
 import { buildScheduleWorkbook, parseScheduleWorkbook } from './scheduleExcel.js';
@@ -3595,6 +3596,7 @@ async function checkCompTimeExpiryReminders() {
   }
 }
 
+await runMigrations(pool, path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations')).catch((error) => console.error('資料庫遷移失敗：', error.message));
 await ensureBrandingSchema(pool).catch((error) => console.error('建立外觀設定資料表失敗：', error.message));
 await ensureScheduleSchema(pool).catch((error) => console.error('補上班別簡稱欄位失敗：', error.message));
 
