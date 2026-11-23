@@ -44,8 +44,8 @@
     "saving": "儲存中..."
   },
   "branding": {
-    "title": "瀏覽器分頁圖示",
-    "description": "自訂瀏覽器分頁上顯示的小圖示（favicon），所有使用者包含登入頁都會看到。",
+    "title": "瀏覽器分頁圖示與標題",
+    "description": "自訂瀏覽器分頁上顯示的小圖示（favicon）與標題，所有使用者包含登入頁都會看到。",
     "default": "目前使用預設圖示",
     "custom": "目前使用自訂圖示",
     "upload": "上傳圖示",
@@ -53,6 +53,10 @@
     "uploaded": "分頁圖示已更新",
     "resetDone": "已還原預設圖示",
     "tooLarge": "圖片太大（上限 {{kb}} KB）",
-    "hint": "支援 PNG、ICO、SVG、JPG、WEBP，上限 {{kb}} KB。建議使用正方形圖片（如 64×64 以上的 PNG 或 SVG）。更新後其他人重新整理頁面即可看到；瀏覽器偶爾會暫存舊圖示，必要時請強制重新整理。"
+    "hint": "支援 PNG、ICO、SVG、JPG、WEBP，上限 {{kb}} KB。建議使用正方形圖片（如 64×64 以上的 PNG 或 SVG）。更新後其他人重新整理頁面即可看到；瀏覽器偶爾會暫存舊圖示，必要時請強制重新整理。",
+    "titleLabel": "分頁標題",
+    "titlePlaceholder": "留空使用預設標題",
+    "titleHint": "最多 50 個字，留空並儲存即還原預設標題。",
+    "titleSaved": "分頁標題已更新"
   }
 }

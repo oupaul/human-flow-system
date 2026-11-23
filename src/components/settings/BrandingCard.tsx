@@ -5,11 +5,14 @@ import { ImageIcon, RotateCcw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/apiClient";
-import { setFaviconHref } from "@/lib/branding";
+import { setFaviconHref, setSiteTitle } from "@/lib/branding";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-interface Branding { hasFavicon: boolean; version: number }
+interface Branding { hasFavicon: boolean; siteTitle: string; version: number }
 
 const MAX_BYTES = 256 * 1024;
+const MAX_TITLE = 50;
 
 // 外觀設定：自訂瀏覽器分頁圖示。存在資料庫，所有使用者（含登入頁）都會看到
 const BrandingCard = () => {
@@ -17,14 +20,30 @@ const BrandingCard = () => {
   const [branding, setBranding] = useState<Branding | null>(null);
   const [busy, setBusy] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const [title, setTitle] = useState("");
 
   useEffect(() => {
-    apiFetch<Branding>("/branding").then(setBranding).catch(() => setBranding({ hasFavicon: false, version: 0 }));
+    apiFetch<Branding>("/branding").then((b) => { setBranding(b); setTitle(b.siteTitle ?? ""); }).catch(() => setBranding({ hasFavicon: false, siteTitle: "", version: 0 }));
   }, []);
 
   const apply = (next: Branding) => {
     setBranding(next);
     setFaviconHref(next.hasFavicon, next.version);
+  };
+
+  const saveTitle = async () => {
+    try {
+      setBusy(true);
+      const next = await apiFetch<Branding>("/branding/title", { method: "PUT", body: JSON.stringify({ title }) });
+      setBranding(next);
+      setTitle(next.siteTitle ?? "");
+      setSiteTitle(next.siteTitle ?? "");
+      toast.success(t("settings:branding.titleSaved"));
+    } catch (error) {
+      toast.error(t("common:common.saveFailed"), { description: error instanceof Error ? error.message : undefined });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,6 +102,15 @@ const BrandingCard = () => {
           {branding?.hasFavicon && <Button variant="ghost" disabled={busy} onClick={reset}><RotateCcw className="mr-2 h-4 w-4" />{t("settings:branding.reset")}</Button>}
         </div>
         <p className="text-xs text-muted-foreground">{t("settings:branding.hint", { kb: MAX_BYTES / 1024 })}</p>
+
+        <div className="space-y-2 border-t pt-4">
+          <Label htmlFor="siteTitle">{t("settings:branding.titleLabel")}</Label>
+          <div className="flex flex-wrap gap-2">
+            <Input id="siteTitle" className="max-w-sm" maxLength={MAX_TITLE} value={title} placeholder={t("settings:branding.titlePlaceholder")} onChange={(e) => setTitle(e.target.value)} />
+            <Button disabled={busy || title.trim() === (branding?.siteTitle ?? "")} onClick={saveTitle}>{t("common:actions.save")}</Button>
+          </div>
+          <p className="text-xs text-muted-foreground">{t("settings:branding.titleHint")}</p>
+        </div>
       </CardContent>
     </Card>
   );

@@ -25,7 +25,7 @@ import {
   ScheduleError, listShiftTypes, createShiftType, updateShiftType, deleteShiftType, getMonthSchedule, getMyPublishedSchedule,
   setCells, fillSchedule, expandPatternCells, publishSchedule, ensureScheduleSchema, parseWorkTime,
 } from './schedule.js';
-import { ensureBrandingSchema, getBranding, getFavicon, setFavicon, clearFavicon, BrandingError } from './branding.js';
+import { ensureBrandingSchema, getBranding, getFavicon, setFavicon, clearFavicon, setSiteTitle, BrandingError } from './branding.js';
 import { checkMonth, previewScenarios } from './scheduleCheck.js';
 import { buildScheduleWorkbook, parseScheduleWorkbook } from './scheduleExcel.js';
 import {
@@ -683,7 +683,7 @@ app.post('/api/auth/login', async (req, res) => {
 
 // 瀏覽器分頁圖示：讀取是公開的（登入頁也要顯示），上傳／還原見 api 區段（admin）
 app.get('/api/branding', async (req, res) => {
-  try { res.json(await getBranding(pool)); } catch (error) { res.json({ hasFavicon: false, version: 0 }); }
+  try { res.json(await getBranding(pool)); } catch (error) { res.json({ hasFavicon: false, siteTitle: '', version: 0 }); }
 });
 app.get('/api/branding/favicon', async (req, res) => {
   try {
@@ -2272,6 +2272,16 @@ api.put('/branding/favicon', requireRole('admin'), (req, res, next) => {
     if (error instanceof BrandingError) return res.status(error.status).json({ error: error.message });
     console.error('Error setting favicon:', error);
     res.status(500).json({ error: '更新分頁圖示失敗' });
+  }
+});
+api.put('/branding/title', requireRole('admin'), async (req, res) => {
+  try {
+    await setSiteTitle(pool, req.body?.title);
+    res.json({ message: '分頁標題已更新', ...(await getBranding(pool)) });
+  } catch (error) {
+    if (error instanceof BrandingError) return res.status(error.status).json({ error: error.message });
+    console.error('Error setting site title:', error);
+    res.status(500).json({ error: '更新分頁標題失敗' });
   }
 });
 api.delete('/branding/favicon', requireRole('admin'), async (req, res) => {

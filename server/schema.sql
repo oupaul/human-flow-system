@@ -675,11 +675,12 @@ INSERT INTO leave_types (name, code, unit, needProof, affectAttendance, isPaid, 
 ('喪假', 'BL', '天', TRUE, FALSE, TRUE, '依親屬關係', '當天', TRUE),
 ('補休', 'COMP', '小時', FALSE, FALSE, TRUE, '依補休餘額', '當天', TRUE);
 
--- 外觀設定：自訂瀏覽器分頁圖示（未上傳時沿用預設 favicon.ico）
+-- 外觀設定：自訂瀏覽器分頁圖示與標題（未設定時沿用預設）
 CREATE TABLE IF NOT EXISTS branding_settings (
   id INT PRIMARY KEY DEFAULT 1,
   faviconData MEDIUMBLOB NULL,
   faviconType VARCHAR(50) NULL,
+  siteTitle VARCHAR(100) NULL, -- 自訂分頁標題；NULL＝沿用預設
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 INSERT IGNORE INTO branding_settings (id) VALUES (1);

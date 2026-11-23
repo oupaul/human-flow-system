@@ -44,8 +44,8 @@
     "saving": "Saving..."
   },
   "branding": {
-    "title": "Browser tab icon",
-    "description": "Customize the small icon (favicon) shown on the browser tab. Everyone, including the login page, will see it.",
+    "title": "Browser tab icon and title",
+    "description": "Customize the small icon (favicon) and title shown on the browser tab. Everyone, including the login page, will see them.",
     "default": "Using the default icon",
     "custom": "Using a custom icon",
     "upload": "Upload icon",
@@ -53,6 +53,10 @@
     "uploaded": "Tab icon updated",
     "resetDone": "Default icon restored",
     "tooLarge": "Image is too large (max {{kb}} KB)",
-    "hint": "PNG, ICO, SVG, JPG and WEBP are supported, up to {{kb}} KB. A square image (PNG at 64×64 or larger, or SVG) works best. Others see the change after refreshing; browsers sometimes cache the old icon, so try a hard refresh if needed."
+    "hint": "PNG, ICO, SVG, JPG and WEBP are supported, up to {{kb}} KB. A square image (PNG at 64×64 or larger, or SVG) works best. Others see the change after refreshing; browsers sometimes cache the old icon, so try a hard refresh if needed.",
+    "titleLabel": "Tab title",
+    "titlePlaceholder": "Leave blank for the default title",
+    "titleHint": "Up to 50 characters. Save with the field empty to restore the default title.",
+    "titleSaved": "Tab title updated"
   }
 }

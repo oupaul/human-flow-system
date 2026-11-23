@@ -13,8 +13,10 @@ export async function ensureBrandingSchema(pool) {
     id INT PRIMARY KEY DEFAULT 1,
     faviconData MEDIUMBLOB NULL,
     faviconType VARCHAR(50) NULL,
+    siteTitle VARCHAR(100) NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
   )`);
+  await pool.query('ALTER TABLE branding_settings ADD COLUMN IF NOT EXISTS siteTitle VARCHAR(100) NULL');
   await pool.query('INSERT IGNORE INTO branding_settings (id) VALUES (1)');
 }
 
@@ -30,8 +32,8 @@ export function detectImageType(buffer) {
 }
 
 export async function getBranding(pool) {
-  const [[row]] = await pool.query('SELECT faviconType IS NOT NULL AS has, UNIX_TIMESTAMP(updated_at) AS version FROM branding_settings WHERE id = 1');
-  return { hasFavicon: !!row?.has, version: Number(row?.version) || 0 };
+  const [[row]] = await pool.query('SELECT faviconType IS NOT NULL AS has, siteTitle, UNIX_TIMESTAMP(updated_at) AS version FROM branding_settings WHERE id = 1');
+  return { hasFavicon: !!row?.has, siteTitle: row?.siteTitle ?? '', version: Number(row?.version) || 0 };
 }
 
 export async function getFavicon(pool) {
@@ -50,4 +52,13 @@ export async function setFavicon(pool, buffer) {
 
 export async function clearFavicon(pool) {
   await pool.execute('UPDATE branding_settings SET faviconData = NULL, faviconType = NULL WHERE id = 1');
+}
+
+export const MAX_TITLE_LENGTH = 50;
+
+// 空白＝還原預設標題
+export async function setSiteTitle(pool, title) {
+  const text = String(title ?? '').replace(/\s+/g, ' ').trim();
+  if ([...text].length > MAX_TITLE_LENGTH) throw new BrandingError(400, `標題最多 ${MAX_TITLE_LENGTH} 個字`);
+  await pool.execute('UPDATE branding_settings SET siteTitle = ? WHERE id = 1', [text || null]);
 }
