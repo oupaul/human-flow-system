@@ -23,6 +23,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { canViewSalary } from "@/services/authApi";
 import { Switch } from "@/components/ui/switch";
+import WorkTimeFields from "@/components/employees/WorkTimeFields";
 import { departmentApi } from "@/services/departmentApi";
 
 interface AddEmployeeDialogProps {
@@ -207,6 +208,7 @@ const AddEmployeeDialog = ({
             </Select>
             <p className="text-xs text-muted-foreground">{t("employees:form.scheduleModeHint")}</p>
           </div>
+          {canSeeSalary && <WorkTimeFields idPrefix="add" formData={formData} onFormChange={onFormChange} onSelectChange={onSelectChange} />}
           <div className="space-y-2">
             <Label htmlFor="attendanceSource">{t("employees:form.attendanceSource")}</Label>
             <Select value={formData.attendanceSource} onValueChange={(value) => onSelectChange("attendanceSource", value)}>

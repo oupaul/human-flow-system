@@ -88,7 +88,13 @@
     "attendanceSourceImport": "外部匯入（原本的方式）",
     "attendanceSourceSystem": "系統打卡",
     "attendanceSourceHint": "選「系統打卡」的員工用員工自助頁打卡，匯入外部考勤時會略過他們，避免蓋掉打卡紀錄。",
-    "punchIpExempt": "不受打卡 IP 限制（外勤）"
+    "punchIpExempt": "不受打卡 IP 限制（外勤）",
+    "workTimeMode": "工時制度",
+    "workTimeStandard": "一般工時",
+    "workTimeFlex2w": "二週變形工時",
+    "workTimeCycleStart": "變形週期起算日",
+    "workTimeHint": "僅限公司已向勞工局核備的員工。二週變形：排班檢查改用變形工時規則（每日 10 小時、二週內例假＋休息日至少 4 天等）；週期從起算日起每 14 天一期，建議填週期的第一天。",
+    "workTimeCycleRequired": "二週變形工時需要填寫週期起算日"
   },
   "addDialog": {
     "title": "新增員工",

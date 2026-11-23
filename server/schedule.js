@@ -38,6 +38,18 @@ export const shiftLabel = (name, shortName) => (shortName || [...String(name || 
 // 既有部署不必手動套用 migration：啟動時補上新欄位（可重複執行）
 export async function ensureScheduleSchema(pool) {
   await pool.execute('ALTER TABLE shift_types ADD COLUMN IF NOT EXISTS shortName VARCHAR(4) NULL AFTER name');
+  await pool.execute("ALTER TABLE employees ADD COLUMN IF NOT EXISTS workTimeMode VARCHAR(10) NOT NULL DEFAULT 'standard'");
+  await pool.execute('ALTER TABLE employees ADD COLUMN IF NOT EXISTS workTimeCycleStart DATE NULL');
+}
+
+// 工時制度：standard＝一般工時；flex2w＝二週變形工時（週期起算日往後每 14 天一個週期）
+export const WORK_TIME_MODES = ['standard', 'flex2w'];
+export function parseWorkTime(body) {
+  if (body.workTimeMode === undefined) return null; // 沒帶＝不變更
+  if (!WORK_TIME_MODES.includes(body.workTimeMode)) throw new ScheduleError(400, '工時制度不正確');
+  if (body.workTimeMode === 'standard') return { mode: 'standard', cycleStart: null };
+  if (!DATE_RE.test(String(body.workTimeCycleStart || ''))) throw new ScheduleError(400, '二週變形工時需要填寫週期起算日');
+  return { mode: 'flex2w', cycleStart: body.workTimeCycleStart };
 }
 
 export async function listShiftTypes(pool) {
@@ -90,7 +102,7 @@ export async function getMonthSchedule(pool, month, department) {
   let empDept = '';
   if (department) { empDept = 'AND department = ?'; empParams.push(department); }
   const [employees] = await pool.execute(
-    `SELECT employeeId, name, department, scheduleMode, attendanceSource FROM employees
+    `SELECT employeeId, name, department, scheduleMode, attendanceSource, workTimeMode, workTimeCycleStart FROM employees
      WHERE joinDate <= ? AND (active = TRUE OR terminationDate >= ?) ${empDept} ORDER BY employeeId`, empParams
   );
   return { employees, rows: rows.map(toRow), shiftTypes: await listShiftTypes(pool) };

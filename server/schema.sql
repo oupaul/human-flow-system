@@ -39,6 +39,9 @@ CREATE TABLE IF NOT EXISTS employees (
   -- 出勤來源：import＝考勤由外部系統匯入；system＝使用系統打卡（匯入時略過）；punchIpExempt＝不受打卡 IP 限制（外勤）
   attendanceSource ENUM('import', 'system') NOT NULL DEFAULT 'import',
   punchIpExempt BOOLEAN NOT NULL DEFAULT FALSE,
+  -- 工時制度：standard＝一般工時；flex2w＝二週變形工時（workTimeCycleStart 起每 14 天一個週期）；排班檢查依此套用不同規則
+  workTimeMode VARCHAR(10) NOT NULL DEFAULT 'standard',
+  workTimeCycleStart DATE NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

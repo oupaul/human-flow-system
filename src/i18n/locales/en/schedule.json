@@ -87,15 +87,21 @@
       "consecutive_days": "Consecutive work days",
       "no_regular_off": "No regular day off",
       "no_rest_day": "No rest day",
-      "weekly_hours": "High weekly hours"
+      "weekly_hours": "High weekly hours",
+      "cycle_days_off": "Too few days off in cycle",
+      "daily_normal_hours": "Over flexible daily normal hours",
+      "cycle_hours": "High cycle total hours"
     },
     "detail": {
-      "daily_hours": "Scheduled {{hours}} hours, over 12 hours",
+      "daily_hours": "Scheduled {{hours}} hours, over {{limit}} hours",
       "rest_interval": "Only {{gapHours}} hours since the previous shift, under 11 hours",
       "consecutive_days": "{{days}} consecutive work days with no day off",
       "no_regular_off": "{{days}} consecutive days without a regular day off",
       "no_rest_day": "{{days}} consecutive days without a rest day",
-      "weekly_hours": "{{hours}} scheduled hours that week, over 40 (will generate overtime)"
+      "weekly_hours": "{{hours}} scheduled hours that week, over {{limit}} (will generate overtime)",
+      "cycle_days_off": "Only {{count}} regular/rest days off in this two-week cycle; at least {{required}} are required",
+      "daily_normal_hours": "Scheduled {{hours}} hours, over the {{limit}}-hour daily normal hours of the two-week flexible schedule (the excess is overtime)",
+      "cycle_hours": "{{hours}} scheduled hours in this two-week cycle, over {{limit}} (will generate overtime)"
     },
     "preview": {
       "loading": "Checking…",
@@ -113,6 +119,8 @@
       "title": "{{count}} schedule warnings remain",
       "body": "Please review or adjust the schedule before publishing.",
       "confirm": "I have reviewed these warnings (e.g. flexible hours approved or consent obtained) and still want to publish"
-    }
+    },
+    "flexTag": "2-week flex",
+    "cycleHint": "Two-week flexible employees: at least one regular day off every seven days, and at least 4 regular/rest days off in each two-week cycle. Cycles repeat every 14 days from the start date set on the employee (the thick line on the left of a cell marks a cycle start)."
   }
 }

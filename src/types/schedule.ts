@@ -31,10 +31,13 @@ export interface ScheduleEmployee {
   department: string;
   scheduleMode: "fixed" | "rotating" | null;
   attendanceSource: "import" | "system";
+  workTimeMode: "standard" | "flex2w";
+  workTimeCycleStart: string | null;
 }
 
 export type ScheduleIssueType =
-  | "daily_hours" | "rest_interval" | "consecutive_days" | "no_regular_off" | "no_rest_day" | "weekly_hours";
+  | "daily_hours" | "rest_interval" | "consecutive_days" | "no_regular_off" | "no_rest_day" | "weekly_hours"
+  | "cycle_days_off" | "daily_normal_hours" | "cycle_hours";
 
 export interface ScheduleIssue {
   employeeId: string;
@@ -42,7 +45,7 @@ export interface ScheduleIssue {
   severity: "warning" | "info";
   startDate: string;
   endDate: string;
-  params: { hours?: number; gapHours?: number; days?: number };
+  params: { hours?: number; gapHours?: number; days?: number; limit?: number; count?: number; required?: number };
 }
 
 export interface MonthSchedule {

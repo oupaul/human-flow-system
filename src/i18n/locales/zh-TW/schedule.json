@@ -87,15 +87,21 @@
       "consecutive_days": "連續上班",
       "no_regular_off": "無例假日",
       "no_rest_day": "無休息日",
-      "weekly_hours": "週工時偏高"
+      "weekly_hours": "週工時偏高",
+      "cycle_days_off": "週期內休假不足",
+      "daily_normal_hours": "超過變形每日正常工時",
+      "cycle_hours": "週期總工時偏高"
     },
     "detail": {
-      "daily_hours": "排班工時 {{hours}} 小時，超過 12 小時",
+      "daily_hours": "排班工時 {{hours}} 小時，超過 {{limit}} 小時",
       "rest_interval": "與前一班的間隔只有 {{gapHours}} 小時，不足 11 小時",
       "consecutive_days": "連續上班 {{days}} 天，中間沒有排休",
       "no_regular_off": "連續 {{days}} 天沒有排例假日",
       "no_rest_day": "連續 {{days}} 天沒有排休息日",
-      "weekly_hours": "該週排班 {{hours}} 小時，超過 40 小時（會產生加班）"
+      "weekly_hours": "該週排班 {{hours}} 小時，超過 {{limit}} 小時（會產生加班）",
+      "cycle_days_off": "這個二週期內只有 {{count}} 天例假或休息日，需至少 {{required}} 天",
+      "daily_normal_hours": "排班 {{hours}} 小時，超過二週變形後每日正常工時 {{limit}} 小時（超出部分為延長工時）",
+      "cycle_hours": "這個二週期排班共 {{hours}} 小時，超過 {{limit}} 小時（會產生加班）"
     },
     "preview": {
       "loading": "檢查中…",
@@ -113,6 +119,8 @@
       "title": "尚有 {{count}} 項排班警示",
       "body": "建議先確認或調整這些班表再發布。",
       "confirm": "我已確認這些警示（例如已核備變形工時或取得同意），仍要發布"
-    }
+    },
+    "flexTag": "二週變形",
+    "cycleHint": "二週變形員工：每七天至少一日例假，且每個二週期內例假＋休息日至少 4 天；週期依員工資料設定的起算日每 14 天一期（格子左側粗線為週期起點）。"
   }
 }

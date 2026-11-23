@@ -22,6 +22,13 @@ import { departmentApi } from "@/services/departmentApi";
 import { currentMonthStr } from "@/lib/taipeiDate";
 import { CellInput, MonthSchedule, OffType, ScheduleCell, ScheduleIssue } from "@/types/schedule";
 
+// 二週變形：是否為週期的第一天（起算日起每 14 天一期）
+const isCycleStart = (date: string, cycleStart: string | null) => {
+  if (!cycleStart) return false;
+  const diff = (Date.parse(`${date}T00:00:00Z`) - Date.parse(`${cycleStart}T00:00:00Z`)) / 86400000;
+  return diff % 14 === 0;
+};
+
 const shiftMonth = (month: string, delta: number) => {
   const [y, m] = month.split("-").map(Number);
   const d = new Date(y, m - 1 + delta, 1);
@@ -213,6 +220,7 @@ const Schedule = () => {
                 <td className={`sticky left-0 z-10 whitespace-nowrap px-2 py-1 ${focusId === e.employeeId ? "bg-amber-50" : "bg-white"}`}>
                   {e.name}<span className="ml-1 text-muted-foreground">{e.employeeId}</span>
                   {e.scheduleMode === "rotating" && <Badge variant="outline" className="ml-1 px-1 py-0 text-[10px]">{t("schedule:page.rotatingTag")}</Badge>}
+                  {e.workTimeMode === "flex2w" && <Badge variant="outline" className="ml-1 border-violet-300 px-1 py-0 text-[10px] text-violet-700">{t("schedule:check.flexTag")}</Badge>}
                   {rowWarnings.has(e.employeeId) && (
                     <Badge variant="outline" className="ml-1 border-red-300 px-1 py-0 text-[10px] text-red-700" title={(rowWarnings.get(e.employeeId) ?? []).map((i) => `${t(`schedule:check.types.${i.type}`)}：${t(`schedule:check.detail.${i.type}`, i.params)}（${i.startDate}~${i.endDate}）`).join("\n")}>
                       ⚠ {t("schedule:check.rowBadge", { count: rowWarnings.get(e.employeeId)?.length })}
@@ -226,7 +234,7 @@ const Schedule = () => {
                   const warnTitle = (flagged ?? []).map((i) => `⚠ ${t(`schedule:check.detail.${i.type}`, i.params)}`).join("\n");
                   const cls = c ? (c.kind === "off" ? OFF_CLASS[c.offType as OffType] : SHIFT_CLASSES[shiftIndex(c.shiftTypeId) % SHIFT_CLASSES.length]) : "";
                   return (
-                    <td key={d.date} className="p-0.5 text-center">
+                    <td key={d.date} className={`p-0.5 text-center ${e.workTimeMode === "flex2w" && isCycleStart(d.date, e.workTimeCycleStart) ? "border-l-2 border-l-violet-400" : ""}`}>
                       <button
                         type="button"
                         disabled={!canEdit}

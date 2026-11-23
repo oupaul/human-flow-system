@@ -88,7 +88,13 @@
     "attendanceSourceImport": "外部取り込み（従来の方法）",
     "attendanceSourceSystem": "システム打刻",
     "attendanceSourceHint": "「システム打刻」の従業員はポータルから打刻します。外部勤怠の取り込みでは対象外となり、打刻記録が上書きされません。",
-    "punchIpExempt": "打刻の IP 制限を受けない（外勤）"
+    "punchIpExempt": "打刻の IP 制限を受けない（外勤）",
+    "workTimeMode": "労働時間制度",
+    "workTimeStandard": "通常の労働時間",
+    "workTimeFlex2w": "2週間単位の変形労働時間制",
+    "workTimeCycleStart": "変形期間の起算日",
+    "workTimeHint": "会社が届出済みの従業員のみ対象です。2週変形：シフトチェックが変形労働時間制のルール（1日10時間、2週間内に休日4日以上など）に切り替わります。期間は起算日から14日ごと。期間の初日を入力してください。",
+    "workTimeCycleRequired": "2週変形には期間の起算日が必要です"
   },
   "addDialog": {
     "title": "従業員を追加",

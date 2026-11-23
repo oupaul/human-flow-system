@@ -1,5 +1,6 @@
 export type Gender = "male" | "female";
 export type ScheduleMode = "fixed" | "rotating";
+export type WorkTimeMode = "standard" | "flex2w";
 
 export interface Employee {
   id: number;
@@ -18,6 +19,8 @@ export interface Employee {
   monthlySalary?: number | null;
   gender?: Gender | null;
   scheduleMode?: ScheduleMode | null;
+  workTimeMode?: WorkTimeMode;
+  workTimeCycleStart?: string | null;
   attendanceSource?: "import" | "system";
   punchIpExempt?: boolean;
   attendanceAccount?: string | null;
@@ -43,6 +46,9 @@ export interface EmployeeFormData {
   gender: Gender | "";
   // 出勤制度：空字串＝使用公司預設；排班制的休息日、例假日、國定假日都平移，日別依個人排班判斷
   scheduleMode: ScheduleMode | "";
+  // 工時制度：standard＝一般工時；flex2w＝二週變形工時（需填週期起算日，只有 admin/hr 能設定）
+  workTimeMode: WorkTimeMode;
+  workTimeCycleStart: string;
   // 出勤來源：import＝考勤由外部系統匯入；system＝使用系統打卡（匯入時略過）；punchIpExempt＝不受打卡 IP 限制（外勤）
   attendanceSource: "import" | "system";
   punchIpExempt: boolean;
@@ -76,6 +82,8 @@ export const emptyFormData: EmployeeFormData = {
   monthlySalary: null,
   gender: "",
   scheduleMode: "",
+  workTimeMode: "standard",
+  workTimeCycleStart: "",
   attendanceSource: "import",
   punchIpExempt: false,
   attendanceAccount: "",
@@ -101,6 +109,8 @@ export const employeeToFormData = (employee: Employee): EmployeeFormData => {
     monthlySalary: employee.monthlySalary ?? null,
     gender: employee.gender || "",
     scheduleMode: employee.scheduleMode || "",
+    workTimeMode: employee.workTimeMode || "standard",
+    workTimeCycleStart: employee.workTimeCycleStart || "",
     attendanceSource: employee.attendanceSource || "import",
     punchIpExempt: !!employee.punchIpExempt,
     attendanceAccount: employee.attendanceAccount || "",

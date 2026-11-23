@@ -18,6 +18,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import WorkTimeFields from "@/components/employees/WorkTimeFields";
 import { EmployeeFormData } from "@/types/employee";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -207,6 +208,7 @@ const EditEmployeeDialog = ({
             </Select>
             <p className="text-xs text-muted-foreground">{t("employees:form.scheduleModeHint")}</p>
           </div>
+          {canSeeSalary && <WorkTimeFields idPrefix="edit" formData={formData} onFormChange={onFormChange} onSelectChange={onSelectChange} />}
           <div className="space-y-2">
             <Label htmlFor="editAttendanceSource">{t("employees:form.attendanceSource")}</Label>
             <Select value={formData.attendanceSource} onValueChange={(value) => onSelectChange("attendanceSource", value)}>

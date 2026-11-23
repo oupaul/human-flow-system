@@ -23,7 +23,7 @@ import {
 } from './punch.js';
 import {
   ScheduleError, listShiftTypes, createShiftType, updateShiftType, deleteShiftType, getMonthSchedule, getMyPublishedSchedule,
-  setCells, fillSchedule, publishSchedule, ensureScheduleSchema,
+  setCells, fillSchedule, publishSchedule, ensureScheduleSchema, parseWorkTime,
 } from './schedule.js';
 import { checkMonth, previewScenarios } from './scheduleCheck.js';
 import {
@@ -311,11 +311,16 @@ async function createEmployeeRecord(data, { canSetSalary = false, changedBy = nu
   }
   // 先驗證，避免員工已寫入、特休期建立卻失敗而留下不完整的資料
   const carriedInDays = validateInitialCarriedIn(joinDate, initialCarriedInDays);
+  const workTime = canSetSalary ? parseWorkTime(data) : null; // 工時制度屬公司層級設定，只有 admin/hr 能設定
 
   const [result] = await pool.execute(
     'INSERT INTO employees (name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, scheduleMode, attendanceSource, punchIpExempt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [name, employeeId, department, position, email, phone || null, joinDate, active !== undefined ? active : true, address || null, notes || null, (canSetSalary && monthlySalary) || null, gender || null, attendanceAccount || null, normalizeScheduleMode(scheduleMode), attendanceSource === 'system' ? 'system' : 'import', !!punchIpExempt]
   );
+
+  if (workTime) {
+    await pool.execute('UPDATE employees SET workTimeMode = ?, workTimeCycleStart = ? WHERE id = ?', [workTime.mode, workTime.cycleStart, result.insertId]);
+  }
 
   if (canSetSalary && monthlySalary) {
     // 新進員工的第一筆薪資紀錄，生效日取到職日
@@ -1037,7 +1042,7 @@ api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
   } catch (error) {
     console.error('Error creating employee:', error);
     // 欄位驗證類的錯誤（必填欄位缺漏、上期遞延天數不合理）是使用者輸入問題，回 400
-    const isInputError = error.message?.includes('必填') || error.message?.includes('遞延');
+    const isInputError = error instanceof ScheduleError || error.message?.includes('必填') || error.message?.includes('遞延');
     res.status(isInputError ? 400 : 500).json({ error: error.message || '新增員工失敗' });
   }
 });
@@ -1080,6 +1085,7 @@ api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     const { id } = req.params;
     const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, scheduleMode, attendanceSource, punchIpExempt } = req.body;
 
+    const workTime = SALARY_ROLES.includes(req.user.role) ? parseWorkTime(req.body) : null; // 只有 admin/hr 能改工時制度
     const [beforeRows] = await pool.execute('SELECT employeeId, monthlySalary FROM employees WHERE id = ?', [id]);
     const previousEmployeeId = beforeRows[0]?.employeeId;
 
@@ -1091,6 +1097,9 @@ api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
       [name, employeeId, department, position, email, phone, joinDate, active, address || '', notes || '', gender || null, attendanceAccount || null, normalizeScheduleMode(scheduleMode),
         attendanceSource === 'system' || attendanceSource === 'import' ? attendanceSource : null, punchIpExempt === undefined ? null : !!punchIpExempt, id]
     );
+    if (workTime) {
+      await pool.execute('UPDATE employees SET workTimeMode = ?, workTimeCycleStart = ? WHERE id = ?', [workTime.mode, workTime.cycleStart, id]);
+    }
     if (SALARY_ROLES.includes(req.user.role) && Number(monthlySalary) > 0
         && Number(monthlySalary) !== Number(beforeRows[0]?.monthlySalary || 0)) {
       const [[{ today }]] = await pool.execute('SELECT CURDATE() AS today');
@@ -1108,6 +1117,7 @@ api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     const [updatedEmployee] = await pool.execute('SELECT * FROM employees WHERE id = ?', [id]);
     res.json(updatedEmployee[0]);
   } catch (error) {
+    if (error instanceof ScheduleError) return res.status(error.status).json({ error: error.message });
     console.error('Error updating employee:', error);
     res.status(500).json({ error: '更新員工失敗', detail: error.message });
   }
