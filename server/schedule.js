@@ -270,3 +270,13 @@ export async function publishSchedule(pool, month, department) {
   );
   return result.affectedRows;
 }
+
+// 清空：刪除整個月（可限定部門）「尚未發布」的草稿格子；已發布的不動
+export async function clearUnpublished(pool, month, department) {
+  const { from, to } = monthRange(month);
+  const params = [from, to];
+  let where = '';
+  if (department) { where = 'AND employeeId IN (SELECT employeeId FROM employees WHERE department = ?)'; params.push(department); }
+  const [result] = await pool.execute(`DELETE FROM work_schedules WHERE published = FALSE AND date BETWEEN ? AND ? ${where}`, params);
+  return result.affectedRows;
+}

@@ -23,7 +23,7 @@ import {
 } from './punch.js';
 import {
   ScheduleError, listShiftTypes, createShiftType, updateShiftType, deleteShiftType, getMonthSchedule, getMyPublishedSchedule,
-  setCells, fillSchedule, expandPatternCells, publishSchedule, ensureScheduleSchema, parseWorkTime,
+  setCells, fillSchedule, expandPatternCells, publishSchedule, clearUnpublished, ensureScheduleSchema, parseWorkTime,
 } from './schedule.js';
 import { expandCoverageCells } from './scheduleCoverage.js';
 import { expandDutyCells } from './scheduleDuty.js';
@@ -2343,6 +2343,9 @@ api.put('/branding/title', requireRole('admin'), async (req, res) => {
 });
 api.delete('/branding/favicon', requireRole('admin'), async (req, res) => {
   try { await clearFavicon(pool); res.json({ message: '已還原預設圖示', ...(await getBranding(pool)) }); } catch (error) { console.error('Error clearing favicon:', error); res.status(500).json({ error: '還原預設圖示失敗' }); }
+});
+api.post('/schedule/clear-unpublished', requireRole('admin', 'hr'), async (req, res) => {
+  try { res.json({ message: '已清空未發布的班表', deleted: await clearUnpublished(pool, req.body.month, req.body.department) }); } catch (error) { handleScheduleError(res, error, '清空班表失敗'); }
 });
 api.post('/schedule/publish', requireRole('admin', 'hr'), async (req, res) => {
   try { res.json({ message: '班表已發布，員工現在看得到了', published: await publishSchedule(pool, req.body.month, req.body.department) }); } catch (error) { handleScheduleError(res, error, '發布班表失敗'); }

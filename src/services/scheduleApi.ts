@@ -42,6 +42,9 @@ export const scheduleApi = {
   publish(month: string, department?: string): Promise<{ message: string; published: number }> {
     return apiFetch("/schedule/publish", { method: "POST", body: JSON.stringify({ month, department }) });
   },
+  clearUnpublished(month: string, department?: string): Promise<{ message: string; deleted: number }> {
+    return apiFetch("/schedule/clear-unpublished", { method: "POST", body: JSON.stringify({ month, department }) });
+  },
   preview(scenarios: PreviewScenario[]): Promise<{ results: Record<string, PreviewResult> }> {
     return apiFetch("/schedule/preview", { method: "POST", body: JSON.stringify({ scenarios }) });
   },

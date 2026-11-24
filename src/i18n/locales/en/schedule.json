@@ -12,7 +12,8 @@
     "empty": "No matching employees",
     "rotatingTag": "Shift",
     "draftHint": "Click a cell to set that day's shift or day off. Weekends and calendar holidays are shaded. For shift schedules, rest days, mandatory days off and national holidays are all shifted — put them on the actual day off.",
-    "excel": "Excel import/export"
+    "excel": "Excel import/export",
+    "clear": "Clear drafts"
   },
   "weekdays": {
     "1": "Mon",
@@ -210,5 +211,12 @@
     "lowOk": "Weekday staffing meets the minimum",
     "outside": "{{count}} compensatory day(s) fall outside the chosen range",
     "next": "Next rotation starts with {{name}}"
+  },
+  "clear": {
+    "title": "Clear unpublished schedule for {{month}}?",
+    "body": "This deletes {{count}} unpublished draft cell(s) for {{scope}} this month and cannot be undone. Published cells are not touched.",
+    "scopeAll": "all departments",
+    "confirm": "Clear",
+    "done": "Cleared {{count}} draft cell(s)"
   }
 }

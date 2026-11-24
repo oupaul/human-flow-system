@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Clock, FileSpreadsheet, Send, Wand2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, FileSpreadsheet, Send, Trash2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -59,6 +59,7 @@ const Schedule = () => {
   const [excelOpen, setExcelOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
   const [active, setActive] = useState<{ employeeId: string; name: string; date: string } | null>(null);
+  const [clearOpen, setClearOpen] = useState(false);
   const [publishAck, setPublishAck] = useState(false);
   const [focusId, setFocusId] = useState<string | null>(null);
 
@@ -152,6 +153,17 @@ const Schedule = () => {
     }
   };
 
+  const clearDrafts = async () => {
+    try {
+      const result = await scheduleApi.clearUnpublished(month, department === "all" ? undefined : department);
+      toast.success(t("schedule:clear.done", { count: result.deleted }));
+      setClearOpen(false);
+      await load();
+    } catch (error) {
+      toast.error(t("common:common.operationFailed"), { description: error instanceof Error ? error.message : undefined });
+    }
+  };
+
   const cellLabel = (c: ScheduleCell | undefined) => {
     if (!c) return "";
     if (c.kind === "off") return OFF_SHORT[c.offType as OffType];
@@ -190,6 +202,7 @@ const Schedule = () => {
           <Button variant="outline" onClick={() => setShiftOpen(true)}><Clock className="mr-2 h-4 w-4" />{t("schedule:page.shiftTypes")}</Button>
           {canEdit && <Button variant="outline" onClick={() => setExcelOpen(true)}><FileSpreadsheet className="mr-2 h-4 w-4" />{t("schedule:page.excel")}</Button>}
           {canEdit && <Button variant="outline" onClick={() => setFillOpen(true)}><Wand2 className="mr-2 h-4 w-4" />{t("schedule:page.quickFill")}</Button>}
+          {canEdit && <Button variant="outline" className="text-red-600 hover:text-red-700" onClick={() => setClearOpen(true)} disabled={unpublished === 0}><Trash2 className="mr-2 h-4 w-4" />{t("schedule:page.clear")}</Button>}
           {canEdit && <Button className="bg-hrms-accent" onClick={() => setPublishOpen(true)} disabled={unpublished === 0}><Send className="mr-2 h-4 w-4" />{t("schedule:page.publish")}{unpublished > 0 && `（${unpublished}）`}</Button>}
         </div>
       </div>
@@ -294,6 +307,18 @@ const Schedule = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>{t("common:actions.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={publish} disabled={warningCount > 0 && !publishAck}>{t("common:actions.confirm")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={clearOpen} onOpenChange={setClearOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("schedule:clear.title", { month })}</AlertDialogTitle>
+            <AlertDialogDescription>{t("schedule:clear.body", { count: unpublished, scope: department === "all" ? t("schedule:clear.scopeAll") : department })}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common:actions.cancel")}</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={clearDrafts}>{t("schedule:clear.confirm")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
