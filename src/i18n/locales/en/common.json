@@ -12,7 +12,8 @@
     "seniorityBenefits": "Benefit Reminders",
     "payroll": "Payroll Cost",
     "punch": "Attendance & Punch",
-    "schedule": "Schedule"
+    "schedule": "Schedule",
+    "auditLogs": "Audit log"
   },
   "actions": {
     "save": "Save",

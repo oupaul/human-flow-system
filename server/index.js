@@ -28,6 +28,7 @@ import {
 import { expandCoverageCells } from './scheduleCoverage.js';
 import { expandDutyCells } from './scheduleDuty.js';
 import { runMigrations } from './migrate.js';
+import { ensureAuditSchema, logAudit, auditMiddleware, registerAuditRoutes, purgeOldAuditLogs } from './auditLog.js';
 import { ensureBrandingSchema, getBranding, getFavicon, setFavicon, clearFavicon, setSiteTitle, BrandingError } from './branding.js';
 import { checkMonth, previewScenarios } from './scheduleCheck.js';
 import { buildScheduleWorkbook, parseScheduleWorkbook } from './scheduleExcel.js';
@@ -653,11 +654,13 @@ app.post('/api/auth/login', async (req, res) => {
     );
     const user = rows[0];
     if (!user) {
+      await logAudit(pool, req, { actorUsername: String(username), category: 'login', action: 'login_failed', summary: '登入失敗：帳號不存在或已停用', statusCode: 401, success: false });
       return res.status(401).json({ error: '帳號或密碼錯誤' });
     }
 
     const passwordMatches = await bcrypt.compare(password, user.password_hash);
     if (!passwordMatches) {
+      await logAudit(pool, req, { actorUsername: user.username, actorRole: user.role, category: 'login', action: 'login_failed', summary: '登入失敗：密碼錯誤', statusCode: 401, success: false });
       return res.status(401).json({ error: '帳號或密碼錯誤' });
     }
 
@@ -668,6 +671,7 @@ app.post('/api/auth/login', async (req, res) => {
       { expiresIn: JWT_EXPIRES_IN }
     );
 
+    await logAudit(pool, req, { actorUsername: user.username, actorRole: user.role, category: 'login', action: 'login_success', summary: user.mustChangePassword ? '登入成功（須修改密碼）' : '登入成功', statusCode: 200 });
     res.json({
       token,
       user: {
@@ -733,10 +737,12 @@ app.post('/api/auth/microsoft/token', async (req, res) => {
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
+    await logAudit(pool, req, { actorUsername: user.username, actorRole: user.role, category: 'login', action: 'login_sso_success', summary: '登入成功（Microsoft 單一登入）', statusCode: 200 });
     res.json({ token });
   } catch (error) {
     if (error instanceof SsoError) {
       console.error('Microsoft SSO 失敗：', error.code, error.message);
+      await logAudit(pool, req, { actorUsername: 'Microsoft SSO', category: 'login', action: 'login_sso_failed', summary: `Microsoft 單一登入失敗：${error.message}`, statusCode: 401, success: false });
       return res.status(error.code === 'not_configured' ? 503 : error.code === 'no_account' || error.code === 'no_email' ? 403 : 401).json({ error: error.message, code: error.code });
     }
     console.error('Error during Microsoft SSO:', error);
@@ -809,6 +815,7 @@ function stripSalaryFields(value) {
 // 以下路由皆須登入
 const api = express.Router();
 api.use(authMiddleware);
+api.use(auditMiddleware(pool));
 // 帳號被標記「必須先改密碼」時，只放行查自己與改密碼
 api.use((req, res, next) => {
   if (req.user.mcp && !['/auth/me', '/auth/change-password'].includes(req.path)) {
@@ -825,6 +832,7 @@ api.use((req, res, next) => {
 });
 
 registerAccountRoutes(api, { pool, requireRole });
+registerAuditRoutes(api, { pool, requireRole });
 
 api.get('/auth/me', async (req, res) => {
   try {
@@ -3657,12 +3665,16 @@ async function checkCompTimeExpiryReminders() {
 
 await runMigrations(pool, path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations')).catch((error) => console.error('資料庫遷移失敗：', error.message));
 await ensureBrandingSchema(pool).catch((error) => console.error('建立外觀設定資料表失敗：', error.message));
+await ensureAuditSchema(pool).catch((error) => console.error('建立系統操作紀錄資料表失敗：', error.message));
 await ensureScheduleSchema(pool).catch((error) => console.error('補上班別簡稱欄位失敗：', error.message));
 
 app.listen(PORT, () => {
   console.log(`🚀 HRMS API Server running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log('⚠️  請確保 MariaDB 資料庫已運行並且 .env 連接設定正確');
+
+  purgeOldAuditLogs(pool);
+  setInterval(() => purgeOldAuditLogs(pool), 24 * 60 * 60 * 1000);
 
   checkCompTimeExpiryReminders();
   setInterval(checkCompTimeExpiryReminders, 24 * 60 * 60 * 1000);

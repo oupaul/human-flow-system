@@ -11,6 +11,7 @@ import zhTWLeaveManagement from "./locales/zh-TW/leaveManagement.json";
 import zhTWMyPortal from "./locales/zh-TW/myPortal.json";
 import zhTWSettings from "./locales/zh-TW/settings.json";
 import zhTWAccounts from "./locales/zh-TW/accounts.json";
+import zhTWAudit from "./locales/zh-TW/audit.json";
 import zhTWReports from "./locales/zh-TW/reports.json";
 import zhTWSeniorityBenefits from "./locales/zh-TW/seniorityBenefits.json";
 import zhTWPayroll from "./locales/zh-TW/payroll.json";
@@ -26,6 +27,7 @@ import enLeaveManagement from "./locales/en/leaveManagement.json";
 import enMyPortal from "./locales/en/myPortal.json";
 import enSettings from "./locales/en/settings.json";
 import enAccounts from "./locales/en/accounts.json";
+import enAudit from "./locales/en/audit.json";
 import enReports from "./locales/en/reports.json";
 import enSeniorityBenefits from "./locales/en/seniorityBenefits.json";
 import enPayroll from "./locales/en/payroll.json";
@@ -41,6 +43,7 @@ import jaLeaveManagement from "./locales/ja/leaveManagement.json";
 import jaMyPortal from "./locales/ja/myPortal.json";
 import jaSettings from "./locales/ja/settings.json";
 import jaAccounts from "./locales/ja/accounts.json";
+import jaAudit from "./locales/ja/audit.json";
 import jaReports from "./locales/ja/reports.json";
 import jaSeniorityBenefits from "./locales/ja/seniorityBenefits.json";
 import jaPayroll from "./locales/ja/payroll.json";
@@ -64,6 +67,7 @@ const resources = {
     myPortal: zhTWMyPortal,
     settings: zhTWSettings,
     accounts: zhTWAccounts,
+    audit: zhTWAudit,
     reports: zhTWReports,
     seniorityBenefits: zhTWSeniorityBenefits,
     payroll: zhTWPayroll,
@@ -80,6 +84,7 @@ const resources = {
     myPortal: enMyPortal,
     settings: enSettings,
     accounts: enAccounts,
+    audit: enAudit,
     reports: enReports,
     seniorityBenefits: enSeniorityBenefits,
     payroll: enPayroll,
@@ -96,6 +101,7 @@ const resources = {
     myPortal: jaMyPortal,
     settings: jaSettings,
     accounts: jaAccounts,
+    audit: jaAudit,
     reports: jaReports,
     seniorityBenefits: jaSeniorityBenefits,
     payroll: jaPayroll,
@@ -112,7 +118,7 @@ i18n
     fallbackLng: "zh-TW",
     supportedLngs: ["zh-TW", "en", "ja"],
     defaultNS: "common",
-    ns: ["common", "auth", "dashboard", "employees", "departments", "leaveManagement", "myPortal", "settings", "accounts", "reports", "seniorityBenefits", "payroll", "punch", "schedule"],
+    ns: ["common", "auth", "dashboard", "employees", "departments", "leaveManagement", "myPortal", "settings", "accounts", "reports", "seniorityBenefits", "payroll", "punch", "schedule", "audit"],
     interpolation: {
       escapeValue: false,
     },

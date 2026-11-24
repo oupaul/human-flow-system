@@ -1,0 +1,43 @@
+{
+  "title": "系統操作紀錄",
+  "description": "記錄誰在什麼時候、從哪個 IP 做了什麼（登入、員工、請假、班表、薪資、設定等）。只有 admin 看得到，保留 {{days}} 天後自動清除。",
+  "filters": {
+    "title": "篩選",
+    "hint": "預設顯示最近 7 天。關鍵字可搜尋說明、對象（員工編號、月份等）或 IP。",
+    "from": "開始日期",
+    "to": "結束日期",
+    "actor": "操作者帳號",
+    "allCategories": "全部分類",
+    "allResults": "全部結果",
+    "keyword": "關鍵字",
+    "search": "查詢"
+  },
+  "export": "匯出 CSV（最多 2 萬筆）",
+  "columns": {
+    "time": "時間",
+    "actor": "操作者",
+    "category": "分類",
+    "summary": "說明",
+    "result": "結果",
+    "ip": "IP"
+  },
+  "category": {
+    "login": "登入",
+    "account": "帳號與權限",
+    "employee": "員工與部門",
+    "leave": "請假加班",
+    "schedule": "排班",
+    "attendance": "考勤打卡",
+    "payroll": "薪資福利",
+    "settings": "系統設定",
+    "other": "其他"
+  },
+  "result": {
+    "success": "成功",
+    "failed": "失敗"
+  },
+  "empty": "沒有符合條件的紀錄",
+  "total": "共 {{count}} 筆",
+  "prev": "上一頁",
+  "next": "下一頁"
+}

@@ -12,7 +12,8 @@
     "seniorityBenefits": "福利リマインダー",
     "payroll": "人件費",
     "punch": "勤怠・打刻",
-    "schedule": "シフト管理"
+    "schedule": "シフト管理",
+    "auditLogs": "操作ログ"
   },
   "actions": {
     "save": "保存",

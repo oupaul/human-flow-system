@@ -1,0 +1,43 @@
+{
+  "title": "Audit log",
+  "description": "Who did what, when and from which IP (sign-ins, employees, leave, schedules, payroll, settings…). Visible to admins only; entries are removed after {{days}} days.",
+  "filters": {
+    "title": "Filters",
+    "hint": "Shows the last 7 days by default. Keyword searches the description, target (employee ID, month…) and IP.",
+    "from": "From",
+    "to": "To",
+    "actor": "Username",
+    "allCategories": "All categories",
+    "allResults": "All results",
+    "keyword": "Keyword",
+    "search": "Search"
+  },
+  "export": "Export CSV (up to 20,000 rows)",
+  "columns": {
+    "time": "Time",
+    "actor": "User",
+    "category": "Category",
+    "summary": "Description",
+    "result": "Result",
+    "ip": "IP"
+  },
+  "category": {
+    "login": "Sign-in",
+    "account": "Accounts & roles",
+    "employee": "Employees & departments",
+    "leave": "Leave & overtime",
+    "schedule": "Scheduling",
+    "attendance": "Attendance",
+    "payroll": "Payroll & benefits",
+    "settings": "Settings",
+    "other": "Other"
+  },
+  "result": {
+    "success": "Success",
+    "failed": "Failed"
+  },
+  "empty": "No matching entries",
+  "total": "{{count}} entries",
+  "prev": "Previous",
+  "next": "Next"
+}

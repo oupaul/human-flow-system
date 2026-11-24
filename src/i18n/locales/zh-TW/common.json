@@ -12,7 +12,8 @@
     "seniorityBenefits": "福利提醒",
     "payroll": "人事成本",
     "punch": "出勤打卡",
-    "schedule": "班表管理"
+    "schedule": "班表管理",
+    "auditLogs": "操作紀錄"
   },
   "actions": {
     "save": "儲存",
