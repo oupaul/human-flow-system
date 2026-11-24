@@ -67,6 +67,7 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
   const [startEmp, setStartEmp] = useState("auto");
   const [minRatio, setMinRatio] = useState("50");
   const [dutySkip, setDutySkip] = useState(true);
+  const [dutyCounts, setDutyCounts] = useState({ sat: "1", sun: "1", holiday: "1" });
 
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
@@ -99,8 +100,13 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
     workShiftTypeId: workShift === "none" ? null : Number(workShift),
     startEmployeeId: startEmp === "auto" || !orderedIds.includes(startEmp) ? null : startEmp,
     minWorkRatio: Math.min(100, Math.max(0, Number(minRatio) || 0)),
+    dutyCounts: {
+      sat: Math.max(1, Number(dutyCounts.sat) || 1),
+      sun: Math.max(1, Number(dutyCounts.sun) || 1),
+      holiday: Math.max(1, Number(dutyCounts.holiday) || 1),
+    },
     skipExisting: dutySkip,
-  }), [orderedIds, from, to, dutyShift, workShift, startEmp, minRatio, dutySkip]);
+  }), [orderedIds, from, to, dutyShift, workShift, startEmp, minRatio, dutySkip, dutyCounts]);
   const dutyReady = !!dutyShift && orderedIds.length >= 2;
   const ready = orderedIds.length > 0 && !!from && !!to && from <= to
     && (mode === "single" ? !!choice && weekdays.length > 0 : mode === "pattern" ? patternReady && !!anchor : mode === "coverage" ? coverageReady : dutyReady);
@@ -312,6 +318,18 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
                     <Input inputMode="numeric" className="w-20" value={minRatio} onChange={(e) => setMinRatio(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} />
                     <span className="text-xs text-muted-foreground">% → {t("schedule:duty.minPeople", { count: Math.ceil((orderedIds.length * dutyParams.minWorkRatio) / 100 - 1e-9) })}</span>
                   </div>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>{t("schedule:duty.counts")}</Label>
+                <div className="flex flex-wrap items-center gap-4">
+                  {(["sat", "sun", "holiday"] as const).map((k) => (
+                    <label key={k} className="flex items-center gap-2 text-sm">
+                      {t(`schedule:duty.type.${k}`)}
+                      <Input inputMode="numeric" className="h-8 w-14 px-2 text-center" value={dutyCounts[k]}
+                        onChange={(e) => setDutyCounts({ ...dutyCounts, [k]: e.target.value.replace(/[^0-9]/g, "").slice(0, 2) })} />
+                    </label>
+                  ))}
                 </div>
               </div>
               <label className="flex cursor-pointer items-center gap-2 text-sm">

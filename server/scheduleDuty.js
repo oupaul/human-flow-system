@@ -1,5 +1,5 @@
 // 值班輪替排班：模擬公司「值班班表」的做法。
-//   * 週六、週日、平日的國定假日都是「需值班日」：每天只有 1 人值班（值班班別），其他人休息
+//   * 週六、週日、平日的國定假日都是「需值班日」：每天由指定人數（預設 1 人）值班（值班班別），其他人休息
 //     （週六＝休息日、週日＝例假日、平日國定假日＝國定假日）；國定假日落在週六日時，依週六／週日處理。
 //   * 值班者依輪值名單順序輪流，跨月接續（預設從資料庫裡上一位值班者的下一位開始）；
 //     輪到的人若當天已請假或班表已有安排，就跳過，下一次值班日優先輪到他。
@@ -40,6 +40,13 @@ export async function planDuty(pool, p) {
   if (!Number.isFinite(ratio) || ratio < 0 || ratio > 100) throw new ScheduleError(400, '平日最低上班比例需介於 0 到 100');
   const minWork = Math.ceil((employeeIds.length * ratio) / 100 - 1e-9);
   const skipExisting = p.skipExisting !== false;
+  // 每個值班日的值班人數（週六、週日、國定假日可分開設，預設各 1 人；至少要留 1 人休息）
+  const need = {};
+  for (const k of ['sat', 'sun', 'holiday']) {
+    const n = p.dutyCounts?.[k] == null || p.dutyCounts[k] === '' ? 1 : Number(p.dutyCounts[k]);
+    if (!Number.isInteger(n) || n < 1 || n > employeeIds.length - 1) throw new ScheduleError(400, `值班人數需為 1 到 ${employeeIds.length - 1} 人`);
+    need[k] = n;
+  }
   const roster = new Set(employeeIds);
 
   // 國定假日：只取有名稱的節日（行事曆裡週六日也標成假日，但沒有名稱）
@@ -98,33 +105,33 @@ export async function planDuty(pool, p) {
     const type = wd === 5 ? 'sat' : wd === 6 ? 'sun' : holidays.has(d) ? 'holiday' : null;
     if (!type) continue;
 
-    // 當天已經排好值班班別的人（不覆蓋）
-    let dutyId = skipExisting ? employeeIds.find((id) => exAt(id, d)?.kind === 'shift' && exAt(id, d).shiftTypeId === dutyShiftId) : null;
-    if (dutyId) rotateAfter(dutyId);
-    else {
+    // 當天已經排好值班班別的人（不覆蓋，算進需求人數）
+    const dutyIds = skipExisting ? employeeIds.filter((id) => exAt(id, d)?.kind === 'shift' && exAt(id, d).shiftTypeId === dutyShiftId) : [];
+    for (const id of dutyIds) rotateAfter(id);
+    for (let k = dutyIds.length; k < need[type]; k += 1) {
       let pick = -1;
       const blocked = [];
       for (let i = 0; i < queue.length; i += 1) {
         const id = queue[i];
+        if (dutyIds.includes(id)) continue;
         if (leave.get(id).has(d)) { blocked.push({ employeeId: id, reason: 'leave' }); continue; }
         if (skipExisting && exAt(id, d)) { blocked.push({ employeeId: id, reason: 'existing' }); continue; }
         pick = i; break;
       }
-      if (pick < 0) { dutyShortages.push({ date: d, type }); }
-      else {
-        dutyId = queue[pick];
-        queue = [...queue.slice(0, pick), ...queue.slice(pick + 1), dutyId]; // 被跳過的留在最前面，下次優先
-        for (const b of blocked.slice(0, pick)) if (skipped.length < MAX_LISTED) skipped.push({ date: d, ...b });
-        put(dutyId, d, { kind: 'shift', shiftTypeId: dutyShiftId, offType: null });
-      }
+      if (pick < 0) { dutyShortages.push({ date: d, type }); continue; }
+      const id = queue[pick];
+      queue = [...queue.slice(0, pick), ...queue.slice(pick + 1), id]; // 被跳過的留在最前面，下次優先
+      for (const b of blocked) if (skipped.length < MAX_LISTED && !skipped.some((x) => x.date === d && x.employeeId === b.employeeId)) skipped.push({ date: d, ...b });
+      put(id, d, { kind: 'shift', shiftTypeId: dutyShiftId, offType: null });
+      dutyIds.push(id);
     }
     // 其他人當天休息
     for (const id of employeeIds) {
-      if (id === dutyId) continue;
+      if (dutyIds.includes(id)) continue;
       if (skipExisting && exAt(id, d)) continue;
       put(id, d, { kind: 'off', shiftTypeId: null, offType: COMP_OFF[type] });
     }
-    if (dutyId) duties.push({ date: d, type, employeeId: dutyId });
+    for (const id of dutyIds) duties.push({ date: d, type, employeeId: id });
   }
 
   // ---- 2. 值班後補假 ----

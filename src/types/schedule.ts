@@ -80,6 +80,7 @@ export interface DutyParams {
   workShiftTypeId?: number | null;
   startEmployeeId?: string | null;
   minWorkRatio: number;
+  dutyCounts: { sat: number; sun: number; holiday: number };
   skipExisting: boolean;
 }
 export interface DutyReport {

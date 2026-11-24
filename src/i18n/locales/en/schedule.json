@@ -192,7 +192,7 @@
     "workDays": "Working days per person: {{min}}–{{max}}"
   },
   "duty": {
-    "description": "Mimics a duty roster: one person is on duty every Saturday, Sunday and weekday public holiday while everyone else rests. Duty rotates in the order of the selected employees, continues across months, and compensatory days off are added on weekdays (Sunday → regular day off, Saturday → rest day, holiday → national holiday).",
+    "description": "Mimics a duty roster: a set number of people (default 1) are on duty every Saturday, Sunday and weekday public holiday while everyone else rests. Duty rotates in the order of the selected employees, continues across months, and compensatory days off are added on weekdays (Sunday → regular day off, Saturday → rest day, holiday → national holiday).",
     "dutyShift": "Duty shift",
     "workShift": "Weekday shift",
     "workShiftNone": "None (leave weekdays blank = working)",
@@ -203,14 +203,20 @@
     "skipExisting": "Do not overwrite existing cells (people on leave or already scheduled are not put on duty)",
     "rules": "Rotation follows the order of the selected employees. Someone on leave or already scheduled that day is skipped and gets the next duty day. Compensatory days are picked on weekdays that keep staffing at or above the minimum and avoid more than 6 consecutive working days, spread out where possible; they may fall a few days outside the chosen range. Adjust swaps and exceptions by hand afterwards.",
     "summary": "{{total}} duty days, minimum weekday staffing {{min}}. Duties per person: ",
-    "noOne": "No one available for {{count}} day(s)",
+    "noOne": "{{count}} duty slot(s) cannot be filled",
     "skipped": "{{count}} skipped (leave or already scheduled)",
     "missingComp": "{{count}} duty day(s) without a compensatory day",
     "allComp": "Everyone on duty got a compensatory day",
     "low": "{{count}} weekday(s) below minimum staffing",
     "lowOk": "Weekday staffing meets the minimum",
     "outside": "{{count}} compensatory day(s) fall outside the chosen range",
-    "next": "Next rotation starts with {{name}}"
+    "next": "Next rotation starts with {{name}}",
+    "counts": "People on duty per duty day",
+    "type": {
+      "sat": "Saturday",
+      "sun": "Sunday",
+      "holiday": "Public holiday"
+    }
   },
   "clear": {
     "title": "Clear unpublished schedule for {{month}}?",
