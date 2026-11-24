@@ -12,7 +12,7 @@ import FillPreviewBox from "@/components/schedule/FillPreviewBox";
 import PatternBuilder from "@/components/schedule/PatternBuilder";
 import CoverageBuilder from "@/components/schedule/CoverageBuilder";
 import { scheduleApi } from "@/services/scheduleApi";
-import { CoverageParams, OffType, PatternStep, PreviewResult, ScheduleEmployee, ShiftType } from "@/types/schedule";
+import { CoverageParams, DutyParams, OffType, PatternStep, PreviewResult, ScheduleEmployee, ShiftType } from "@/types/schedule";
 
 interface Props {
   open: boolean;
@@ -35,7 +35,7 @@ const mondayOnOrBefore = (month: string) => {
   return d.toISOString().slice(0, 10);
 };
 
-type Mode = "single" | "pattern" | "coverage";
+type Mode = "single" | "pattern" | "coverage" | "duty";
 
 // 快速填入：選員工與日期區間後，可「單一填入」（同一個班別或排休）、「輪替預排」
 // （依輪替樣式一次排好所有人，可分組錯開起點）或「依需求排班」（設定每班每天需要幾人，自動分配）。
@@ -60,6 +60,13 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
   const [demand, setDemand] = useState<Record<number, string[]>>({});
   const [coverageHoliday, setCoverageHoliday] = useState<"ignore" | "off">("off");
   const [coverageSkip, setCoverageSkip] = useState(true);
+
+  // 值班輪替
+  const [dutyShift, setDutyShift] = useState("");
+  const [workShift, setWorkShift] = useState("none");
+  const [startEmp, setStartEmp] = useState("auto");
+  const [minRatio, setMinRatio] = useState("50");
+  const [dutySkip, setDutySkip] = useState(true);
 
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
@@ -86,8 +93,17 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
     holidayMode: coverageHoliday, skipExisting: coverageSkip,
   }), [orderedIds, from, to, demand, coverageHoliday, coverageSkip]);
   const coverageReady = coverageParams.demand.length > 0;
+  const dutyParams = useMemo<DutyParams>(() => ({
+    employeeIds: orderedIds, from, to,
+    dutyShiftTypeId: Number(dutyShift) || 0,
+    workShiftTypeId: workShift === "none" ? null : Number(workShift),
+    startEmployeeId: startEmp === "auto" || !orderedIds.includes(startEmp) ? null : startEmp,
+    minWorkRatio: Math.min(100, Math.max(0, Number(minRatio) || 0)),
+    skipExisting: dutySkip,
+  }), [orderedIds, from, to, dutyShift, workShift, startEmp, minRatio, dutySkip]);
+  const dutyReady = !!dutyShift && orderedIds.length >= 2;
   const ready = orderedIds.length > 0 && !!from && !!to && from <= to
-    && (mode === "single" ? !!choice && weekdays.length > 0 : mode === "pattern" ? patternReady && !!anchor : coverageReady);
+    && (mode === "single" ? !!choice && weekdays.length > 0 : mode === "pattern" ? patternReady && !!anchor : mode === "coverage" ? coverageReady : dutyReady);
 
   const patternParams = useMemo(() => ({
     employeeIds: orderedIds, from, to, anchor, pattern,
@@ -110,7 +126,7 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
     if (!open || !ready) { setPreviewing(false); return; }
     let cancelled = false;
     setPreviewing(true);
-    const scenario = mode === "single" ? { key: "fill", fill: singleFill() } : mode === "pattern" ? { key: "fill", pattern: patternParams } : { key: "fill", coverage: coverageParams };
+    const scenario = mode === "single" ? { key: "fill", fill: singleFill() } : mode === "pattern" ? { key: "fill", pattern: patternParams } : mode === "coverage" ? { key: "fill", coverage: coverageParams } : { key: "fill", duty: dutyParams };
     const timer = window.setTimeout(() => {
       scheduleApi.preview([scenario])
         .then((r) => { if (!cancelled) setPreview(r.results.fill ?? null); })
@@ -119,7 +135,7 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
     }, 400);
     return () => { cancelled = true; window.clearTimeout(timer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, ready, mode, orderedIds, choice, weekdays, from, to, patternParams, coverageParams]);
+  }, [open, ready, mode, orderedIds, choice, weekdays, from, to, patternParams, coverageParams, dutyParams]);
 
   const names = new Map(employees.map((e) => [e.employeeId, e.name]));
   const shiftNames = new Map(shiftTypes.map((s) => [s.id, s.label || s.name]));
@@ -129,7 +145,7 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
   const submit = async () => {
     try {
       setBusy(true);
-      const result = mode === "pattern" ? await scheduleApi.applyPattern(patternParams) : mode === "coverage" ? await scheduleApi.applyCoverage(coverageParams) : await scheduleApi.fill(singleFill());
+      const result = mode === "pattern" ? await scheduleApi.applyPattern(patternParams) : mode === "coverage" ? await scheduleApi.applyCoverage(coverageParams) : mode === "duty" ? await scheduleApi.applyDuty(dutyParams) : await scheduleApi.fill(singleFill());
       toast.success(t("schedule:quickFill.done", { count: result.changed }));
       onOpenChange(false);
       onDone();
@@ -170,10 +186,11 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
           </div>
 
           <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="single">{t("schedule:quickFill.modeSingle")}</TabsTrigger>
               <TabsTrigger value="pattern">{t("schedule:quickFill.modePattern")}</TabsTrigger>
               <TabsTrigger value="coverage">{t("schedule:quickFill.modeCoverage")}</TabsTrigger>
+              <TabsTrigger value="duty">{t("schedule:quickFill.modeDuty")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="single" className="space-y-4 pt-2">
@@ -255,6 +272,53 @@ const QuickFillDialog = ({ open, onOpenChange, month, employees, shiftTypes, onD
                 {t("schedule:coverage.skipExisting")}
               </label>
               <p className="text-xs text-muted-foreground">{t("schedule:coverage.rules")}</p>
+            </TabsContent>
+
+            <TabsContent value="duty" className="space-y-4 pt-2">
+              <p className="text-sm text-muted-foreground">{t("schedule:duty.description")}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>{t("schedule:duty.dutyShift")}</Label>
+                  <Select value={dutyShift} onValueChange={setDutyShift}>
+                    <SelectTrigger><SelectValue placeholder={t("schedule:quickFill.choose")} /></SelectTrigger>
+                    <SelectContent>
+                      {shiftTypes.filter((s) => s.active).map((s) => <SelectItem key={s.id} value={String(s.id)}>{s.name}（{s.startTime}~{s.endTime}）</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>{t("schedule:duty.workShift")}</Label>
+                  <Select value={workShift} onValueChange={setWorkShift}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{t("schedule:duty.workShiftNone")}</SelectItem>
+                      {shiftTypes.filter((s) => s.active).map((s) => <SelectItem key={s.id} value={String(s.id)}>{s.name}（{s.startTime}~{s.endTime}）</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>{t("schedule:duty.start")}</Label>
+                  <Select value={startEmp} onValueChange={setStartEmp}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">{t("schedule:duty.startAuto")}</SelectItem>
+                      {orderedIds.map((id) => <SelectItem key={id} value={id}>{employees.find((e) => e.employeeId === id)?.name ?? id}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>{t("schedule:duty.minRatio")}</Label>
+                  <div className="flex items-center gap-2">
+                    <Input inputMode="numeric" className="w-20" value={minRatio} onChange={(e) => setMinRatio(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} />
+                    <span className="text-xs text-muted-foreground">% → {t("schedule:duty.minPeople", { count: Math.ceil((orderedIds.length * dutyParams.minWorkRatio) / 100 - 1e-9) })}</span>
+                  </div>
+                </div>
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <Checkbox checked={dutySkip} onCheckedChange={(v) => setDutySkip(v === true)} />
+                {t("schedule:duty.skipExisting")}
+              </label>
+              <p className="text-xs text-muted-foreground">{t("schedule:duty.rules")}</p>
             </TabsContent>
           </Tabs>
         </div>

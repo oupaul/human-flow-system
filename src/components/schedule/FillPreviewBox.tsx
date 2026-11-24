@@ -43,6 +43,24 @@ const FillPreviewBox = ({ preview, loading, names, shiftNames }: Props) => {
               )}
             </div>
           )}
+          {preview.duty && (
+            <div className="rounded border bg-muted/40 p-2 text-xs">
+              <div>{t("duty.summary", { total: preview.duty.dutyTotal, min: preview.duty.minWork })}</div>
+              <div className="mt-1 text-muted-foreground">
+                {preview.duty.summary.map((x) => `${names.get(x.employeeId) ?? x.employeeId} ${x.duties}`).join("、")}
+              </div>
+              {preview.duty.dutyShortageTotal > 0 && <div className="mt-1 font-medium text-red-700">{t("duty.noOne", { count: preview.duty.dutyShortageTotal })}：{preview.duty.dutyShortages.slice(0, 6).map((x) => x.date.slice(5)).join("、")}</div>}
+              {preview.duty.skipped.length > 0 && <div className="mt-1 text-amber-700">{t("duty.skipped", { count: preview.duty.skipped.length })}：{preview.duty.skipped.slice(0, 6).map((x) => `${x.date.slice(5)} ${names.get(x.employeeId) ?? x.employeeId}`).join("、")}</div>}
+              {preview.duty.missingCompTotal > 0
+                ? <div className="mt-1 font-medium text-red-700">{t("duty.missingComp", { count: preview.duty.missingCompTotal })}：{preview.duty.missingComp.slice(0, 6).map((x) => `${x.date.slice(5)} ${names.get(x.employeeId) ?? x.employeeId}`).join("、")}</div>
+                : <div className="mt-1 text-emerald-700">{t("duty.allComp")}</div>}
+              {preview.duty.lowHeadcountTotal > 0
+                ? <div className="mt-1 font-medium text-red-700">{t("duty.low", { count: preview.duty.lowHeadcountTotal })}：{preview.duty.lowHeadcount.slice(0, 6).map((x) => `${x.date.slice(5)}（${x.working}）`).join("、")}</div>
+                : <div className="mt-1 text-emerald-700">{t("duty.lowOk")}</div>}
+              {preview.duty.compOutsideRange > 0 && <div className="mt-1 text-amber-700">{t("duty.outside", { count: preview.duty.compOutsideRange })}</div>}
+              <div className="mt-1 text-muted-foreground">{t("duty.next", { name: names.get(preview.duty.nextEmployeeId) ?? preview.duty.nextEmployeeId })}</div>
+            </div>
+          )}
           {preview.newCount === 0 ? (
             <div className="text-emerald-700">{t("check.quickFill.clean")}</div>
           ) : (

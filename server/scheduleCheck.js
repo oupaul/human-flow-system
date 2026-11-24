@@ -19,6 +19,7 @@
 // 七天視窗檢查只看「整段七天都已排班」的區間，避免尚未排完時誤報。
 
 import { planCoverage } from './scheduleCoverage.js';
+import { planDuty } from './scheduleDuty.js';
 import { getScheduleMap, listShiftTypes, normalizeCell, expandFillCells, expandPatternCells, ScheduleError } from './schedule.js';
 
 export const LIMITS = {
@@ -159,11 +160,17 @@ export async function previewScenarios(pool, scenarios) {
   const prepared = [];
   for (const sc of scenarios) {
     let report = null;
+    let dutyReport = null;
     let raw = sc.cells;
+    if (!raw && sc.duty) {
+      const plan = await planDuty(pool, sc.duty);
+      if (plan.cells.length === 0) throw new ScheduleError(400, '沒有任何要填入的格子（可能全部已排好）');
+      raw = plan.cells; dutyReport = plan.report;
+    }
     if (!raw && sc.coverage) { const plan = await planCoverage(pool, sc.coverage); raw = plan.cells; report = plan.report; }
     if (!raw) raw = sc.pattern ? await expandPatternCells(pool, sc.pattern) : expandFillCells(sc.fill || {});
     if (!Array.isArray(raw) || raw.length === 0 || raw.length > 20000) throw new ScheduleError(400, '預覽的儲存格數量不正確');
-    prepared.push({ key: String(sc.key), cells: raw.map(normalizeCell), report });
+    prepared.push({ key: String(sc.key), cells: raw.map(normalizeCell), report, dutyReport });
   }
   const all = prepared.flatMap((p) => p.cells);
   const employeeIds = [...new Set(all.map((c) => c.employeeId))];
@@ -173,7 +180,7 @@ export async function previewScenarios(pool, scenarios) {
   const profiles = await loadProfiles(pool, employeeIds);
 
   const results = {};
-  for (const { key, cells, report } of prepared) {
+  for (const { key, cells, report, dutyReport } of prepared) {
     const cellDates = cells.map((c) => c.date).sort();
     const from = cellDates[0];
     const to = cellDates[cellDates.length - 1];
@@ -206,6 +213,7 @@ export async function previewScenarios(pool, scenarios) {
     }
     results[key] = {
       ...(report ? { coverage: report } : {}),
+      ...(dutyReport ? { duty: dutyReport } : {}),
       stats,
       newCount: newIssues.length,
       resolvedCount: resolvedIssues.length,

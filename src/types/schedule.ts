@@ -71,8 +71,38 @@ export interface CoverageReport {
   summary: { employeeId: string; workDays: number; weekendDays: number; shifts: Record<string, number> }[];
 }
 
+// 值班輪替：週六、週日、國定假日每天 1 人值班，輪流並自動補假
+export interface DutyParams {
+  employeeIds: string[];
+  from: string;
+  to: string;
+  dutyShiftTypeId: number;
+  workShiftTypeId?: number | null;
+  startEmployeeId?: string | null;
+  minWorkRatio: number;
+  skipExisting: boolean;
+}
+export interface DutyReport {
+  minWork: number;
+  dutyTotal: number;
+  duties: { date: string; type: "sat" | "sun" | "holiday"; employeeId: string }[];
+  dutyShortages: { date: string; type: string }[];
+  dutyShortageTotal: number;
+  skipped: { date: string; employeeId: string; reason: "leave" | "existing" }[];
+  missingComp: { employeeId: string; date: string; offType: OffType }[];
+  missingCompTotal: number;
+  lowHeadcount: { date: string; working: number; required: number }[];
+  lowHeadcountTotal: number;
+  compOutsideRange: number;
+  startedFrom: "auto" | "manual" | null;
+  firstEmployeeId: string;
+  nextEmployeeId: string;
+  summary: { employeeId: string; duties: number; missingComp: number }[];
+}
+
 export interface PreviewResult {
   coverage?: CoverageReport;
+  duty?: DutyReport;
   stats: { added: number; changed: number; unchanged: number };
   newCount: number;
   resolvedCount: number;
@@ -115,6 +145,7 @@ export type PreviewScenario =
   | { key: string; cells: CellInput[] }
   | { key: string; pattern: PatternParams }
   | { key: string; coverage: CoverageParams }
+  | { key: string; duty: DutyParams }
   | { key: string; fill: { employeeIds: string[]; from: string; to: string; weekdays: number[]; kind?: "shift" | "off"; shiftTypeId?: number; offType?: OffType; clear?: boolean } };
 
 export type CellInput =

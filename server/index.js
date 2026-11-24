@@ -26,6 +26,7 @@ import {
   setCells, fillSchedule, expandPatternCells, publishSchedule, ensureScheduleSchema, parseWorkTime,
 } from './schedule.js';
 import { expandCoverageCells } from './scheduleCoverage.js';
+import { expandDutyCells } from './scheduleDuty.js';
 import { runMigrations } from './migrate.js';
 import { ensureBrandingSchema, getBranding, getFavicon, setFavicon, clearFavicon, setSiteTitle, BrandingError } from './branding.js';
 import { checkMonth, previewScenarios } from './scheduleCheck.js';
@@ -2288,6 +2289,14 @@ api.post('/schedule/coverage', requireRole('admin', 'hr'), async (req, res) => {
     for (let i = 0; i < cells.length; i += 5000) changed += await setCells(pool, req.user.username, cells.slice(i, i + 5000));
     res.json({ message: '已依需求人數自動排班', changed });
   } catch (error) { handleScheduleError(res, error, '自動排班失敗'); }
+});
+api.post('/schedule/duty', requireRole('admin', 'hr'), async (req, res) => {
+  try {
+    const cells = await expandDutyCells(pool, req.body);
+    let changed = 0;
+    for (let i = 0; i < cells.length; i += 5000) changed += await setCells(pool, req.user.username, cells.slice(i, i + 5000));
+    res.json({ message: '已依值班輪替排班', changed });
+  } catch (error) { handleScheduleError(res, error, '值班輪替排班失敗'); }
 });
 api.get('/schedule/excel-template', requireRole('admin', 'hr'), async (req, res) => {
   try {
