@@ -22,6 +22,7 @@ import { useSeniorityBenefitsOpen } from "@/hooks/useSeniorityBenefitsOpen";
 import { useHolidayBenefitsOpen } from "@/hooks/useHolidayBenefitsOpen";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import PunchCard from "@/components/PunchCard";
 
 interface DashboardStats {
   totalEmployees: number;
@@ -113,6 +114,9 @@ const Dashboard = () => {
           {t("dashboard:updatedAt", { time: new Date().toLocaleString('zh-TW') })}
         </div>
       </div>
+
+      {/* 管理端人員（admin/hr/manager）自己也要打卡：有綁員工且出勤來源為「系統打卡」才會顯示，否則不佔版面 */}
+      <PunchCard />
 
       {/* 統計卡片：點擊直接跳到對應的功能頁面 */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
