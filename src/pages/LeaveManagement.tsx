@@ -1,4 +1,5 @@
 
+import ReviewBlockNote from "@/components/ReviewBlockNote";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -706,7 +707,8 @@ const LeaveManagement = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
-                            {application.status === 'pending' && (
+                            {application.status === 'pending' && application.reviewable === false && <ReviewBlockNote code={application.reviewBlock} />}
+                            {application.status === 'pending' && application.reviewable !== false && (
                               <>
                                 <Button
                                   size="sm"
@@ -874,7 +876,8 @@ const LeaveManagement = () => {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          {application.status === 'pending' && (
+                          {application.status === 'pending' && application.reviewable === false && <ReviewBlockNote code={application.reviewBlock} />}
+                          {application.status === 'pending' && application.reviewable !== false && (
                             <div className="flex gap-2 justify-end">
                               <Button
                                 size="sm"

@@ -10,6 +10,8 @@ export interface CorrectionRequest {
   requestedTime: string;
   reason: string;
   status: RequestStatus;
+  reviewable?: boolean;
+  reviewBlock?: string | null;
   reviewer: string | null;
   reviewNote: string | null;
 }
@@ -24,6 +26,8 @@ export interface OutingRequest {
   destination: string;
   reason: string | null;
   status: RequestStatus;
+  reviewable?: boolean;
+  reviewBlock?: string | null;
   reviewer: string | null;
   reviewNote: string | null;
 }

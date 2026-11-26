@@ -12,6 +12,8 @@ export interface OvertimeApplication {
   compHours: number | null;
   status: "pending" | "approved" | "rejected";
   approver?: string;
+  reviewable?: boolean;
+  reviewBlock?: string | null;
   reviewNote?: string | null;
   created_at?: string;
   updated_at?: string;

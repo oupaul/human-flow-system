@@ -40,6 +40,11 @@ import { detectPunchExceptions, listPunchExceptions } from './punchExceptions.js
 import { getCompliance } from './compliance.js';
 import { getPunchStats } from './punchStats.js';
 import { getAccountState, registerAccountRoutes } from './accounts.js';
+import { beginLoginAttempt, loginSucceeded } from './loginGuard.js';
+import {
+  AccessError, ensureApprovalSchema, getScope, assertCanReview, annotateReviewable, assertInScope, assertCanAdjust,
+  assertCanManageEmployee, companyWide, departmentFilter, reviewerName, registerApprovalRoutes,
+} from './accessControl.js';
 import { microsoftConfig, verifyIdToken, emailFromClaims, SsoError } from './microsoftSso.js';
 import {
   PayrollError, isValidMonth, importRatesCsv, importBracketsCsv, listRates, listBracketSets, generateSnapshot,
@@ -646,6 +651,16 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: '請輸入帳號與密碼' });
     }
 
+    const attempt = beginLoginAttempt(username, req.ip);
+    if (attempt.blocked) {
+      res.set('Retry-After', String(attempt.retryAfterSec));
+      return res.status(429).json({ error: `登入失敗次數過多，請 ${Math.ceil(attempt.retryAfterSec / 60)} 分鐘後再試`, code: 'LOGIN_LOCKED' });
+    }
+    // 這次嘗試達到上限：密碼若仍錯誤，記一筆鎖定紀錄（之後被擋下的請求不逐筆記錄，避免灌爆紀錄）
+    const logLocked = async () => {
+      if (attempt.justLocked) await logAudit(pool, req, { actorUsername: String(username), category: 'login', action: 'login_locked', summary: '登入失敗次數過多，暫停密碼登入 15 分鐘', statusCode: 429, success: false });
+    };
+
     const [rows] = await pool.execute(
       `SELECT u.*, e.name as employeeName, e.gender FROM users u
        LEFT JOIN employees e ON u.employee_id = e.employeeId
@@ -655,14 +670,18 @@ app.post('/api/auth/login', async (req, res) => {
     const user = rows[0];
     if (!user) {
       await logAudit(pool, req, { actorUsername: String(username), category: 'login', action: 'login_failed', summary: '登入失敗：帳號不存在或已停用', statusCode: 401, success: false });
+      await logLocked();
       return res.status(401).json({ error: '帳號或密碼錯誤' });
     }
 
     const passwordMatches = await bcrypt.compare(password, user.password_hash);
     if (!passwordMatches) {
       await logAudit(pool, req, { actorUsername: user.username, actorRole: user.role, category: 'login', action: 'login_failed', summary: '登入失敗：密碼錯誤', statusCode: 401, success: false });
+      await logLocked();
       return res.status(401).json({ error: '帳號或密碼錯誤' });
     }
+
+    loginSucceeded(username, req.ip);
 
     // mcp＝尚須修改密碼：這種 token 只能呼叫「查自己」與「改密碼」，其他 API 一律擋下（見 api 的 gate）
     const token = jwt.sign(
@@ -831,7 +850,11 @@ api.use((req, res, next) => {
   next();
 });
 
+// 受限主管的查詢結果只保留同部門員工
+api.use(departmentFilter(pool));
+
 registerAccountRoutes(api, { pool, requireRole });
+registerApprovalRoutes(api, { pool, requireRole });
 registerAuditRoutes(api, { pool, requireRole });
 
 api.get('/auth/me', async (req, res) => {
@@ -1012,7 +1035,7 @@ api.get('/departments', requireRole(...STAFF_ROLES), async (req, res) => {
   }
 });
 
-api.post('/departments', requireRole(...STAFF_ROLES), async (req, res) => {
+api.post('/departments', requireRole(...STAFF_ROLES), companyWide(pool), async (req, res) => {
   try {
     const { name, leadName, parentId, description } = req.body;
     if (!name || !leadName) {
@@ -1030,7 +1053,7 @@ api.post('/departments', requireRole(...STAFF_ROLES), async (req, res) => {
   }
 });
 
-api.put('/departments/:id', requireRole(...STAFF_ROLES), async (req, res) => {
+api.put('/departments/:id', requireRole(...STAFF_ROLES), companyWide(pool), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, leadName, parentId, description } = req.body;
@@ -1057,7 +1080,7 @@ api.put('/departments/:id', requireRole(...STAFF_ROLES), async (req, res) => {
   }
 });
 
-api.delete('/departments/:id', requireRole(...STAFF_ROLES), async (req, res) => {
+api.delete('/departments/:id', requireRole(...STAFF_ROLES), companyWide(pool), async (req, res) => {
   try {
     const { id } = req.params;
     await pool.execute('DELETE FROM departments WHERE id = ?', [id]);
@@ -1082,9 +1105,16 @@ api.get('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
 
 api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
+    if (req.user.role === 'manager') {
+      const scope = await getScope(pool, req.user);
+      if (scope.restricted && (!scope.department || req.body.department !== scope.department)) {
+        throw new AccessError('主管只能新增自己部門的員工');
+      }
+    }
     const newEmployee = await createEmployeeRecord(req.body, { canSetSalary: SALARY_ROLES.includes(req.user.role), changedBy: req.user.username });
     res.json(newEmployee);
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error creating employee:', error);
     // 欄位驗證類的錯誤（必填欄位缺漏、上期遞延天數不合理）是使用者輸入問題，回 400
     const isInputError = error instanceof ScheduleError || error.message?.includes('必填') || error.message?.includes('遞延');
@@ -1094,7 +1124,7 @@ api.post('/employees', requireRole(...STAFF_ROLES), async (req, res) => {
 
 // 批次匯入員工：CSV 標題列需含姓名/員工編號/部門/職位/電子郵件/到職日，
 // 電話/地址/備註/月薪/已用特休天數為選填。逐列處理，單列失敗不影響其他列
-api.post('/employees/import', requireRole(...STAFF_ROLES), async (req, res) => {
+api.post('/employees/import', requireRole(...STAFF_ROLES), companyWide(pool), async (req, res) => {
   try {
     const { csv } = req.body;
     if (!csv) {
@@ -1131,8 +1161,18 @@ api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     const { name, employeeId, department, position, email, phone, joinDate, active, address, notes, monthlySalary, gender, attendanceAccount, scheduleMode, attendanceSource, punchIpExempt } = req.body;
 
     const workTime = SALARY_ROLES.includes(req.user.role) ? parseWorkTime(req.body) : null; // 只有 admin/hr 能改工時制度
-    const [beforeRows] = await pool.execute('SELECT employeeId, monthlySalary FROM employees WHERE id = ?', [id]);
+    const [beforeRows] = await pool.execute('SELECT employeeId, monthlySalary, email, department, active FROM employees WHERE id = ?', [id]);
     const previousEmployeeId = beforeRows[0]?.employeeId;
+    if (previousEmployeeId) {
+      const before = beforeRows[0];
+      // 改 Email（登入帳號與 M365 比對依據）、員工編號或在職狀態屬敏感變更
+      const sensitive = String(email ?? '').toLowerCase() !== String(before.email ?? '').toLowerCase()
+        || employeeId !== previousEmployeeId || (active !== undefined && !!active !== !!before.active);
+      await assertCanManageEmployee(pool, req.user, previousEmployeeId, { sensitive });
+      if (req.user.role === 'manager' && department !== before.department && (await getScope(pool, req.user)).restricted) {
+        throw new AccessError('主管不能把員工調到其他部門');
+      }
+    }
 
     // 月薪不在這裡直接寫入：薪資以「薪資異動歷史」為準（employees.monthlySalary 只是快取）。
     // 有薪資權限的角色改了月薪，就在今天建立一筆異動紀錄並同步快取；主管送來的表單不含月薪，一律忽略。
@@ -1162,6 +1202,7 @@ api.put('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     const [updatedEmployee] = await pool.execute('SELECT * FROM employees WHERE id = ?', [id]);
     res.json(updatedEmployee[0]);
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     if (error instanceof ScheduleError) return res.status(error.status).json({ error: error.message });
     console.error('Error updating employee:', error);
     res.status(500).json({ error: '更新員工失敗', detail: error.message });
@@ -1186,6 +1227,7 @@ api.delete('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     const [[employee]] = await pool.execute('SELECT id, employeeId, name FROM employees WHERE id = ?', [req.params.id]);
     if (!employee) return res.status(404).json({ error: '找不到這位員工' });
     if (employee.employeeId === req.user.employeeId) return res.status(400).json({ error: '不能刪除自己的員工資料' });
+    await assertCanManageEmployee(pool, req.user, employee.employeeId);
 
     const used = [];
     for (const [table, label] of EMPLOYEE_ACTIVITY_TABLES) {
@@ -1207,6 +1249,7 @@ api.delete('/employees/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     await conn.commit();
     res.json({ message: '員工刪除成功' });
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     if (conn) await conn.rollback().catch(() => {});
     console.error('Error deleting employee:', error);
     res.status(500).json({ error: '刪除員工失敗', detail: error.message });
@@ -1219,6 +1262,9 @@ api.put('/employees/:id/terminate', requireRole(...STAFF_ROLES), async (req, res
   try {
     const { id } = req.params;
     const { terminationDate, terminationReason } = req.body;
+    const [[target]] = await pool.execute('SELECT employeeId FROM employees WHERE id = ?', [id]);
+    if (!target) return res.status(404).json({ error: '找不到員工資料' });
+    await assertCanManageEmployee(pool, req.user, target.employeeId);
 
     await pool.execute(
       'UPDATE employees SET active = false, terminationDate = ?, terminationReason = ? WHERE id = ?',
@@ -1234,6 +1280,7 @@ api.put('/employees/:id/terminate', requireRole(...STAFF_ROLES), async (req, res
     const [updatedEmployee] = await pool.execute('SELECT * FROM employees WHERE id = ?', [id]);
     res.json(updatedEmployee[0]);
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error terminating employee:', error);
     res.status(500).json({ error: '員工離職失敗', detail: error.message });
   }
@@ -1241,7 +1288,7 @@ api.put('/employees/:id/terminate', requireRole(...STAFF_ROLES), async (req, res
 
 // 將員工改派到另一個部門；供部門管理頁「直接管理成員」使用，只更新部門欄位，
 // 不影響員工的其他資料（不像一般 PUT /employees/:id 需要整包欄位）
-api.put('/employees/:id/department', requireRole(...STAFF_ROLES), async (req, res) => {
+api.put('/employees/:id/department', requireRole(...STAFF_ROLES), companyWide(pool), async (req, res) => {
   try {
     const { id } = req.params;
     const { department } = req.body;
@@ -1272,10 +1319,13 @@ api.post('/employees/:id/reset-password', requireRole(...STAFF_ROLES), async (re
       return res.status(404).json({ error: '找不到員工資料' });
     }
 
+    await assertCanManageEmployee(pool, req.user, employee.employeeId);
+
     await syncEmployeeAccount(employee.employeeId, employee.email, { resetPassword: true });
 
     res.json({ message: '密碼已重設', username: employee.email, defaultPassword: employee.employeeId });
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error resetting employee password:', error);
     res.status(500).json({ error: '重設密碼失敗', detail: error.message });
   }
@@ -1293,7 +1343,7 @@ api.get('/leave-types', async (req, res) => {
   }
 });
 
-api.post('/leave-types', requireRole(...STAFF_ROLES), async (req, res) => {
+api.post('/leave-types', requireRole(...STAFF_ROLES), companyWide(pool), async (req, res) => {
   try {
     const { name, code, unit, needProof, affectAttendance, isPaid, maxDays, advanceApply, canSplit } = req.body;
 
@@ -1345,6 +1395,8 @@ api.post('/leave-grants', requireRole(...STAFF_ROLES), async (req, res) => {
       return res.status(400).json({ error: '員工、假別與核給天數為必填' });
     }
 
+    await assertCanAdjust(pool, req.user, employeeId);
+
     const [result] = await pool.execute(
       'INSERT INTO leave_grants (employeeId, leaveTypeId, totalDays, deadline, note, createdBy) VALUES (?, ?, ?, ?, ?, ?)',
       [employeeId, leaveTypeId, totalDays, deadline || null, note || null, req.user.username]
@@ -1363,6 +1415,7 @@ api.post('/leave-grants', requireRole(...STAFF_ROLES), async (req, res) => {
     });
     res.json(newGrant[0]);
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error creating leave grant:', error);
     res.status(500).json({ error: '新增假別核給失敗', detail: error.message });
   }
@@ -1379,6 +1432,7 @@ api.delete('/leave-grants/:id', requireRole(...STAFF_ROLES), async (req, res) =>
     if (!rows[0]) {
       return res.status(404).json({ error: '找不到該筆核給紀錄' });
     }
+    await assertCanAdjust(pool, req.user, rows[0].employeeId);
     if (rows[0].usedDays > 0) {
       return res.status(400).json({ error: '已有請假申請使用這筆核給，無法刪除' });
     }
@@ -1389,6 +1443,7 @@ api.delete('/leave-grants/:id', requireRole(...STAFF_ROLES), async (req, res) =>
     });
     res.json({ message: '核給紀錄已刪除' });
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error deleting leave grant:', error);
     res.status(500).json({ error: '刪除假別核給失敗', detail: error.message });
   }
@@ -1425,7 +1480,7 @@ api.get('/leave-applications', async (req, res) => {
       ${conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''}
       ORDER BY la.created_at DESC
     `, params);
-    res.json(rows);
+    res.json(await annotateReviewable(pool, req.user, rows));
   } catch (error) {
     console.error('Error fetching leave applications:', error);
     res.status(500).json({ error: '獲取請假申請失敗', detail: error.message });
@@ -1437,6 +1492,8 @@ api.post('/leave-applications', async (req, res) => {
     // employee 角色只能為自己申請，強制以登入帳號綁定的 employeeId 覆蓋前端傳入值
     const employeeId = req.user.role === 'employee' ? req.user.employeeId : req.body.employeeId;
     const { leaveTypeId, startDate, endDate, startTime, endTime, reason, deputy } = req.body;
+
+    await assertInScope(pool, req.user, employeeId);
 
     const [leaveTypeRows] = await pool.execute('SELECT code FROM leave_types WHERE id = ?', [leaveTypeId]);
     const leaveTypeCode = leaveTypeRows[0]?.code;
@@ -1505,6 +1562,7 @@ api.post('/leave-applications', async (req, res) => {
 
     res.json(application);
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error creating leave application:', error);
     res.status(500).json({ error: '新增請假申請失敗', detail: error.message });
   }
@@ -1534,6 +1592,8 @@ api.post('/leave-applications/:id/attachment', (req, res, next) => {
       return res.status(403).json({ error: '無權操作他人的請假申請' });
     }
 
+    await assertInScope(pool, req.user, application.employeeId);
+
     if (application.attachment) {
       fs.unlink(path.join(UPLOAD_DIR, application.attachment), () => {});
     }
@@ -1541,6 +1601,7 @@ api.post('/leave-applications/:id/attachment', (req, res, next) => {
     await pool.execute('UPDATE leave_applications SET attachment = ? WHERE id = ?', [req.file.filename, id]);
     res.json({ message: '附件上傳成功' });
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error uploading leave application attachment:', error);
     res.status(500).json({ error: '附件上傳失敗', detail: error.message });
   }
@@ -1559,12 +1620,15 @@ api.get('/leave-applications/:id/attachment', async (req, res) => {
       return res.status(403).json({ error: '無權查看他人的附件' });
     }
 
+    await assertInScope(pool, req.user, application.employeeId);
+
     const filePath = path.join(UPLOAD_DIR, application.attachment);
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: '附件檔案遺失' });
     }
     res.sendFile(filePath);
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error downloading leave application attachment:', error);
     res.status(500).json({ error: '下載附件失敗', detail: error.message });
   }
@@ -1573,7 +1637,7 @@ api.get('/leave-applications/:id/attachment', async (req, res) => {
 api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, approver, days, reviewNote } = req.body;
+    const { status, days, reviewNote } = req.body; // 審核者不採用前端傳入的值
 
     const [beforeRows] = await pool.execute(`
       SELECT la.employeeId, la.days, la.status as previousStatus, la.grantId, lt.code as leaveTypeCode, e.joinDate
@@ -1586,6 +1650,8 @@ api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (re
     if (!application) {
       return res.status(404).json({ error: '找不到該筆請假申請' });
     }
+    await assertCanReview(pool, req.user, application.employeeId);
+    const approver = await reviewerName(pool, req.user);
 
     // 核准時可由 HR/主管調整實際核准天數（例如依喪假訃聞判斷的親屬關係天數），
     // 不一定等於員工申請當下試算的天數；未提供則沿用原本天數
@@ -1663,6 +1729,7 @@ api.put('/leave-applications/:id/status', requireRole(...STAFF_ROLES), async (re
 
     res.json(updatedApplication[0]);
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error updating leave application status:', error);
     res.status(500).json({ error: '更新請假申請狀態失敗', detail: error.message });
   }
@@ -1723,6 +1790,8 @@ api.put('/leave-balances/:employeeId', requireRole(...STAFF_ROLES), async (req, 
     const { employeeId } = req.params;
     const { sickLeave, sickLeaveUsed } = req.body;
 
+    await assertCanAdjust(pool, req.user, employeeId);
+
     const [beforeRows] = await pool.execute('SELECT sickLeave, sickLeaveUsed FROM leave_balances WHERE employeeId = ?', [employeeId]);
     await pool.execute(
       'UPDATE leave_balances SET sickLeave = ?, sickLeaveUsed = ? WHERE employeeId = ?',
@@ -1741,6 +1810,7 @@ api.put('/leave-balances/:employeeId', requireRole(...STAFF_ROLES), async (req, 
 
     res.json(updatedBalance[0]);
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error updating leave balance:', error);
     res.status(500).json({ error: '更新假別餘額失敗', detail: error.message });
   }
@@ -1748,7 +1818,7 @@ api.put('/leave-balances/:employeeId', requireRole(...STAFF_ROLES), async (req, 
 
 // 重新整理所有在職員工「目前這期」的特休發放天數（勞基法第 38 條年資級距），
 // 用於到職未滿一年、跨過 6 個月門檻等年資級距中途變動的情況；已用天數不受影響
-api.post('/leave-balances/recalculate', requireRole(...STAFF_ROLES), async (req, res) => {
+api.post('/leave-balances/recalculate', requireRole(...STAFF_ROLES), companyWide(pool), async (req, res) => {
   try {
     const [employees] = await pool.execute('SELECT employeeId, joinDate FROM employees WHERE active = TRUE');
 
@@ -1833,6 +1903,7 @@ api.put('/leave-periods/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     if (!period) {
       return res.status(404).json({ error: '找不到該筆特休週年紀錄' });
     }
+    await assertCanAdjust(pool, req.user, period.employeeId);
 
     if (hasCarried) {
       if (!SALARY_ROLES.includes(req.user.role)) {
@@ -1869,6 +1940,7 @@ api.put('/leave-periods/:id', requireRole(...STAFF_ROLES), async (req, res) => {
     const [rows] = await pool.execute('SELECT * FROM leave_periods WHERE id = ?', [id]);
     res.json(rows[0]);
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error adjusting leave period:', error);
     res.status(500).json({ error: '調整特休天數失敗', detail: error.message });
   }
@@ -1980,7 +2052,7 @@ api.get('/holidays', async (req, res) => {
   }
 });
 
-api.post('/holidays', requireRole(...STAFF_ROLES), async (req, res) => {
+api.post('/holidays', requireRole(...STAFF_ROLES), companyWide(pool), async (req, res) => {
   try {
     const { date, name, isHoliday } = req.body;
     if (!date) {
@@ -2001,7 +2073,7 @@ api.post('/holidays', requireRole(...STAFF_ROLES), async (req, res) => {
 
 // 匯入人事行政總處公布的政府行政機關辦公日曆表 CSV（西元日期,星期,是否放假,備註）
 // 從臺北市政府資料開放平台自動同步假日行事曆（今年起的資料；手動新增的日期不會被覆蓋）
-api.post('/holidays/sync', requireRole(...STAFF_ROLES), async (req, res) => {
+api.post('/holidays/sync', requireRole(...STAFF_ROLES), companyWide(pool), async (req, res) => {
   try {
     const result = await syncHolidaysFromTaipei(pool);
     res.json({ message: '假日行事曆同步成功', ...result });
@@ -2011,7 +2083,7 @@ api.post('/holidays/sync', requireRole(...STAFF_ROLES), async (req, res) => {
   }
 });
 
-api.post('/holidays/import', requireRole(...STAFF_ROLES), async (req, res) => {
+api.post('/holidays/import', requireRole(...STAFF_ROLES), companyWide(pool), async (req, res) => {
   try {
     const { csv } = req.body;
     if (!csv) {
@@ -2038,7 +2110,7 @@ api.post('/holidays/import', requireRole(...STAFF_ROLES), async (req, res) => {
   }
 });
 
-api.delete('/holidays/:id', requireRole(...STAFF_ROLES), async (req, res) => {
+api.delete('/holidays/:id', requireRole(...STAFF_ROLES), companyWide(pool), async (req, res) => {
   try {
     const { id } = req.params;
     await pool.execute('DELETE FROM holidays WHERE id = ?', [id]);
@@ -2070,7 +2142,7 @@ api.get('/attendance/import-template', requireRole(...STAFF_ROLES), (req, res) =
   res.send(buffer);
 });
 
-api.post('/attendance/import', requireRole(...STAFF_ROLES), (req, res, next) => {
+api.post('/attendance/import', requireRole(...STAFF_ROLES), companyWide(pool), (req, res, next) => {
   uploadImportFile.single('file')(req, res, (err) => {
     if (err) {
       return res.status(400).json({ error: err.message });
@@ -2144,6 +2216,7 @@ api.post('/attendance/import', requireRole(...STAFF_ROLES), (req, res, next) => 
 // 讓「明細列表」跟「統計次數」永遠對得上，不會各自維護一套邏輯而算出不同結果
 // 自建打卡（階段 A）
 function handlePunchError(res, error, fallback) {
+  if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
   if (error instanceof PunchError) return res.status(error.status).json({ error: error.message, code: error.code, ...error.extra });
   console.error(fallback, error);
   return res.status(500).json({ error: fallback, detail: error.message });
@@ -2186,6 +2259,8 @@ api.get('/attendance/punch/events', requireRole(...STAFF_ROLES), async (req, res
 // 作廢與補登會改變出勤結果，僅 admin/hr，且必須填原因（留下稽核軌跡）
 api.post('/attendance/punch/events/:id/void', requireRole('admin', 'hr'), async (req, res) => {
   try {
+    const [[event]] = await pool.execute('SELECT employeeId FROM punch_events WHERE id = ?', [req.params.id]);
+    if (event) await assertCanAdjust(pool, req.user, event.employeeId);
     await voidPunchEvent(pool, req.params.id, req.user.username, req.body.reason);
     res.json({ message: '已作廢該筆打卡紀錄（原始紀錄保留）' });
   } catch (error) {
@@ -2195,6 +2270,7 @@ api.post('/attendance/punch/events/:id/void', requireRole('admin', 'hr'), async 
 
 api.post('/attendance/punch/correction', requireRole('admin', 'hr'), async (req, res) => {
   try {
+    await assertCanAdjust(pool, req.user, req.body.employeeId);
     res.status(201).json({ message: '補登完成', ...(await addCorrection(pool, req.user.username, req.body)) });
   } catch (error) {
     handlePunchError(res, error, '補登失敗');
@@ -2366,11 +2442,15 @@ api.post('/punch-requests/correction', async (req, res) => {
 api.get('/punch-requests/correction', async (req, res) => {
   try {
     const isStaff = STAFF_ROLES.includes(req.user.role);
-    res.json(await listCorrectionRequests(pool, { employeeId: isStaff && req.query.all === '1' ? undefined : req.user.employeeId, status: req.query.status }));
+    const rows = await listCorrectionRequests(pool, { employeeId: isStaff && req.query.all === '1' ? undefined : req.user.employeeId, status: req.query.status });
+    res.json(await annotateReviewable(pool, req.user, rows));
   } catch (error) { handlePunchError(res, error, '取得補卡申請失敗'); }
 });
 api.post('/punch-requests/correction/:id/review', requireRole(...STAFF_ROLES), async (req, res) => {
-  try { await reviewCorrectionRequest(pool, req.params.id, req.user.username, req.body); res.json({ message: req.body.action === 'approve' ? '已核准並補登打卡' : '已退回' }); } catch (error) { handlePunchError(res, error, '審核補卡申請失敗'); }
+  try {
+    const [[target]] = await pool.execute('SELECT employeeId FROM punch_correction_requests WHERE id = ?', [req.params.id]);
+    if (target) await assertCanReview(pool, req.user, target.employeeId);
+    await reviewCorrectionRequest(pool, req.params.id, req.user.username, req.body); res.json({ message: req.body.action === 'approve' ? '已核准並補登打卡' : '已退回' }); } catch (error) { handlePunchError(res, error, '審核補卡申請失敗'); }
 });
 api.post('/punch-requests/outing', async (req, res) => {
   try { res.status(201).json({ id: await createOutingRequest(pool, req.user.employeeId, req.body), message: '公出申請已送出' }); } catch (error) { handlePunchError(res, error, '送出公出申請失敗'); }
@@ -2378,11 +2458,15 @@ api.post('/punch-requests/outing', async (req, res) => {
 api.get('/punch-requests/outing', async (req, res) => {
   try {
     const isStaff = STAFF_ROLES.includes(req.user.role);
-    res.json(await listOutingRequests(pool, { employeeId: isStaff && req.query.all === '1' ? undefined : req.user.employeeId, status: req.query.status }));
+    const rows = await listOutingRequests(pool, { employeeId: isStaff && req.query.all === '1' ? undefined : req.user.employeeId, status: req.query.status });
+    res.json(await annotateReviewable(pool, req.user, rows));
   } catch (error) { handlePunchError(res, error, '取得公出申請失敗'); }
 });
 api.post('/punch-requests/outing/:id/review', requireRole(...STAFF_ROLES), async (req, res) => {
-  try { await reviewOutingRequest(pool, req.params.id, req.user.username, req.body); res.json({ message: req.body.action === 'approve' ? '已核准公出' : '已退回' }); } catch (error) { handlePunchError(res, error, '審核公出申請失敗'); }
+  try {
+    const [[target]] = await pool.execute('SELECT employeeId FROM outing_applications WHERE id = ?', [req.params.id]);
+    if (target) await assertCanReview(pool, req.user, target.employeeId);
+    await reviewOutingRequest(pool, req.params.id, req.user.username, req.body); res.json({ message: req.body.action === 'approve' ? '已核准公出' : '已退回' }); } catch (error) { handlePunchError(res, error, '審核公出申請失敗'); }
 });
 
 api.get('/attendance/exceptions', requireRole(...STAFF_ROLES), async (req, res) => {
@@ -2488,7 +2572,7 @@ api.get('/leaves/import-template', requireRole(...STAFF_ROLES), (req, res) => {
 // 透過員工的「考勤帳號」比對到系統內的員工，用於補齊「報表 → 請假分析」在正式
 // 數位化請假申請功能上線前的歷史/既有請假資料，不會寫入 leave_applications，
 // 也不影響假別餘額或核准流程，純粹供報表統計使用
-api.post('/leaves/import', requireRole(...STAFF_ROLES), (req, res, next) => {
+api.post('/leaves/import', requireRole(...STAFF_ROLES), companyWide(pool), (req, res, next) => {
   uploadImportFile.single('file')(req, res, (err) => {
     if (err) {
       return res.status(400).json({ error: err.message });
@@ -2572,7 +2656,7 @@ api.get('/overtime-applications', async (req, res) => {
       ${conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''}
       ORDER BY o.created_at DESC
     `, params);
-    res.json(rows);
+    res.json(await annotateReviewable(pool, req.user, rows));
   } catch (error) {
     console.error('Error fetching overtime applications:', error);
     res.status(500).json({ error: '獲取加班申請失敗', detail: error.message });
@@ -2587,6 +2671,8 @@ api.post('/overtime-applications', async (req, res) => {
     if (!employeeId || !date || !startTime || !endTime || !reason) {
       return res.status(400).json({ error: '所有必填欄位皆需填寫' });
     }
+
+    await assertInScope(pool, req.user, employeeId);
 
     // 自動扣除與中午 12:00-13:00 午休時段重疊的部分，避免整天加班橫跨午休時多算時數
     const hours = calculateWorkingHours(startTime, endTime);
@@ -2624,6 +2710,7 @@ api.post('/overtime-applications', async (req, res) => {
 
     res.json(application);
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error creating overtime application:', error);
     res.status(500).json({ error: '新增加班申請失敗', detail: error.message });
   }
@@ -2632,7 +2719,7 @@ api.post('/overtime-applications', async (req, res) => {
 api.put('/overtime-applications/:id/status', requireRole(...STAFF_ROLES), async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, approver, reviewNote } = req.body;
+    const { status, reviewNote } = req.body; // 審核者不採用前端傳入的值
 
     const [beforeRows] = await pool.execute(
       'SELECT employeeId, date, compensationType, compHours, status as previousStatus FROM overtime_applications WHERE id = ?',
@@ -2642,6 +2729,8 @@ api.put('/overtime-applications/:id/status', requireRole(...STAFF_ROLES), async 
     if (!application) {
       return res.status(404).json({ error: '找不到該筆加班申請' });
     }
+    await assertCanReview(pool, req.user, application.employeeId);
+    const approver = await reviewerName(pool, req.user);
 
     // 換補休的加班一旦補休已被請假申請使用，就不能取消核准，否則額度會變成負的
     if (application.compensationType === 'comp' && status !== 'approved' && application.previousStatus === 'approved') {
@@ -2678,6 +2767,7 @@ api.put('/overtime-applications/:id/status', requireRole(...STAFF_ROLES), async 
 
     res.json(updatedApplication[0]);
   } catch (error) {
+    if (error instanceof AccessError) return res.status(error.status).json({ error: error.message, code: error.code });
     console.error('Error updating overtime application status:', error);
     res.status(500).json({ error: '更新加班申請狀態失敗', detail: error.message });
   }
@@ -3666,6 +3756,7 @@ async function checkCompTimeExpiryReminders() {
 await runMigrations(pool, path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations')).catch((error) => console.error('資料庫遷移失敗：', error.message));
 await ensureBrandingSchema(pool).catch((error) => console.error('建立外觀設定資料表失敗：', error.message));
 await ensureAuditSchema(pool).catch((error) => console.error('建立系統操作紀錄資料表失敗：', error.message));
+await ensureApprovalSchema(pool).catch((error) => console.error('建立簽核設定資料表失敗：', error.message));
 await ensureScheduleSchema(pool).catch((error) => console.error('補上班別簡稱欄位失敗：', error.message));
 
 app.listen(PORT, () => {

@@ -101,5 +101,13 @@
     "zhTW": "正體中文",
     "en": "English",
     "ja": "日本語"
+  },
+  "reviewBlock": {
+    "self": "不能審核自己的申請",
+    "gm_application": "需由其他管理員審核",
+    "needs_gm": "需由總經理審核",
+    "needs_admin": "需由管理員審核",
+    "other_department": "非本部門，無法審核",
+    "not_staff": "權限不足"
   }
 }

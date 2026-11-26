@@ -216,6 +216,35 @@ curl -o /dev/null -s -w "%{http_code}\n" http://localhost:8080/api/employees
 # 應回傳 401
 ```
 
+## 資料備份與還原
+
+`backup` 服務每天 02:30（台北時間）自動備份到主機的 `./backups`，保留 30 天；啟動時若 24 小時內沒有備份會先做一次。
+可在 `.env` 用 `BACKUP_TIME`、`BACKUP_KEEP_DAYS`、`BACKUP_DIR` 調整。
+
+- `db-日期-時間.sql.gz`：資料庫
+- `uploads-日期-時間.tar.gz`：請假證明附件
+
+備份內含個資與薪資，目錄權限只給 root（讀取要用 `sudo`）。**備份和系統放在同一台主機時，主機或磁碟故障會一起遺失**，
+請定期把 `backups` 複製到另一台機器或雲端，或把 `BACKUP_DIR` 指到掛載的網路磁碟。`.env` 也要另外保存。
+
+```sh
+docker compose logs backup                       # 查看備份紀錄（失敗會顯示「錯誤」）
+docker compose exec backup bash /backup.sh now   # 立刻備份一次
+sudo ls -lh backups                              # 列出備份檔
+```
+
+### 還原
+
+還原會**覆蓋目前的資料**，執行前請先做一次備份。
+
+```sh
+docker compose stop backend
+sudo cat backups/db-YYYYMMDD-HHMMSS.sql.gz | gunzip \
+  | docker compose exec -T db sh -c 'mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" "$MARIADB_DATABASE"'
+docker compose start backend
+sudo cat backups/uploads-YYYYMMDD-HHMMSS.tar.gz | docker compose exec -T backend tar -xzf - -C /app/uploads
+```
+
 ## 常見問題
 
 - **backend 容器一直重啟 / 連不上資料庫**：多半是 `db` 還沒 healthy 就被連線，或 `.env` 密碼與 compose 沒對上。查看記錄：`docker compose logs backend`、`docker compose logs db`。

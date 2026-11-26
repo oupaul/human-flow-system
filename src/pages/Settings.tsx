@@ -24,6 +24,7 @@ import { notificationSettingsApi } from "@/services/notificationSettingsApi";
 import { NotificationSettingsFormData } from "@/types/notificationSettings";
 import { ApiError } from "@/lib/apiClient";
 import BrandingCard from "@/components/settings/BrandingCard";
+import ApprovalCard from "@/components/settings/ApprovalCard";
 
 const emptyForm: NotificationSettingsFormData = {
   channel: "none",
@@ -138,6 +139,8 @@ const Settings = () => {
       <h1 className="text-2xl font-bold tracking-tight">{t("common:nav.settings")}</h1>
 
       <BrandingCard />
+
+      <ApprovalCard />
 
       <Card>
         <CardHeader>

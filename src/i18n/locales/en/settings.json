@@ -58,5 +58,14 @@
     "titlePlaceholder": "Leave blank for the default title",
     "titleHint": "Up to 50 characters. Save with the field empty to restore the default title.",
     "titleSaved": "Tab title updated"
+  },
+  "approval": {
+    "title": "Approval settings",
+    "description": "No one can review their own request. Requests from administrators and managers go to the general manager; the general manager's requests go to another administrator; managers can only review their own department.",
+    "generalManager": "General manager",
+    "none": "Not set",
+    "saved": "Approval settings saved",
+    "notSet": "No general manager set: administrators currently review requests from administrators and managers.",
+    "stale": "The previously selected general manager has left, been disabled, or lost their staff role. Please choose again."
   }
 }

@@ -101,5 +101,13 @@
     "zhTW": "正體中文",
     "en": "English",
     "ja": "日本語"
+  },
+  "reviewBlock": {
+    "self": "You cannot review your own request",
+    "gm_application": "Needs another administrator",
+    "needs_gm": "Needs the general manager",
+    "needs_admin": "Needs an administrator",
+    "other_department": "Outside your department",
+    "not_staff": "Insufficient permission"
   }
 }

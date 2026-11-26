@@ -53,7 +53,7 @@ export const useOvertimeApplications = (year?: number) => {
     } catch (error) {
       console.error("Failed to update overtime status:", error);
       toast.error("審核狀態更新失敗", {
-        description: "請檢查網路連線或聯繫系統管理員",
+        description: error instanceof Error ? error.message : "請檢查網路連線或聯繫系統管理員",
       });
     }
   };

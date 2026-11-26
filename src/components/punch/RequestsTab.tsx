@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import ReviewBlockNote from "@/components/ReviewBlockNote";
 import { punchRequestApi } from "@/services/punchRequestApi";
 import { CorrectionRequest, OutingRequest, RequestStatus } from "@/types/punchRequests";
 
@@ -52,6 +53,7 @@ const RequestsTab = () => {
 
   const statusBadge = (s: RequestStatus) => <Badge variant={s === "pending" ? "default" : s === "approved" ? "secondary" : "outline"}>{t(`punch:requests.status.${s}`)}</Badge>;
   const actions = (target: Target, s: RequestStatus) => s === "pending" && (
+    target.item.reviewable === false ? <div className="text-right"><ReviewBlockNote code={target.item.reviewBlock} /></div> :
     <div className="space-x-2 text-right">
       <Button size="sm" onClick={() => review(target, "approve")}>{t("punch:requests.approve")}</Button>
       <Button size="sm" variant="outline" onClick={() => setRejecting(target)}>{t("punch:requests.reject")}</Button>
