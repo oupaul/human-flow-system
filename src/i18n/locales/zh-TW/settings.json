@@ -61,11 +61,34 @@
   },
   "approval": {
     "title": "簽核設定",
-    "description": "任何人都不能審核自己的申請。管理員與主管的申請由總經理審核；總經理的申請由其他管理員審核；主管只能審核同部門員工。",
-    "generalManager": "總經理",
+    "description": "任何人都不能審核自己的申請。管理員與主管的申請由最終簽核者審核；最終簽核者的申請由其他管理員審核；主管只能審核同部門員工。",
+    "generalManager": "最終簽核者",
     "none": "未設定",
     "saved": "簽核設定已儲存",
-    "notSet": "尚未設定總經理：管理員與主管的申請目前由管理員審核。",
-    "stale": "原本設定的總經理已離職、停用或不再是管理端角色，請重新選擇。"
+    "notSet": "尚未設定最終簽核者：管理員與主管的申請目前由管理員審核。",
+    "stale": "原本設定的最終簽核者已離職、停用或不再是管理端角色，請重新選擇。"
+  },
+  "backup": {
+    "title": "備份",
+    "description": "每天 {{time}} 自動備份資料庫與請假附件，主機上保留 {{days}} 天。啟用 NAS 上傳後，備份會再複製到 SMB 分享資料夾。",
+    "enable": "備份完成後上傳到 NAS（SMB）",
+    "host": "主機（IP 或名稱）",
+    "share": "分享資料夾",
+    "folder": "子資料夾（選填）",
+    "domain": "網域（選填）",
+    "username": "帳號",
+    "password": "密碼",
+    "passwordKept": "已儲存，留空代表不變更",
+    "remoteKeepDays": "NAS 保留天數",
+    "saved": "備份設定已儲存",
+    "test": "測試連線",
+    "runNow": "立即備份",
+    "running": "執行中…",
+    "saveFirst": "請先儲存，才能測試或備份",
+    "lastTest": "連線測試",
+    "lastBackup": "主機備份",
+    "lastUpload": "NAS 上傳",
+    "never": "尚無紀錄",
+    "workerDown": "備份服務沒有在執行，請在主機上檢查 backup 服務。"
   }
 }

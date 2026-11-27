@@ -40,6 +40,7 @@ import { detectPunchExceptions, listPunchExceptions } from './punchExceptions.js
 import { getCompliance } from './compliance.js';
 import { getPunchStats } from './punchStats.js';
 import { getAccountState, registerAccountRoutes } from './accounts.js';
+import { ensureBackupSchema, registerBackupRoutes } from './backupSettings.js';
 import { beginLoginAttempt, loginSucceeded } from './loginGuard.js';
 import {
   AccessError, ensureApprovalSchema, getScope, assertCanReview, annotateReviewable, assertInScope, assertCanAdjust,
@@ -855,6 +856,7 @@ api.use(departmentFilter(pool));
 
 registerAccountRoutes(api, { pool, requireRole });
 registerApprovalRoutes(api, { pool, requireRole });
+registerBackupRoutes(api, { pool, requireRole });
 registerAuditRoutes(api, { pool, requireRole });
 
 api.get('/auth/me', async (req, res) => {
@@ -3757,6 +3759,7 @@ await runMigrations(pool, path.join(path.dirname(fileURLToPath(import.meta.url))
 await ensureBrandingSchema(pool).catch((error) => console.error('建立外觀設定資料表失敗：', error.message));
 await ensureAuditSchema(pool).catch((error) => console.error('建立系統操作紀錄資料表失敗：', error.message));
 await ensureApprovalSchema(pool).catch((error) => console.error('建立簽核設定資料表失敗：', error.message));
+await ensureBackupSchema(pool).catch((error) => console.error('建立備份設定資料表失敗：', error.message));
 await ensureScheduleSchema(pool).catch((error) => console.error('補上班別簡稱欄位失敗：', error.message));
 
 app.listen(PORT, () => {

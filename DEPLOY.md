@@ -224,12 +224,27 @@ curl -o /dev/null -s -w "%{http_code}\n" http://localhost:8080/api/employees
 - `db-日期-時間.sql.gz`：資料庫
 - `uploads-日期-時間.tar.gz`：請假證明附件
 
-備份內含個資與薪資，目錄權限只給 root（讀取要用 `sudo`）。**備份和系統放在同一台主機時，主機或磁碟故障會一起遺失**，
-請定期把 `backups` 複製到另一台機器或雲端，或把 `BACKUP_DIR` 指到掛載的網路磁碟。`.env` 也要另外保存。
+備份內含個資與薪資，目錄權限只給 root（讀取要用 `sudo`）。**備份只放在同一台主機時，主機或磁碟故障會一起遺失**，
+請設定下面的 NAS 上傳。`.env`（含資料庫密碼與 JWT 密鑰）不在備份內，要另外保存。
+
+### 上傳到 NAS（SMB）
+
+用管理員登入，到「系統設定 → 備份」填寫後按「儲存」，再按「測試連線」。
+
+| 欄位 | 說明 |
+|---|---|
+| 主機 | NAS 的 IP 或主機名稱（建議填 IP） |
+| 分享資料夾 | 第一層分享名稱，例如 `backup` |
+| 子資料夾 | 可留空；例如 `hrms/prod`，不存在會自動建立 |
+| 帳號／密碼／網域 | 建議在 NAS 建一個只能存取該資料夾的專用帳號 |
+| 遠端保留天數 | NAS 上超過天數的備份會刪除（只刪本系統產生的檔名） |
+
+每次備份完成後上傳；NAS 暫時連不上時，下次會把缺少的檔案補傳。失敗會依系統的通知設定寄出通知。
+需要主機能連到 NAS 的 TCP 445，NAS 需支援 SMB2 以上。NAS 密碼存在資料庫中（也會包含在備份裡）。
 
 ```sh
 docker compose logs backup                       # 查看備份紀錄（失敗會顯示「錯誤」）
-docker compose exec backup bash /backup.sh now   # 立刻備份一次
+docker compose exec backup node backupWorker.js now   # 立刻備份（含上傳）一次
 sudo ls -lh backups                              # 列出備份檔
 ```
 

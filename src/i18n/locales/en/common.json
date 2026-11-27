@@ -105,7 +105,7 @@
   "reviewBlock": {
     "self": "You cannot review your own request",
     "gm_application": "Needs another administrator",
-    "needs_gm": "Needs the general manager",
+    "needs_gm": "Needs the final approver",
     "needs_admin": "Needs an administrator",
     "other_department": "Outside your department",
     "not_staff": "Insufficient permission"

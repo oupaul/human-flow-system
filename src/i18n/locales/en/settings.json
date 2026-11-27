@@ -61,11 +61,34 @@
   },
   "approval": {
     "title": "Approval settings",
-    "description": "No one can review their own request. Requests from administrators and managers go to the general manager; the general manager's requests go to another administrator; managers can only review their own department.",
-    "generalManager": "General manager",
+    "description": "No one can review their own request. Requests from administrators and managers go to the final approver; the final approver's requests go to another administrator; managers can only review their own department.",
+    "generalManager": "Final approver",
     "none": "Not set",
     "saved": "Approval settings saved",
-    "notSet": "No general manager set: administrators currently review requests from administrators and managers.",
-    "stale": "The previously selected general manager has left, been disabled, or lost their staff role. Please choose again."
+    "notSet": "No final approver set: administrators currently review requests from administrators and managers.",
+    "stale": "The previously selected final approver has left, been disabled, or lost their staff role. Please choose again."
+  },
+  "backup": {
+    "title": "Backup",
+    "description": "The database and leave attachments are backed up daily at {{time}} and kept on this server for {{days}} days. With NAS upload enabled, backups are also copied to an SMB share.",
+    "enable": "Upload to NAS (SMB) after each backup",
+    "host": "Host (IP or name)",
+    "share": "Share name",
+    "folder": "Subfolder (optional)",
+    "domain": "Domain (optional)",
+    "username": "Username",
+    "password": "Password",
+    "passwordKept": "Saved; leave blank to keep",
+    "remoteKeepDays": "Days to keep on NAS",
+    "saved": "Backup settings saved",
+    "test": "Test connection",
+    "runNow": "Back up now",
+    "running": "Running…",
+    "saveFirst": "Save before testing or backing up",
+    "lastTest": "Connection test",
+    "lastBackup": "Local backup",
+    "lastUpload": "NAS upload",
+    "never": "No record yet",
+    "workerDown": "The backup service is not running. Check the backup service on the server."
   }
 }

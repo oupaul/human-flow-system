@@ -105,7 +105,7 @@
   "reviewBlock": {
     "self": "自分の申請は承認できません",
     "gm_application": "他の管理者の承認が必要",
-    "needs_gm": "総経理の承認が必要",
+    "needs_gm": "最終承認者の承認が必要",
     "needs_admin": "管理者の承認が必要",
     "other_department": "他部署のため承認できません",
     "not_staff": "権限がありません"

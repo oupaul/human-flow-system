@@ -25,6 +25,7 @@ import { NotificationSettingsFormData } from "@/types/notificationSettings";
 import { ApiError } from "@/lib/apiClient";
 import BrandingCard from "@/components/settings/BrandingCard";
 import ApprovalCard from "@/components/settings/ApprovalCard";
+import BackupCard from "@/components/settings/BackupCard";
 
 const emptyForm: NotificationSettingsFormData = {
   channel: "none",
@@ -141,6 +142,8 @@ const Settings = () => {
       <BrandingCard />
 
       <ApprovalCard />
+
+      <BackupCard />
 
       <Card>
         <CardHeader>

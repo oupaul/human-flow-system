@@ -2,12 +2,13 @@
 //
 // 審核規則（請假、加班、補卡、公出）：
 //   1. 任何人都不能審核自己的申請
-//   2. 管理員（admin）與主管（manager）的申請，由總經理審核
-//   3. 總經理自己的申請，由其他管理員審核
-//   4. 其他人的申請：管理員、HR、總經理可審；主管只能審同部門
-//   尚未設定總經理時，第 2 項改由其他管理員審核，避免申請卡住
+//   2. 管理員（admin）與主管（manager）的申請，由最終簽核者審核
+//   3. 最終簽核者自己的申請，由其他管理員審核
+//   4. 其他人的申請：管理員、HR、最終簽核者可審；主管只能審同部門
+//   尚未設定最終簽核者時，第 2 項改由其他管理員審核，避免申請卡住
 //
-// 主管（manager 且不是總經理）只能查看與處理同部門的資料。
+// 主管（manager 且不是最終簽核者）只能查看與處理同部門的資料。
+// 資料欄位與程式內的名稱沿用 generalManager／gm，指的就是最終簽核者（不一定是總經理）。
 
 const STAFF_ROLES = ['admin', 'hr', 'manager'];
 const ROLE_RANK = { admin: 4, hr: 3, manager: 2, employee: 1 };
@@ -22,9 +23,9 @@ export class AccessError extends Error {
 
 export const REVIEW_BLOCK_MESSAGES = {
   self: '不能審核自己的申請',
-  gm_application: '總經理的申請需由其他管理員審核',
-  needs_gm: '管理員與主管的申請需由總經理審核',
-  needs_admin: '尚未設定總經理，管理員與主管的申請需由管理員審核',
+  gm_application: '最終簽核者的申請需由其他管理員審核',
+  needs_gm: '管理員與主管的申請需由最終簽核者審核',
+  needs_admin: '尚未設定最終簽核者，管理員與主管的申請需由管理員審核',
   other_department: '主管只能審核同部門員工的申請',
   not_staff: '權限不足',
 };
@@ -39,7 +40,7 @@ export async function ensureApprovalSchema(pool) {
     )`);
 }
 
-// 可以擔任總經理的人：在職、有啟用中的管理端帳號（否則進不了審核畫面）
+// 可以擔任最終簽核者的人：在職、有啟用中的管理端帳號（否則進不了審核畫面）
 async function listGmCandidates(pool) {
   const [rows] = await pool.execute(
     `SELECT e.employeeId, e.name, e.department, u.role FROM employees e
@@ -54,7 +55,7 @@ async function getStoredGmId(pool) {
   return rows[0]?.generalManagerEmployeeId ?? null;
 }
 
-// 目前有效的總經理；設定的人已離職、停用或被改成一般員工時視為未設定
+// 目前有效的最終簽核者；設定的人已離職、停用或被改成一般員工時視為未設定
 export async function getGeneralManagerId(pool) {
   const stored = await getStoredGmId(pool);
   if (!stored) return null;
@@ -160,9 +161,9 @@ export async function assertCanManageEmployee(pool, user, employeeId, { sensitiv
     if (target.role !== 'employee') throw new AccessError('主管不能管理具有管理權限的帳號');
     return;
   }
-  // HR 與兼任總經理的主管：不能透過員工功能接管管理員或總經理的帳號
+  // HR 與兼任最終簽核者的主管：不能透過員工功能接管管理員或最終簽核者的帳號
   if (sensitive && !isSelf && (target.role === 'admin' || employeeId === scope.gmId)) {
-    throw new AccessError('只有管理員可以對管理員或總經理的帳號執行這個動作');
+    throw new AccessError('只有管理員可以對管理員或最終簽核者的帳號執行這個動作');
   }
 }
 
@@ -241,7 +242,7 @@ export function registerApprovalRoutes(api, { pool, requireRole }) {
     try {
       const id = req.body.generalManagerEmployeeId || null;
       if (id && !(await listGmCandidates(pool)).some((c) => c.employeeId === id)) {
-        return res.status(400).json({ error: '總經理必須是在職、且有管理端帳號（管理員、HR 或主管）的員工' });
+        return res.status(400).json({ error: '最終簽核者必須是在職、且有管理端帳號（管理員、HR 或主管）的員工' });
       }
       await pool.execute(
         `INSERT INTO approval_settings (id, generalManagerEmployeeId, updatedBy) VALUES (1, ?, ?)

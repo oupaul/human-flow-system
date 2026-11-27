@@ -12,7 +12,7 @@ interface ApprovalSettings { generalManagerEmployeeId: string | null; storedEmpl
 
 const NONE = "none";
 
-// 簽核設定：指定總經理。管理員與主管的申請由總經理審核
+// 簽核設定：指定最終簽核者。管理員與主管的申請由最終簽核者審核
 const ApprovalCard = () => {
   const { t } = useTranslation(["settings", "common"]);
   const [data, setData] = useState<ApprovalSettings | null>(null);

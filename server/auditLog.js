@@ -99,7 +99,9 @@ const CATALOG = {
   'GET /payroll/snapshots/:month/export': ['payroll', '匯出薪資結算'],
   'GET /employees/:employeeId/compensation': ['payroll', '查看員工薪資紀錄'],
 
-  'PUT /settings/approval': ['settings', '修改簽核設定（總經理）'],
+  'PUT /settings/approval': ['settings', '修改簽核設定（最終簽核者）'],
+  'PUT /settings/backup': ['settings', '修改備份設定'],
+  'POST /settings/backup/action': ['settings', '測試備份連線或立即備份'],
   'PUT /settings/notifications': ['settings', '修改通知設定'],
   'POST /settings/notifications/test': ['settings', '發送測試通知'],
   'POST /holidays': ['settings', '新增假日'],
